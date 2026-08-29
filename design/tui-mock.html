@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>clalt - authentic TUI mock</title>
+<style>
+  :root{
+    --bg:#12131a; --fg:#c8d3f5; --muted:#5b638f; --emph:#e7ecff;
+    --accent:#7dcfff; --accent2:#c099ff; --brand:#2ac3de;
+    --ok:#9ece6a; --warn:#e0af68; --err:#f7768e; --border:#3a3f5c; --sel:#243250;
+  }
+  body{margin:0;background:#07080c;display:flex;justify-content:center;padding:26px 14px;
+    font-family:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace}
+  .win{width:max-content;max-width:100%;border-radius:8px;overflow:hidden;border:1px solid #000;
+    box-shadow:0 20px 50px rgba(0,0,0,.55);background:var(--bg)}
+  .chrome{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0b0c12;border-bottom:1px solid #000}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .dot.r{background:#ff5f56}.dot.y{background:#ffbd2e}.dot.g{background:#27c93f}
+  .chrome .t{margin-left:8px;color:var(--muted);font-size:12px}
+  pre#screen{margin:0;padding:12px 14px;color:var(--fg);background:var(--bg);
+    font-size:13px;line-height:1.32;white-space:pre;letter-spacing:0}
+  /* semantic slots -> spans */
+  .dim{color:var(--muted)} .accent{color:var(--accent)} .accent2{color:var(--accent2)}
+  .brand{color:var(--brand);font-weight:700} .ok{color:var(--ok)} .warn{color:var(--warn)}
+  .err{color:var(--err)} .border{color:var(--border)} .ptitle{color:var(--accent);font-weight:700}
+  .emph{color:var(--emph)} .sel{background:var(--sel)}
+  .nav{cursor:pointer} .nav:hover{color:var(--emph)}
+  .tabon{color:#0b0c12;background:var(--accent);font-weight:700;cursor:pointer}
+  .legend{color:#5b638f;font-size:11px;text-align:center;margin-top:12px;
+    font-family:"JetBrains Mono",monospace}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="t">clalt - robindhital@mac - 112x36</span></div>
+  <pre id="screen"></pre>
+</div>
+<div class="legend">authentic TUI mock (top tabs) - box-drawing rendered at runtime - keys: 1-6 tabs, h/l switch, j/k select, click tabs</div>
+
+<script>
+// ---- box-drawing charset (generated so no glyphs live in source) ----
+const K={tl:0x250C,tr:0x2510,bl:0x2514,br:0x2518,h:0x2500,v:0x2502,
+  full:0x2588,shade:0x2591,dot:0x25CF,cur:0x25B8,chk:0x2713,warn:0x26A0,spin:0x25E1};
+const c=n=>String.fromCharCode(n);
+const H=c(K.h), V=c(K.v);
+const MAINW=112, W=MAINW; // clauth-style single full-width column under a top tab bar
+
+// ---- primitives: a line is an array of {t,cls,d} segments ----
+const S=(t,cls,d)=>({t,cls:cls||"",d});
+const plen=line=>line.reduce((a,s)=>a+[...s.t].length,0);
+function pad(line,w){const n=w-plen(line);return n>0?[...line,S(" ".repeat(n))]:line;}
+const blank=w=>[S(" ".repeat(w))];
+
+function box(title,width,lines){
+  const cw=width-4; // inner text width (border + 1 space each side)
+  const out=[];
+  const label=" "+title+" ";
+  out.push([S(c(K.tl)+H+H,"border"),S(label,"ptitle"),
+            S(H.repeat(width-4-label.length),"border"),S(c(K.tr),"border")]);
+  for(const ln of lines){
+    out.push([S(V,"border"),S(" "),...pad(ln,cw),S(" "),S(V,"border")]);
+  }
+  out.push([S(c(K.bl)+H.repeat(width-2)+c(K.br),"border")]);
+  return out;
+}
+function bar(frac,w){
+  frac=Math.max(0,Math.min(1,frac));
+  const f=Math.round(frac*w);
+  const cls=frac>=.8?"err":frac>=.5?"warn":"ok";
+  return [S(c(K.full).repeat(f),cls),S(c(K.shade).repeat(w-f),"dim")];
+}
+const spark=levels=>S(levels.map(i=>c(0x2581+i)).join(""),"accent2");
+function vchart(data,rows,cls){ // returns `rows` segment-lines
+  const max=Math.max(...data,1);
+  const hgt=data.map(v=>Math.round(v/max*rows*8));
+  const out=[];
+  for(let r=0;r<rows;r++){
+    const fromBottom=rows-1-r; let s="";
+    for(const hh of hgt){const cell=hh-fromBottom*8;
+      s+= cell<=0?" ":cell>=8?c(K.full):c(0x2580+cell);}
+    out.push([S(s,cls)]);
+  }
+  return out;
+}
+const field=(t,w,right)=>{t=String(t);if(t.length>w)t=t.slice(0,w-1)+"~";
+  return right?" ".repeat(w-t.length)+t:t+" ".repeat(w-t.length);};
+
+// ---- data ----
+const accts=[
+  {name:"robin", type:"Team",act:true, run:false,five:.12,seven:.11,r5:"now",  r7:"3d17h",exp:"6h15m",spk:[0,1,2,4,6,4,2,3]},
+  {name:"casey", type:"Team",act:false,run:true, five:.45,seven:.58,r5:"now",  r7:"now",  exp:"22m",  spk:[2,4,6,7,6,7,5,6]},
+  {name:"jordan",type:"Team",act:false,run:true, five:.42,seven:.06,r5:"298s", r7:"3d13h",exp:"5d1h", spk:[1,0,1,2,1,0,2,1]},
+];
+let sel=0, view="accounts";
+// views deliberately differ from clauth (which has setup/config/status/plugin):
+// ours center on accounts, parallel sessions, rotation, and health.
+const views=[["accounts","accounts"],["tokens","tokens"],["sessions","sessions"],
+  ["rotate","rotate"],["health","health"],["login","login"]];
+
+// ---- header + footer ----
+function header(){
+  const a=accts[sel];
+  const l1=[S(c(0x25C6)+" clalt","brand"),S("  v0.2.0","dim"),
+    S("   active ","dim"),S(a.name+(a.act?" *":""),"ok")];
+  const right=[S(c(K.dot)+" status.claude.ai","ok")];
+  const gap=W-plen(l1)-plen(right);
+  const line1=[...l1,S(" ".repeat(Math.max(1,gap))),...right];
+  const chips=[S("accounts ","dim"),S("3","emph"),S("   running ","dim"),S("2","ok"),
+    S("   today ","dim"),S("$116","emph"),S("   week ","dim"),S("$1.2K","emph")];
+  return [pad(line1,W),pad(chips,W),[S(H.repeat(W),"border")]];
+}
+function footer(){
+  const ex={accounts:"r run   n rotate   j/k select",tokens:"t period   L live",
+    sessions:"enter attach   x stop",rotate:"j/k reorder   n rotate",
+    health:"f fix   R refresh",login:"enter submit code"}[view];
+  const segs=[];
+  const push=(k,d)=>{segs.push(S(k,"accent"),S(" "+d+"   ","dim"));};
+  ex.split("   ").forEach(p=>{const i=p.indexOf(" ");push(p.slice(0,i),p.slice(i+1));});
+  segs.push(S("|  ","border"));
+  [["j/k","move"],["enter","switch"],[":","cmd"],["?","help"],["q","quit"]].forEach(x=>push(x[0],x[1]));
+  return [[S(H.repeat(W),"border")],pad(segs,W)];
+}
+
+// ---- top tab bar (clauth-style navigation) ----
+function tabbar(){
+  const segs=[S(" ")];
+  views.forEach(([id,label])=>{
+    const on=id===view;
+    segs.push(S(" "+label+" ",on?"tabon":"nav",id));
+    if(id==="sessions")segs.push(S(on?"":" 2","accent2"));
+    segs.push(S("  ","dim"));
+  });
+  return [pad(segs,W),[S(H.repeat(W),"border")]];
+}
+
+// ---- main views ----
+function vOverview(){
+  const rows=[];
+  rows.push([S(field("account",12),"dim"),S(field("trend",10),"dim"),
+    S(field("5h",24),"dim"),S(field("7d",24),"dim"),S("token","dim")]);
+  accts.forEach((a,i)=>{
+    const cur=i===sel?S(c(K.cur)+" ","accent"):S("  ");
+    const nm=S(field(a.name+(a.act?" *":""),12),a.act?"ok":"emph");
+    const sp=[spark(a.spk),S(" ")];
+    const m5=[...bar(a.five,10),S(" "),S(field(Math.round(a.five*100)+"%",4,true)),S(" "),S(field(a.r5,6),"dim")];
+    const m7=[...bar(a.seven,10),S(" "),S(field(Math.round(a.seven*100)+"%",4,true)),S(" "),S(field(a.r7,6),"dim")];
+    const run=a.run?S(" run","ok"):S("");
+    let row=[cur,nm,...sp,...m5,S(" "),...m7,S("in "+a.exp,"dim"),run];
+    if(i===sel)row=row.map(s=>({...s,cls:(s.cls+" sel").trim()}));
+    rows.push(row);
+  });
+  return box("ACCOUNTS",MAINW,rows);
+}
+function kv(k,v,vcls){return [S(field(k,12),"dim"),S(v,vcls||"")];}
+function vTokens(){
+  const sum=box("SUMMARY",MAINW,[
+    kv("today","1.00M tokens  ","accent").concat(S("$116.62","accent2")),
+    kv("total","135M tokens  ","accent").concat(S("$17,742.11  ","accent2"),S("97% cache hit","brand")),
+    kv("sessions","229"), kv("msgs","181,000"),
+  ]);
+  const mrow=(n,f,tok,cost)=>[S(field(n,10)),...bar(f,14),S(" "),S(field(tok,7,true),"fg"),S(" "),S(field(cost,9,true),"accent2")];
+  const models=box("TOP MODELS",MAINW,[
+    mrow("opus 4.8",1,"68.7M","$12,158"),mrow("sonnet 5",.97,"66.5M","$5,580"),mrow("haiku 4.5",.01,"127K","$2.86"),
+  ]);
+  const ch=vchart(series(60,7),8,"accent");
+  const chart=box("DAILY  tokens/day  peak 10.7M aug 14",MAINW,[...ch,[S("jul"+" ".repeat(MAINW-11)+"aug","dim")]]);
+  return [...sum,...models,...chart];
+}
+function vUsage(){
+  return box("USAGE  robin (active) Team",MAINW,[
+    [S(field("5h live",10),"dim"),...bar(.12,20),S(" 12%  "),S("resets now","dim")],
+    [S(field("7d live",10),"dim"),...bar(.11,20),S(" 11%  "),S("resets 3d17h","dim")],
+    [S(field("5h local",10),"dim"),S("340.0K tokens over 346 msgs","dim")],
+    blank(1)[0]?[]:[], // spacer placeholder removed below
+    kv("total","135M tokens  ","accent").concat(S("$17,742 est","accent2")),
+    kv("token exp","in 6h15m"),
+  ].filter(l=>l.length));
+}
+function vFallback(){
+  const rows=accts.map((a,i)=>[S(field((i+1)+". "+a.name+(a.act?" *":""),14)),...bar(a.five,16),S(" "),S(Math.round(a.five*100)+"%","fg")]);
+  const chain=box("ROTATION CHAIN  threshold 85%",MAINW,rows);
+  const pol=box("POLICY  clalt next / next --live",MAINW,[
+    kv("on limit","rotate to the next healthy account"),
+    kv("threshold","85% of the 5h window"),
+    kv("when spent","stay on active, warn"),
+  ]);
+  return [...chain,...pol];
+}
+function vSessions(){
+  const rows=[[S(field("",2)),S(field("account",10),"dim"),S(field("pid",8),"dim"),
+    S(field("uptime",9),"dim"),S(field("tokens",9),"dim"),S("cwd","dim")]];
+  accts.filter(a=>a.run).forEach(a=>rows.push([
+    S(c(K.dot)+" ","ok"),S(field(a.name,10),"emph"),S(field(48000+Math.round(a.five*700),8),"fg"),
+    S(field(a.name==="casey"?"2h14m":"41m",9)),S(field(a.name==="casey"?"420K":"88K",9)),
+    S("~/Projects/"+(a.name==="casey"?"rt-search":"mcp-servers"),"dim")]));
+  const mon=box("PARALLEL SESSIONS  clalt run - isolated profiles",MAINW,rows);
+  const start=box("START A SESSION",MAINW,[
+    kv("command","clalt run <account> --link","accent2"),
+    [S("isolated CLAUDE_CONFIG_DIR - does not disturb other sessions","dim")],
+  ]);
+  return [...mon,...start];
+}
+function vDoctor(){
+  const chk=(ic,cls,name,d)=>[S(ic+" ",cls),S(field(name,26)),S(d,"dim")];
+  const health=box("HEALTH  clalt doctor --fix",MAINW,[
+    chk(c(K.chk),"ok","keychain / file in sync","both present, match"),
+    chk(c(K.chk),"ok","robin token","valid, expires in 6h15m"),
+    chk(c(K.warn),"warn","casey token","expires in 22m - refresh soon"),
+    chk(c(K.chk),"ok","jordan token","valid, expires in 5d 1h"),
+    chk(c(K.chk),"ok","orphaned secrets","none"),
+    chk(c(K.chk),"ok","metadata without secret","none"),
+  ]);
+  const fix=box("SUGGESTED  1 warning",MAINW,[kv("fix","clalt refresh casey","accent2")]);
+  return [...health,...fix];
+}
+function vLogin(){
+  return box("LOGIN  new account: spare",MAINW,[
+    [S(c(K.dot)+" ","ok"),S("generated PKCE verifier + state (S256)")],
+    [S(c(K.dot)+" ","ok"),S("opened browser to claude.ai/oauth/authorize")],
+    [S(c(K.spin)+" ","warn"),S("waiting - paste the code from the callback page","warn")],
+    blank(1)[0],
+    [S("claude.ai/oauth/authorize?code=true&client_id=9d1c250a...&state=kRfd...","accent")],
+    [S("paste code: ","dim"),S(c(K.full),"accent")],
+    [S("exchanging at platform.claude.com/v1/oauth/token ...","dim")],
+  ]);
+}
+function series(n,seed){const o=[];let s=seed;for(let i=0;i<n;i++){s=(s*1103515245+12345)&0x7fffffff;o.push(.2+(s/0x7fffffff)*.8);}return o;}
+
+// ---- compose + render ----
+function mainLines(){
+  switch(view){case "tokens":return vTokens();case "sessions":return vSessions();
+    case "rotate":return vFallback();case "health":return vDoctor();
+    case "login":return vLogin();default:return vOverview();}
+}
+function render(){
+  const all=[...header(),...tabbar(),...mainLines(),...footer()];
+  const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  document.getElementById("screen").innerHTML=all.map(line=>
+    line.map(s=>`<span class="${s.cls}"${s.d?` data-v="${s.d}"`:""}>${esc(s.t)}</span>`).join("")
+  ).join("\n");
+  document.querySelectorAll("#screen [data-v]").forEach(el=>el.onclick=()=>{view=el.dataset.v;render();});
+}
+document.addEventListener("keydown",e=>{
+  const idx=views.findIndex(v=>v[0]===view);
+  const n=+e.key;
+  if(n>=1&&n<=views.length)view=views[n-1][0];
+  else if(e.key==="j"||e.key==="ArrowDown")sel=Math.min(accts.length-1,sel+1);
+  else if(e.key==="k"||e.key==="ArrowUp")sel=Math.max(0,sel-1);
+  else if(e.key==="l"||e.key==="ArrowRight")view=views[Math.min(views.length-1,idx+1)][0];
+  else if(e.key==="h"||e.key==="ArrowLeft")view=views[Math.max(0,idx-1)][0];
+  else return;
+  render();
+});
+render();
+</script>
+</body>
+</html>
