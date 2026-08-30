@@ -65,7 +65,10 @@ func TestKeepaliveOnceRefreshesOnlyNearExpiry(t *testing.T) {
 	}
 }
 
-func TestKeepaliveOncePushesActiveToLiveStore(t *testing.T) {
+// TestKeepaliveRefreshesVaultNotLiveStore proves keepalive stays keychain-free:
+// it rotates the account's token in the vault but never writes Claude Code's live
+// store (the macOS Keychain item that caused the recurring password prompt).
+func TestKeepaliveRefreshesVaultNotLiveStore(t *testing.T) {
 	app, _, _ := newTestApp(t)
 	app.refreshToken = fakeRefresh()
 
@@ -77,12 +80,14 @@ func TestKeepaliveOncePushesActiveToLiveStore(t *testing.T) {
 	if _, errs := app.keepaliveOnce(45 * time.Minute); len(errs) != 0 {
 		t.Fatalf("errs: %v", errs)
 	}
-	live, err := app.Live.Read()
-	if err != nil {
-		t.Fatalf("live read: %v", err)
+	// the vault slot was rotated
+	wc, _, _ := app.Store.Get("work")
+	if wc.AccessToken != "new-r-work" {
+		t.Errorf("vault token not rotated: %q", wc.AccessToken)
 	}
-	if live.AccessToken != "new-r-work" {
-		t.Errorf("live store not updated for active account: %q", live.AccessToken)
+	// the live store must remain empty: keepalive does not touch the keychain
+	if live, err := app.Live.Read(); err == nil && live.AccessToken != "" {
+		t.Errorf("keepalive must not write the live store, found %q", live.AccessToken)
 	}
 }
 

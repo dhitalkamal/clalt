@@ -56,11 +56,9 @@ func sampleData() Data {
 		Stats: usage.Stats{Billable: 12_000_000, Cost: 900.0, Messages: 20000, Sessions: 30, FirstDay: now.AddDate(0, 0, -10), LastDay: now},
 	}
 	return Data{
-		Version:   version(),
-		Accounts:  []AccountView{main, personal},
-		Selected:  0,
-		Fallback:  []string{"main", "personal"},
-		Threshold: 0.85,
+		Version:  version(),
+		Accounts: []AccountView{main, personal},
+		Selected: 0,
 	}
 }
 
@@ -94,17 +92,6 @@ func TestRenderUsageTab(t *testing.T) {
 	for _, want := range []string{"USAGE", "TOP PROJECTS", "ExampleATS"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("usage tab missing %q", want)
-		}
-	}
-}
-
-func TestRenderFallbackTab(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 0, width: 120, height: 40, tab: 3}
-	out := m.View()
-	for _, want := range []string{"ROTATION CHAIN", "threshold 85%", "POLICY", "main", "personal"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("fallback tab missing %q", want)
 		}
 	}
 }
@@ -168,11 +155,11 @@ func TestPaletteMode(t *testing.T) {
 	if m.mode != "palette" {
 		t.Fatalf("expected palette mode, got %q", m.mode)
 	}
-	// first command is "rotate"; enter emits it
+	// first command is "run main"; enter emits it (keychain-free launch)
 	nm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = nm.(dashModel)
-	if m.action.Kind != "rotate" {
-		t.Errorf("palette enter -> %+v, want rotate", m.action)
+	if m.action.Kind != "run" || m.action.Account != "main" {
+		t.Errorf("palette enter -> %+v, want run main", m.action)
 	}
 }
 
@@ -180,7 +167,7 @@ func TestRenderHelpOverlay(t *testing.T) {
 	d := sampleData()
 	m := dashModel{data: d, sel: 0, width: 120, height: 40, showHelp: true}
 	out := m.View()
-	for _, want := range []string{"KEYBINDINGS", "switch to selected account", "rotate"} {
+	for _, want := range []string{"KEYBINDINGS", "run selected account", "delete the selected account"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("help overlay missing %q", want)
 		}

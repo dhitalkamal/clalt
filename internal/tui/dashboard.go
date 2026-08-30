@@ -36,23 +36,21 @@ type SessionInfo struct {
 
 // Data is the whole dashboard payload.
 type Data struct {
-	Version   string
-	Accounts  []AccountView
-	Selected  int
-	Fallback  []string // rotation chain order
-	Threshold float64  // rotation threshold (0..1)
-	Sessions  []SessionInfo
+	Version  string
+	Accounts []AccountView
+	Selected int
+	Sessions []SessionInfo
 }
 
 // Action is what the user asked for on exit, performed by the caller once the
 // alt-screen has been torn down.
 type Action struct {
-	Kind    string // "", "switch", "run", "rotate"
+	Kind    string // "", "run", "remove"
 	Account string
 }
 
 // tabs shown across the top.
-var tabs = []string{"overview", "tokens", "usage", "fallback", "sessions"}
+var tabs = []string{"overview", "tokens", "usage", "sessions"}
 
 type dashModel struct {
 	data       Data
@@ -114,23 +112,16 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.sel < len(vis)-1 {
 				m.sel++
 			}
-		case "enter":
-			if a := m.selectedAccount(); a != nil {
-				m.action = Action{Kind: "switch", Account: a.Name}
-				return m, tea.Quit
-			}
-		case "r":
+		case "enter", "r":
+			// launch a keychain-free `clalt run` session for the selected account
 			if a := m.selectedAccount(); a != nil {
 				m.action = Action{Kind: "run", Account: a.Name}
 				return m, tea.Quit
 			}
-		case "n":
-			m.action = Action{Kind: "rotate"}
-			return m, tea.Quit
 		case "d", "x":
 			if a := m.selectedAccount(); a != nil {
 				if a.Active {
-					m.flash = "cannot remove the active account - switch away first"
+					m.flash = "cannot remove the active account"
 				} else {
 					m.confirming, m.confirmFor = true, a.Name
 				}
@@ -170,8 +161,6 @@ func (m dashModel) View() string {
 			b.WriteString(m.viewTokens())
 		case "usage":
 			b.WriteString(m.viewUsage())
-		case "fallback":
-			b.WriteString(m.viewFallback())
 		case "sessions":
 			b.WriteString(m.viewSessions())
 		}

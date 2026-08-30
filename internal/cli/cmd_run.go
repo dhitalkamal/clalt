@@ -24,8 +24,11 @@ func (a *App) cmdRun(args []string) error {
 	}
 
 	dir := config.ProfileDir(account)
-	// put the account's credential where claude will actually read it on this OS
-	if err := a.stageForRun(account, dir, opts.refresh); err != nil {
+	// resolve the account's credential into the mechanism this OS's Claude Code
+	// actually reads: an injected CLAUDE_CODE_OAUTH_TOKEN env entry on macOS
+	// (keychain-free), an isolated per-profile file elsewhere.
+	credEnv, err := a.credentialEnv(account, dir, opts.refresh)
+	if err != nil {
 		return err
 	}
 
@@ -58,6 +61,9 @@ func (a *App) cmdRun(args []string) error {
 		"CLAUDE_CONFIG_DIR="+dir,
 		"CLAUDE_SECURESTORAGE_CONFIG_DIR="+dir,
 	)
+	// CLAUDE_CODE_OAUTH_TOKEN (macOS) makes this the sole login for the child,
+	// so accounts run in parallel without sharing one global keychain login.
+	cmd.Env = append(cmd.Env, credEnv...)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -75,31 +81,47 @@ func (a *App) cmdRun(args []string) error {
 	return runErr
 }
 
-// stageForRun makes the account's credential visible to the claude session it is
-// about to launch, using the mechanism that platform's Claude Code actually
-// reads: the live keychain on macOS, an isolated per-profile file elsewhere.
-func (a *App) stageForRun(account, dir string, refresh bool) error {
+// darwinRunEnv resolves the account's token from the vault and returns it as a
+// CLAUDE_CODE_OAUTH_TOKEN env entry for the child claude process. This is the
+// keychain-free path on macOS: Claude Code reads CLAUDE_CODE_OAUTH_TOKEN ahead
+// of the Keychain and the file, so clalt never has to touch the macOS Keychain
+// (which is what caused the recurring password prompt). A missing credential is
+// not fatal: return no env and let claude prompt to log in.
+func (a *App) darwinRunEnv(account string, refresh bool) ([]string, error) {
+	cred, _, err := a.Store.Get(account)
+	if err != nil {
+		a.printf("no stored credential for %q; claude will prompt you to log in\n", account)
+		return nil, nil
+	}
+	// refresh a stale (or explicitly --refresh'd) token so the session starts
+	// fresh; a single session outliving the token still needs a relaunch.
+	if (refresh || cred.IsExpired(5*time.Minute)) && cred.RefreshToken != "" {
+		if nc, rerr := a.refreshAccount(account); rerr == nil {
+			cred = nc
+		} else {
+			a.printf("warning: could not refresh %q (%v); using the stored token\n", account, rerr)
+		}
+	}
+	if cred.AccessToken == "" {
+		a.printf("no usable token for %q; claude will prompt you to log in\n", account)
+		return nil, nil
+	}
+	return []string{"CLAUDE_CODE_OAUTH_TOKEN=" + cred.AccessToken}, nil
+}
+
+// credentialEnv resolves the account's credential into the extra environment the
+// child claude needs, using the mechanism that platform's Claude Code actually
+// reads: an injected CLAUDE_CODE_OAUTH_TOKEN on macOS (keychain-free, so no
+// password prompt), an isolated per-profile file elsewhere (which returns no
+// extra env). The profile dir is created either way for settings/skills sharing.
+func (a *App) credentialEnv(account, dir string, refresh bool) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+		return nil, err
 	}
 	if runtime.GOOS == "darwin" {
-		// macOS Claude Code reads the one global keychain item and ignores the
-		// per-profile .credentials.json, so load the account into the live store
-		// the way switch does. Consequence: accounts cannot run in parallel on
-		// macOS, they share a single login.
-		if _, _, err := a.Store.Get(account); err != nil {
-			a.printf("no stored credential for %q; claude will prompt you to log in\n", account)
-			return nil
-		}
-		if a.hasOtherRunSession() {
-			a.printf("note: on macOS all sessions share one Claude login; another run is active, so this changes the shared login to %q\n", account)
-		}
-		if err := a.Store.Switch(account); err != nil {
-			return fmt.Errorf("activate %q into the live login: %w", account, err)
-		}
-		return nil
+		return a.darwinRunEnv(account, refresh)
 	}
-	return a.stageProfileCred(account, dir, refresh)
+	return nil, a.stageProfileCred(account, dir, refresh)
 }
 
 // stageProfileCred writes the account's stored credential into the isolated
@@ -118,26 +140,14 @@ func (a *App) stageProfileCred(account, dir string, refresh bool) error {
 }
 
 // syncAfterRun captures any token the session rotated back into the account slot.
-// On macOS the rotation lands in the live store; elsewhere in the profile file.
+// On macOS the token was injected via env and Claude Code manages its own token
+// rotation out of band, so there is nothing for clalt to capture (keepalive keeps
+// the vault fresh); elsewhere the rotated token is read back from the profile file.
 func (a *App) syncAfterRun(account, dir string) {
 	if runtime.GOOS == "darwin" {
-		cred, err := a.Live.Read()
-		if err != nil || cred.AccessToken == "" {
-			return
-		}
-		if _, meta, gerr := a.Store.Get(account); gerr == nil {
-			_ = a.Store.Save(account, cred, meta)
-		}
 		return
 	}
 	a.syncProfileBack(account, dir)
-}
-
-// hasOtherRunSession reports whether another `clalt run` session is already live,
-// used to warn that macOS cannot isolate accounts.
-func (a *App) hasOtherRunSession() bool {
-	sessions, err := profile.ListSessions(config.SessionsDir())
-	return err == nil && len(sessions) > 0
 }
 
 // syncProfileBack copies a profile's current (possibly rotated) credential back

@@ -62,14 +62,7 @@ func (a *App) cmdLogin(args []string) error {
 		return err
 	}
 	a.printf("logged in and stored as %q%s\n", name, emailSuffix(meta.Email))
-	a.printf("start a session as this account (no global Claude Code login needed): clalt run %s\n", name)
-
-	if a.confirm("also make it your global Claude Code login now?") {
-		if err := a.Store.Switch(name); err != nil {
-			return err
-		}
-		a.printf("switched to %q\n", name)
-	}
+	a.printf("start a session as this account (keychain-free, no global Claude Code login needed): clalt run %s\n", name)
 	return nil
 }
 
@@ -161,12 +154,8 @@ func (a *App) refreshAccount(name string) (credential.Credential, error) {
 	if err := a.Store.Save(name, cred, meta); err != nil {
 		return cred, err
 	}
-	// if this is the active account, push the fresh token into the live store too
-	if active, _ := a.Store.Active(); active == name {
-		if err := a.Live.Write(cred); err != nil {
-			return cred, err
-		}
-	}
+	// keychain-free: the rotated token lives in the vault only. `clalt run` reads
+	// it at launch via CLAUDE_CODE_OAUTH_TOKEN, so there is no live store to push.
 	return cred, nil
 }
 

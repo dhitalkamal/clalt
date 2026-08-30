@@ -101,9 +101,7 @@ type palCmd struct {
 // paletteCommands builds the (filtered) command list for the palette.
 func (m dashModel) paletteCommands() []palCmd {
 	var all []palCmd
-	all = append(all, palCmd{"rotate to next account", Action{Kind: "rotate"}})
 	for _, a := range m.data.Accounts {
-		all = append(all, palCmd{"switch " + a.Name, Action{Kind: "switch", Account: a.Name}})
 		all = append(all, palCmd{"run " + a.Name + " (parallel)", Action{Kind: "run", Account: a.Name}})
 		if !a.Active {
 			all = append(all, palCmd{"remove " + a.Name, Action{Kind: "remove", Account: a.Name}})

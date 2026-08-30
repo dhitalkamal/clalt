@@ -11,33 +11,25 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/keychain"
-	"github.com/dhitalkamal/clalt/internal/livestore"
 )
 
 // state is the on-disk metadata file (no secrets).
 type state struct {
-	Active    string          `json:"active"`
-	Accounts  map[string]Meta `json:"accounts"`
-	Fallback  []string        `json:"fallback,omitempty"`  // ordered rotation chain
-	Threshold float64         `json:"threshold,omitempty"` // util fraction that triggers rotation
+	Active   string          `json:"active"`
+	Accounts map[string]Meta `json:"accounts"`
 }
-
-// DefaultThreshold is the utilization fraction above which `next --live` rotates
-// off an account.
-const DefaultThreshold = 0.90
 
 // Store is the account manager.
 type Store struct {
 	kc        keychain.Store
-	live      *livestore.Store
 	statePath string
 	logPath   string
 	now       func() time.Time // injectable clock for tests
 }
 
 // New builds a Store.
-func New(kc keychain.Store, live *livestore.Store, statePath, logPath string) *Store {
-	return &Store{kc: kc, live: live, statePath: statePath, logPath: logPath, now: time.Now}
+func New(kc keychain.Store, statePath, logPath string) *Store {
+	return &Store{kc: kc, statePath: statePath, logPath: logPath, now: time.Now}
 }
 
 // Save stores (or replaces) a slot's credential and upserts its metadata.

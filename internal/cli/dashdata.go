@@ -53,7 +53,6 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 		}
 		data.Accounts = append(data.Accounts, view)
 	}
-	data.Fallback, data.Threshold, _ = a.Store.Fallback()
 
 	if sessions, serr := profile.ListSessions(config.SessionsDir()); serr == nil {
 		for _, s := range sessions {

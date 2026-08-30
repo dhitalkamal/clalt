@@ -45,8 +45,7 @@ func (m dashModel) footer() string {
 		return lipglossFg(colWarn).Render(m.flash)
 	}
 	extra := map[string]string{
-		"overview": "enter switch   r run   / filter",
-		"fallback": "n rotate",
+		"overview": "enter/r run   / filter",
 	}[tabs[m.tab]]
 	if extra != "" {
 		extra += "      "
@@ -62,10 +61,8 @@ func (m dashModel) helpView() string {
 	b.WriteString(dimStyle.Render("navigation") + "\n")
 	b.WriteString(line("left/right h l", "switch tabs"))
 	b.WriteString(line("up/down j k", "select account"))
-	b.WriteString(line("enter", "switch to selected account"))
 	b.WriteString("\n" + dimStyle.Render("actions") + "\n")
-	b.WriteString(line("r", "run selected account in parallel (isolated)"))
-	b.WriteString(line("n", "rotate to next account in the chain"))
+	b.WriteString(line("enter/r", "run selected account, keychain-free (isolated)"))
 	b.WriteString(line("d", "delete the selected account (with confirm)"))
 	b.WriteString(line("/", "filter accounts    : command palette"))
 	b.WriteString("\n" + dimStyle.Render("general") + "\n")

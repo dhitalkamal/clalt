@@ -32,12 +32,8 @@ func (a *App) cmdDashboard(args []string) error {
 	}
 	// perform the chosen action now that the alt-screen is torn down
 	switch act.Kind {
-	case "switch":
-		return a.cmdSwitch([]string{act.Account})
 	case "run":
 		return a.cmdRun([]string{act.Account})
-	case "rotate":
-		return a.cmdNext(nil)
 	case "remove":
 		return a.cmdRemove([]string{act.Account, "--force"}) // already confirmed in the TUI
 	}

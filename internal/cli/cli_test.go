@@ -42,64 +42,6 @@ func TestParseRunArgs(t *testing.T) {
 	}
 }
 
-func TestNextInChain(t *testing.T) {
-	chain := []string{"a", "b", "c"}
-	if got := nextInChain(chain, "a"); got != "b" {
-		t.Errorf("after a = %q, want b", got)
-	}
-	if got := nextInChain(chain, "c"); got != "a" { // wraps
-		t.Errorf("after c = %q, want a (wrap)", got)
-	}
-	if got := nextInChain(chain, "zzz"); got != "a" { // not in chain -> first
-		t.Errorf("unknown active = %q, want a", got)
-	}
-}
-
-func TestCmdNextRotates(t *testing.T) {
-	app, _, _ := newTestApp(t)
-	_ = app.Live.Write(liveCred("w"))
-	_ = app.cmdAdd([]string{"work"})
-	_ = app.Live.Write(liveCred("p"))
-	_ = app.cmdAdd([]string{"personal"}) // personal now active
-	_ = app.Store.SetFallback([]string{"work", "personal"})
-
-	if err := app.cmdNext(nil); err != nil { // non-live round robin
-		t.Fatalf("cmdNext: %v", err)
-	}
-	// active was personal (last in chain) -> wraps to work
-	if act, _ := app.Store.Active(); act != "work" {
-		t.Errorf("active = %q, want work after rotate", act)
-	}
-}
-
-func TestOverBudget(t *testing.T) {
-	app, _, dir := newTestApp(t)
-	t.Setenv("CLAUDE_CONFIG_DIR", dir)
-	projDir := filepath.Join(dir, "projects", "p")
-	if err := os.MkdirAll(projDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	// today's usage: 100K sonnet output ~= $1.50
-	now := time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	line := `{"type":"assistant","timestamp":"` + now + `","sessionId":"s","message":{"model":"claude-sonnet-5","usage":{"input_tokens":0,"output_tokens":100000}}}` + "\n"
-	if err := os.WriteFile(filepath.Join(projDir, "s.jsonl"), []byte(line), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	_ = app.Live.Write(liveCred("tok"))
-	_ = app.cmdAdd([]string{"work"})
-	_ = app.Store.SetBudget("work", 0.50, 0) // cap below the ~$1.50 spent
-
-	over, budget, cost := app.overBudget("work")
-	if !over {
-		t.Errorf("expected over budget: cost %.2f vs cap %.2f", cost, budget)
-	}
-	// no budget set -> never over
-	_ = app.Store.SetBudget("work", 0, 0)
-	if over, _, _ := app.overBudget("work"); over {
-		t.Error("no cap should never be over budget")
-	}
-}
-
 func TestStageProfileCredStagesCredential(t *testing.T) {
 	app, _, dir := newTestApp(t)
 	t.Setenv("XDG_CONFIG_HOME", dir) // ProfileDir hangs off XDG
@@ -122,10 +64,11 @@ func TestStageProfileCredStagesCredential(t *testing.T) {
 	}
 }
 
-// TestStageForRunActivatesLiveOnMacOS proves the fix: on macOS `run` puts the
-// account's credential into the live store (what claude reads), so a session
-// does not prompt for a fresh login.
-func TestStageForRunActivatesLiveOnMacOS(t *testing.T) {
+// TestDarwinRunEnvInjectsTokenNoKeychain proves the keychain-free fix: on macOS
+// `run` resolves the account token from the vault and hands it to the child via
+// CLAUDE_CODE_OAUTH_TOKEN, and does NOT write Claude Code's live store (the
+// macOS Keychain item that used to trigger the recurring password prompt).
+func TestDarwinRunEnvInjectsTokenNoKeychain(t *testing.T) {
 	if runtime.GOOS != "darwin" {
 		t.Skip("macOS-specific run credential path")
 	}
@@ -135,15 +78,23 @@ func TestStageForRunActivatesLiveOnMacOS(t *testing.T) {
 	if err := app.Store.Save("personal", liveCred("tok-personal"), account.Meta{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.stageForRun("personal", config.ProfileDir("personal"), false); err != nil {
-		t.Fatalf("stageForRun: %v", err)
-	}
-	live, err := app.Live.Read()
+	env, err := app.darwinRunEnv("personal", false)
 	if err != nil {
-		t.Fatalf("live read: %v", err)
+		t.Fatalf("darwinRunEnv: %v", err)
 	}
-	if live.AccessToken != "tok-personal" {
-		t.Errorf("live store not activated to personal: %q", live.AccessToken)
+	want := "CLAUDE_CODE_OAUTH_TOKEN=tok-personal"
+	found := false
+	for _, e := range env {
+		if e == want {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("run env missing token injection %q, got %v", want, env)
+	}
+	// the live store (keychain-backed on macOS) must be left untouched
+	if live, rerr := app.Live.Read(); rerr == nil && live.AccessToken != "" {
+		t.Errorf("run must not write the live store, but found %q", live.AccessToken)
 	}
 }
 
@@ -154,7 +105,7 @@ func newTestApp(t *testing.T) (*App, *bytes.Buffer, string) {
 	dir := t.TempDir()
 	kc := keychain.NewFake()
 	live := livestore.New(kc, filepath.Join(dir, ".credentials.json"))
-	store := account.New(kc, live, filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
+	store := account.New(kc, filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
 	out := &bytes.Buffer{}
 	app := &App{
 		Store: store, Live: live, KC: kc, OAuth: oauth.NewClient(),
@@ -165,7 +116,10 @@ func newTestApp(t *testing.T) (*App, *bytes.Buffer, string) {
 	return app, out, dir
 }
 
-func TestDoctorReportsSigning(t *testing.T) {
+// TestDoctorIsKeychainFree proves doctor no longer diagnoses the macOS Keychain:
+// it reports the account state without any keychain-sync or code-signing lines
+// (both were only relevant to the old keychain-backed live store).
+func TestDoctorIsKeychainFree(t *testing.T) {
 	app, out, _ := newTestApp(t)
 	_ = app.Live.Write(liveCred("tok"))
 	_ = app.cmdAdd([]string{"work"})
@@ -174,19 +128,13 @@ func TestDoctorReportsSigning(t *testing.T) {
 		t.Fatalf("cmdDoctor: %v", err)
 	}
 	s := out.String()
-	if !strings.Contains(s, "code signing:") {
-		t.Fatalf("doctor output missing code signing line:\n%s", s)
+	if !strings.Contains(s, "active account:") {
+		t.Errorf("doctor output missing active account line:\n%s", s)
 	}
-	// the value must be one of the known kinds, never blank ("n/a" off macOS).
-	known := []string{"stable", "adhoc", "unsigned", "unknown", "n/a"}
-	ok := false
-	for _, k := range known {
-		if strings.Contains(s, "code signing:     "+k) {
-			ok = true
+	for _, gone := range []string{"code signing", "keychain", "live store sync"} {
+		if strings.Contains(strings.ToLower(s), gone) {
+			t.Errorf("doctor should be keychain-free but still mentions %q:\n%s", gone, s)
 		}
-	}
-	if !ok {
-		t.Errorf("doctor code signing value not a known kind:\n%s", s)
 	}
 }
 
@@ -231,31 +179,6 @@ func TestCmdListJSON(t *testing.T) {
 	}
 	if len(views) != 1 || views[0].Name != "work" || !views[0].Active {
 		t.Errorf("unexpected views: %+v", views)
-	}
-}
-
-func TestCmdSwitchWriteBackThroughCLI(t *testing.T) {
-	app, _, _ := newTestApp(t)
-	// two accounts; work is active and live
-	_ = app.Live.Write(liveCred("work-old"))
-	_ = app.cmdAdd([]string{"work"})
-	_ = app.Store.Save("personal", liveCred("personal-tok"), account.Meta{})
-
-	// Claude Code rotates work's token while it is live
-	_ = app.Live.Write(liveCred("work-rotated"))
-
-	if err := app.cmdSwitch([]string{"personal"}); err != nil {
-		t.Fatalf("cmdSwitch: %v", err)
-	}
-	// work slot captured the rotated token
-	wc, _, _ := app.Store.Get("work")
-	if wc.AccessToken != "work-rotated" {
-		t.Errorf("work slot = %q, want work-rotated", wc.AccessToken)
-	}
-	// live now holds personal
-	lc, _ := app.Live.Read()
-	if lc.AccessToken != "personal-tok" {
-		t.Errorf("live = %q, want personal-tok", lc.AccessToken)
 	}
 }
 

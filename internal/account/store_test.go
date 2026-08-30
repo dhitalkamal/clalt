@@ -7,15 +7,13 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/keychain"
-	"github.com/dhitalkamal/clalt/internal/livestore"
 )
 
 func newStore(t *testing.T) (*Store, *keychain.Fake) {
 	t.Helper()
 	dir := t.TempDir()
 	kc := keychain.NewFake()
-	live := livestore.New(kc, filepath.Join(dir, ".credentials.json"))
-	s := New(kc, live, filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
+	s := New(kc, filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
 	return s, kc
 }
 

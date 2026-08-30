@@ -37,16 +37,8 @@ func Run(args []string) int {
 		err = app.cmdWhoami()
 	case "add":
 		err = app.cmdAdd(cmdArgs)
-	case "switch", "use":
-		err = app.cmdSwitch(cmdArgs)
 	case "run":
 		err = app.cmdRun(cmdArgs)
-	case "next":
-		err = app.cmdNext(cmdArgs)
-	case "auto":
-		err = app.cmdAuto(cmdArgs)
-	case "fallback":
-		err = app.cmdFallback(cmdArgs)
 	case "budget":
 		err = app.cmdBudget(cmdArgs)
 	case "sessions":
@@ -89,7 +81,7 @@ func Run(args []string) int {
 	// once the user has an account, make sure background token keepalive is
 	// running so they never have to set it up by hand. best-effort and quiet.
 	switch cmd {
-	case "login", "add", "switch", "use", "run", "next", "import":
+	case "login", "add", "run", "import":
 		app.ensureKeepalive()
 	}
 	return 0
@@ -103,12 +95,8 @@ usage:
   clalt whoami               show the active account
   clalt add <name>           capture the current Claude Code login as <name>
   clalt login <name>         authenticate a new account via OAuth and store it
-  clalt switch [name]        switch active account (no name opens a picker)
-  clalt run <name> [-- ...]  run claude as <name> in an isolated profile
-                             (parallel: use different accounts at the same time)
-  clalt next [--live]        rotate to the next account in the fallback chain
-  clalt auto [--interval 5m] auto-rotate before hitting limits/budgets (ctrl-c stops)
-  clalt fallback [names...]  show or set the rotation chain (--threshold N)
+  clalt run <name> [-- ...]  run claude as <name>, keychain-free, in an isolated
+                             profile (parallel: different accounts at once)
   clalt budget [name ...]    show or set per-account spend caps (--daily/--weekly)
   clalt sessions             list live parallel run sessions
   clalt remove <name>        delete an account slot (--force to skip confirm)
@@ -119,7 +107,7 @@ usage:
   clalt keepalive            token refresh runs automatically in the background
                              once you have an account; 'install [--dry-run]',
                              'uninstall', 'status' manage it (launchd/systemd/schtasks)
-  clalt doctor [--fix]       diagnose keychain/file sync and token expiry
+  clalt doctor [--fix]       diagnose account tokens and vault state
   clalt export <file>        encrypted backup of all accounts
   clalt import <file>        restore accounts from a backup
   clalt usage [name] [--live]  usage stats (local by default)

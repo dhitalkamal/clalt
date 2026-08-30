@@ -63,18 +63,18 @@ func (a *App) doRefresh(ctx context.Context, refresh string) (oauth.TokenResult,
 	return a.OAuth.Refresh(ctx, refresh)
 }
 
-// NewApp builds an App backed by on-disk state. Claude Code's own live
-// credential lives in the macOS Keychain on darwin (mirrored to the file), and
-// in the ~/.claude/.credentials.json file alone on Linux/Windows, matching what
-// Claude Code itself reads on each platform: keychain.NewSystem() returns nil
-// off macOS, which puts the live store in file-only mode. clalt's own per-account
-// secrets always live in a local encrypted vault instead of any OS keychain, so
-// listing accounts, switching, and the keepalive background agent never trigger
-// a Keychain password prompt. Any secrets left over from clalt's old
-// Keychain-only storage are migrated into the vault once (macOS only).
+// NewApp builds an App backed by on-disk state. clalt is keychain-free: the live
+// store is file-only on every platform (nil keychain), so reading the current
+// login for `add` never prompts, and multi-account sessions run via `clalt run`,
+// which injects CLAUDE_CODE_OAUTH_TOKEN so Claude Code never consults the macOS
+// Keychain at all. clalt's own per-account secrets live in a local encrypted
+// vault, not any OS keychain. Any secrets left over from clalt's old
+// Keychain-only storage are migrated into the vault once (macOS only); that
+// migration only reads item data if a legacy item is actually present.
 func NewApp() (*App, error) {
 	sysKC := keychain.NewSystem()
-	live := livestore.New(sysKC, config.ClaudeCredentialsPath())
+	// file-only live store: never touches the macOS Keychain (nil keychain)
+	live := livestore.New(nil, config.ClaudeCredentialsPath())
 
 	vault, err := keychain.NewEncFileStore(config.VaultDir(), config.VaultKeyPath())
 	if err != nil {
@@ -85,7 +85,7 @@ func NewApp() (*App, error) {
 	}
 
 	return &App{
-		Store:   account.New(vault, live, config.StatePath(), config.SwitchLogPath()),
+		Store:   account.New(vault, config.StatePath(), config.SwitchLogPath()),
 		Live:    live,
 		KC:      vault,
 		OAuth:   oauth.NewClient(),
