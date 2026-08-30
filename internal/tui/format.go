@@ -49,11 +49,6 @@ func money(v float64) string {
 	return "$" + withCommas(s[:dot]) + s[dot:]
 }
 
-// lcDate formats a time and lowercases it ("aug 24"), matching the dashboard style.
-func lcDate(t time.Time, layout string) string {
-	return strings.ToLower(t.Format(layout))
-}
-
 // humanUntil renders time until t as "in 4h12m" / "expired 3m ago" / "unknown".
 func humanUntil(t time.Time) string {
 	if t.IsZero() {
@@ -64,18 +59,6 @@ func humanUntil(t time.Time) string {
 		return "expired " + compactDur(-d) + " ago"
 	}
 	return "in " + compactDur(d)
-}
-
-// resetLabel renders "(now)" when a window reset is in the past, else "(3d 17h)".
-func resetLabel(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	d := time.Until(t)
-	if d <= 0 {
-		return "(now)"
-	}
-	return "(" + compactDur(d) + ")"
 }
 
 func compactDur(d time.Duration) string {
@@ -89,6 +72,26 @@ func compactDur(d time.Duration) string {
 		return fmt.Sprintf("%dh%dm", h, m)
 	}
 	return fmt.Sprintf("%dm", m)
+}
+
+// trunc shortens s to at most n runes, marking a cut with a trailing tilde.
+func trunc(s string, n int) string {
+	if n < 1 {
+		return ""
+	}
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "~"
+}
+
+// dashPlan renders a plan label, or a dash when unset.
+func dashPlan(p string) string {
+	if p == "" {
+		return "-"
+	}
+	return p
 }
 
 // shortModel trims the long model id to a friendly label (opus 4.8, sonnet 5).

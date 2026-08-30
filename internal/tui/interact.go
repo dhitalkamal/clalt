@@ -44,8 +44,8 @@ func (m dashModel) updatePalette(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.mode = ""
 	case tea.KeyEnter:
 		if m.palSel < len(cmds) {
-			m.action = cmds[m.palSel].act
-			return m, tea.Quit
+			c := cmds[m.palSel]
+			return m.trigger(c.kind, c.name, c.pid)
 		}
 	case tea.KeyBackspace:
 		if len(m.query) > 0 {
@@ -84,27 +84,31 @@ func (m dashModel) visibleAccounts() []AccountView {
 	return out
 }
 
-// selectedAccount is the highlighted account within the visible (filtered) list.
-func (m dashModel) selectedAccount() *AccountView {
-	vis := m.visibleAccounts()
-	if m.sel < 0 || m.sel >= len(vis) {
-		return nil
-	}
-	return &vis[m.sel]
-}
-
+// palCmd is one command-palette entry, dispatched via trigger.
 type palCmd struct {
 	label string
-	act   Action
+	kind  string
+	name  string
+	pid   int
 }
 
-// paletteCommands builds the (filtered) command list for the palette.
+// paletteCommands builds the (filtered) command list. It lists only the current
+// verbs: run/login/add/rename/budget/logout/remove/refresh. The removed
+// switch/next/auto/fallback verbs are intentionally absent.
 func (m dashModel) paletteCommands() []palCmd {
 	var all []palCmd
+	all = append(all, palCmd{"login (new account)", "login", "", 0})
+	all = append(all, palCmd{"add (capture current login)", "add", "", 0})
 	for _, a := range m.data.Accounts {
-		all = append(all, palCmd{"run " + a.Name + " (parallel)", Action{Kind: "run", Account: a.Name}})
+		all = append(all,
+			palCmd{"run " + a.Name, "run", a.Name, 0},
+			palCmd{"refresh " + a.Name, "refresh", a.Name, 0},
+			palCmd{"rename " + a.Name, "rename", a.Name, 0},
+			palCmd{"budget " + a.Name, "budget", a.Name, 0},
+			palCmd{"logout " + a.Name, "logout", a.Name, 0},
+		)
 		if !a.Active {
-			all = append(all, palCmd{"remove " + a.Name, Action{Kind: "remove", Account: a.Name}})
+			all = append(all, palCmd{"remove " + a.Name, "remove", a.Name, 0})
 		}
 	}
 	if m.query == "" {
@@ -120,10 +124,9 @@ func (m dashModel) paletteCommands() []palCmd {
 	return out
 }
 
-// paletteView renders the command palette body.
-func (m dashModel) paletteView() string {
+// paletteView renders the command palette body (shown inside the detail column).
+func (m dashModel) paletteView(innerW int) string {
 	var b strings.Builder
-	b.WriteString(sectionStyle.Render("COMMAND PALETTE") + "\n")
 	b.WriteString(infoStyle.Render(": ") + textStyle.Render(m.query) + cursorStyle.Render("_") + "\n\n")
 	cmds := m.paletteCommands()
 	if len(cmds) == 0 {
@@ -131,14 +134,15 @@ func (m dashModel) paletteView() string {
 		return b.String()
 	}
 	for i, cd := range cmds {
-		if i >= 12 {
+		if i >= 14 {
 			b.WriteString(dimStyle.Render("  ..."))
 			break
 		}
+		line := clampLine(cd.label, innerW-2)
 		if i == m.palSel {
-			b.WriteString(cursorStyle.Render("> ") + textStyle.Render(cd.label) + "\n")
+			b.WriteString(cursorStyle.Render("> ") + textStyle.Render(line) + "\n")
 		} else {
-			b.WriteString("  " + dimStyle.Render(cd.label) + "\n")
+			b.WriteString("  " + dimStyle.Render(line) + "\n")
 		}
 	}
 	return b.String()

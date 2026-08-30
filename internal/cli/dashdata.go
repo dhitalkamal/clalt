@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/profile"
+	"github.com/dhitalkamal/clalt/internal/scheduler"
 	"github.com/dhitalkamal/clalt/internal/tui"
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
@@ -29,11 +31,13 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 	now := time.Now()
 
 	data := tui.Data{Version: version}
+	nearExpiry := 0
 	for i, ac := range accts {
 		recs := byAccount[ac.Name]
 		view := tui.AccountView{
 			Name:         ac.Name,
 			Plan:         ac.Meta.Plan,
+			Email:        ac.Meta.Email,
 			Active:       ac.Active,
 			Five:         usage.Window(recs, now, 5*time.Hour),
 			Seven:        usage.Window(recs, now, 7*24*time.Hour),
@@ -44,6 +48,10 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 		}
 		if c, _, gerr := a.Store.Get(ac.Name); gerr == nil {
 			view.ExpiresAt = c.ExpiresAtTime()
+			view.NearExpiry = c.RefreshToken != "" && c.IsExpired(defKeepBuffer)
+			if view.NearExpiry {
+				nearExpiry++
+			}
 			if wantLive {
 				view.Live, _ = a.liveUsage(ac.Name, c)
 			}
@@ -53,6 +61,7 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 		}
 		data.Accounts = append(data.Accounts, view)
 	}
+	data.Keepalive = keepaliveStatus(len(accts), nearExpiry)
 
 	if sessions, serr := profile.ListSessions(config.SessionsDir()); serr == nil {
 		for _, s := range sessions {
@@ -62,4 +71,20 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 		}
 	}
 	return data, nil
+}
+
+// keepaliveStatus reports whether the background refresh job is installed on this
+// host, plus the token-freshness summary for the keepalive panel. Backend errors
+// are treated as "not installed" so the dashboard never fails to open.
+func keepaliveStatus(accounts, nearExpiry int) tui.KeepaliveStatus {
+	st := tui.KeepaliveStatus{Accounts: accounts, NearExpiry: nearExpiry}
+	sched, err := scheduler.For(runtime.GOOS)
+	if err != nil {
+		return st
+	}
+	st.Backend = sched.Name()
+	if installed, serr := sched.Status(keepaliveLabel); serr == nil {
+		st.Installed = installed
+	}
+	return st
 }

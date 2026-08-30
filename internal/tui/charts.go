@@ -24,11 +24,6 @@ func horizBar(frac float64, width int) string {
 		strings.Repeat(string(rune(lightShade)), width-filled)
 }
 
-// meter renders a bracketed bar: "[####----]".
-func meter(frac float64, width int) string {
-	return "[" + horizBar(frac, width) + "]"
-}
-
 // gradedMeter renders a filled bar whose filled portion is colored by threshold
 // (green/yellow/red) with a dimmed track for the remainder.
 func gradedMeter(frac float64, width int) string {

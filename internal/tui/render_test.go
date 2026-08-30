@@ -3,173 +3,216 @@ package tui
 import (
 	"strings"
 	"testing"
-	"time"
-
-	tea "github.com/charmbracelet/bubbletea"
-
-	"github.com/dhitalkamal/clalt/internal/usage"
 )
 
-func sampleData() Data {
-	now := time.Date(2026, 8, 24, 22, 0, 0, 0, time.UTC)
-	daily := make([]usage.DayBucket, 45)
-	for i := range daily {
-		day := now.AddDate(0, 0, -(44 - i))
-		// a wavy series so the chart is visibly non-flat
-		tok := int64(200_000 + (i%7)*120_000 + (i%3)*90_000)
-		daily[i] = usage.DayBucket{Day: day, Tokens: tok, Messages: int(tok / 300), Cost: float64(tok) / 1000}
-	}
-	main := AccountView{
-		Name: "main", Plan: "team", Active: true,
-		ExpiresAt: now.Add(6 * time.Hour),
-		Five:      usage.WindowStat{Tokens: 340_000, Messages: 346},
-		Seven:     usage.WindowStat{Tokens: 5_200_000, Messages: 8100},
-		Daily:     daily,
-		Stats: usage.Stats{
-			Billable: 135_000_000, Input: 5_240, Output: 998_000,
-			CacheWrite: 4_000_000, CacheRead: 131_000_000,
-			Cost: 17_742.11, Messages: 181_000, Sessions: 229,
-			CacheHitRate: 0.97,
-			FirstDay:     now.AddDate(0, 0, -38), LastDay: now,
-			Today: usage.PeriodStat{Billable: 1_003_000, Input: 5_240, Output: 998_000, Cost: 116.62, Messages: 3337},
-			Models: []usage.ModelUsage{
-				{Model: "claude-opus-4-8", Billable: 68_700_000, Cost: 12_158.43, Messages: 90000},
-				{Model: "claude-sonnet-5", Billable: 66_500_000, Cost: 5_580.81, Messages: 89000},
-				{Model: "claude-haiku-4-5", Billable: 127_000, Cost: 2.86, Messages: 2000},
-			},
-			Projects: []usage.ProjectUsage{
-				{Project: "ExampleATS", Billable: 60_000_000, Messages: 90000},
-				{Project: "subagents", Billable: 12_000_000, Messages: 20000},
-			},
-		},
-	}
-	// give it an hour-of-day shape
-	for h := 0; h < 24; h++ {
-		main.Stats.HourOfDay[h] = (h*7 + 3) % 40
-	}
-	main.Stats.HourOfDay[1] = 95
-	personal := AccountView{
-		Name: "personal", Plan: "pro", ExpiresAt: now.Add(50 * time.Hour),
-		Five:  usage.WindowStat{Tokens: 90_000, Messages: 40},
-		Seven: usage.WindowStat{Tokens: 1_100_000, Messages: 1500},
-		Daily: daily,
-		Stats: usage.Stats{Billable: 12_000_000, Cost: 900.0, Messages: 20000, Sessions: 30, FirstDay: now.AddDate(0, 0, -10), LastDay: now},
-	}
-	return Data{
-		Version:  version(),
-		Accounts: []AccountView{main, personal},
-		Selected: 0,
-	}
-}
-
-// version is a test stand-in for the cli-provided version string.
-func version() string { return "v0.1.0" }
-
-func TestRenderOverview(t *testing.T) {
+func TestRenderPanels(t *testing.T) {
 	out := Render(sampleData(), 120, 40)
-	for _, want := range []string{"clalt", "ACCOUNTS", "overview", "main", "personal"} {
+	for _, want := range []string{"clalt", "Accounts", "Sessions", "Keepalive", "work", "personal"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("overview missing %q", want)
+			t.Errorf("frame missing %q", want)
 		}
 	}
 }
 
-func TestRenderTokensTab(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 0, width: 120, height: 40, tab: 1}
-	out := m.View()
-	for _, want := range []string{"SUMMARY", "TOP MODELS", "DAILY", "ACTIVITY", "hit", "today", "total"} {
+func TestRenderDetailContent(t *testing.T) {
+	out := Render(sampleData(), 120, 40)
+	// detail pane for the selected account (work): windows, today, budget, email
+	for _, want := range []string{"5h", "7d", "resets", "today", "budget", "work@acme.com", "opus"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("tokens tab missing %q", want)
+			t.Errorf("detail pane missing %q", want)
 		}
 	}
 }
 
-func TestRenderUsageTab(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 0, width: 120, height: 40, tab: 2}
-	out := m.View()
-	for _, want := range []string{"USAGE", "TOP PROJECTS", "ExampleATS"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("usage tab missing %q", want)
-		}
+func TestTooSmall(t *testing.T) {
+	out := Render(sampleData(), 70, 20)
+	if !strings.Contains(out, "too small") {
+		t.Errorf("small terminal should warn, got:\n%s", out)
 	}
 }
 
-func TestDeleteConfirmFlow(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 1} // personal (not active)
+func TestFocusCycle(t *testing.T) {
+	m := newTestModel(&fakeController{})
+	m = pump(m, "tab")
+	if m.focus != focusSessions {
+		t.Fatalf("tab -> focus %d, want sessions", m.focus)
+	}
+	m = pump(m, "tab", "tab")
+	if m.focus != focusAccounts {
+		t.Fatalf("tab*3 should wrap to accounts, got %d", m.focus)
+	}
+	m = pump(m, "shift+tab")
+	if m.focus != focusKeepalive {
+		t.Fatalf("shift+tab from accounts -> %d, want keepalive", m.focus)
+	}
+}
 
-	// press d -> enters confirmation, footer shows the prompt
-	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("d")})
+func TestSelectionMovesDetail(t *testing.T) {
+	m := newTestModel(&fakeController{})
+	m = pump(m, "down")
+	if m.sel != 1 {
+		t.Fatalf("down -> sel %d, want 1", m.sel)
+	}
+	if !strings.Contains(m.View(), "personal") {
+		t.Error("detail should follow selection to personal")
+	}
+}
+
+func TestRunAction(t *testing.T) {
+	m := newTestModel(&fakeController{})
+	nm, _ := m.Update(key("enter"))
 	m = nm.(dashModel)
-	if !m.confirming || m.confirmFor != "personal" {
-		t.Fatalf("expected confirming personal, got %v %q", m.confirming, m.confirmFor)
+	if m.action.Kind != "run" || m.action.Account != "work" {
+		t.Errorf("enter -> %+v, want run work", m.action)
 	}
-	if !strings.Contains(m.View(), "delete personal ?") {
-		t.Error("footer should show the delete confirmation")
+}
+
+func TestRenameModal(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "R")
+	if m.modal.kind != "rename" {
+		t.Fatalf("R should open rename modal, got %q", m.modal.kind)
 	}
-	// y -> emits a remove action
-	nm, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
-	m = nm.(dashModel)
-	if m.action.Kind != "remove" || m.action.Account != "personal" {
-		t.Errorf("expected remove action for personal, got %+v", m.action)
+	m = pump(m, "n", "e", "w", "enter")
+	if f.renamed != [2]string{"work", "new"} {
+		t.Errorf("rename recorded %v, want [work new]", f.renamed)
+	}
+}
+
+func TestBudgetModal(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "e")
+	if m.modal.kind != "budget" {
+		t.Fatalf("e should open budget modal, got %q", m.modal.kind)
+	}
+	m = pump(m, "1", "0", "enter", "2", "0", "enter")
+	if f.budget != [3]string{"work", "10", "20"} {
+		t.Errorf("budget recorded %v, want [work 10 20]", f.budget)
+	}
+}
+
+func TestDeleteConfirm(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "down") // personal, not active
+	m = pump(m, "d")
+	if !m.confirm.active {
+		t.Fatal("d should open a confirm")
+	}
+	m = pump(m, "y")
+	if f.removed != "personal" {
+		t.Errorf("remove recorded %q, want personal", f.removed)
 	}
 }
 
 func TestDeleteActiveGuarded(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 0} // main is active
-	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("d")})
-	m = nm.(dashModel)
-	if m.confirming {
+	f := &fakeController{}
+	m := newTestModel(f) // work is active
+	m = pump(m, "d")
+	if m.confirm.active {
 		t.Error("should not confirm-delete the active account")
 	}
-	if !strings.Contains(m.View(), "cannot remove the active account") {
-		t.Error("expected a guard message for deleting the active account")
+	if f.removed != "" {
+		t.Error("active account must not be removed")
+	}
+}
+
+func TestLogoutConfirm(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "l", "y")
+	if f.loggedOut != "work" {
+		t.Errorf("logout recorded %q, want work", f.loggedOut)
+	}
+}
+
+func TestRefreshInPlace(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "f")
+	if f.refreshed != "work" {
+		t.Errorf("refresh recorded %q, want work", f.refreshed)
+	}
+}
+
+func TestSessionKill(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "tab") // focus sessions
+	m = pump(m, "k", "y")
+	if f.killed != 8123 {
+		t.Errorf("kill recorded %d, want 8123", f.killed)
+	}
+}
+
+func TestLoginModalReturnsAction(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	m = pump(m, "n") // login prompts for a name
+	if m.modal.kind != "login" {
+		t.Fatalf("n should open login modal, got %q", m.modal.kind)
+	}
+	for _, r := range "new" {
+		m = pump(m, string(r))
+	}
+	nm, _ := m.Update(key("enter"))
+	m = nm.(dashModel)
+	if m.action.Kind != "login" || m.action.Account != "new" {
+		t.Errorf("login modal -> %+v, want login new", m.action)
+	}
+}
+
+func TestPaletteExcludesRemovedVerbs(t *testing.T) {
+	m := newTestModel(&fakeController{})
+	m = pump(m, ":")
+	cmds := m.paletteCommands()
+	var joined string
+	for _, c := range cmds {
+		joined += c.label + "\n"
+	}
+	for _, want := range []string{"run", "login", "rename", "budget", "logout", "remove", "refresh"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("palette missing verb %q", want)
+		}
+	}
+	for _, banned := range []string{"switch", "rotate", "next", "auto", "fallback"} {
+		if strings.Contains(joined, banned) {
+			t.Errorf("palette must not list removed verb %q", banned)
+		}
 	}
 }
 
 func TestFilterMode(t *testing.T) {
-	m := dashModel{data: sampleData(), sel: 0}
-	// open filter, type "per" -> only personal visible
-	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("/")})
-	m = nm.(dashModel)
+	m := newTestModel(&fakeController{})
+	m = pump(m, "/")
 	if m.mode != "filter" {
-		t.Fatalf("expected filter mode, got %q", m.mode)
+		t.Fatalf("/ -> mode %q, want filter", m.mode)
 	}
-	for _, r := range "per" {
-		nm, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
-		m = nm.(dashModel)
-	}
+	m = pump(m, "p", "e", "r")
 	vis := m.visibleAccounts()
 	if len(vis) != 1 || vis[0].Name != "personal" {
 		t.Errorf("filter 'per' -> %d accounts, want [personal]", len(vis))
 	}
 }
 
-func TestPaletteMode(t *testing.T) {
-	m := dashModel{data: sampleData(), sel: 0}
-	nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(":")})
+func TestTickRefreshesData(t *testing.T) {
+	f := &fakeController{}
+	m := newTestModel(f)
+	// simulate a data refresh landing: mutate the fake, deliver a dataMsg
+	f.data.Accounts[0].Name = "renamed-work"
+	nm, _ := m.Update(dataMsg{data: f.data})
 	m = nm.(dashModel)
-	if m.mode != "palette" {
-		t.Fatalf("expected palette mode, got %q", m.mode)
-	}
-	// first command is "run main"; enter emits it (keychain-free launch)
-	nm, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = nm.(dashModel)
-	if m.action.Kind != "run" || m.action.Account != "main" {
-		t.Errorf("palette enter -> %+v, want run main", m.action)
+	if m.data.Accounts[0].Name != "renamed-work" {
+		t.Error("dataMsg should replace the model data")
 	}
 }
 
-func TestRenderHelpOverlay(t *testing.T) {
-	d := sampleData()
-	m := dashModel{data: d, sel: 0, width: 120, height: 40, showHelp: true}
-	out := m.View()
-	for _, want := range []string{"KEYBINDINGS", "run selected account", "delete the selected account"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("help overlay missing %q", want)
-		}
+func TestQuit(t *testing.T) {
+	m := newTestModel(&fakeController{})
+	_, cmd := m.Update(key("q"))
+	if cmd == nil {
+		t.Error("q should return a quit command")
 	}
 }

@@ -37,8 +37,7 @@ var (
 	borderStyle  = lipgloss.NewStyle().Foreground(colBorder)
 	sparkStyle   = lipgloss.NewStyle().Foreground(colBar2)
 
-	tabStyle    = lipgloss.NewStyle().Padding(0, 1).Foreground(colDim)
-	tabSelStyle = lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(colInk).Background(colAccent)
+	panelTitleDim = lipgloss.NewStyle().Bold(true).Foreground(colDim)
 
 	rowSelStyle = lipgloss.NewStyle().Background(lipgloss.Color("#243250"))
 	helpKey     = lipgloss.NewStyle().Bold(true).Foreground(colAccent)
