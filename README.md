@@ -79,6 +79,8 @@ clalt list                 list accounts (active one marked with *)
 clalt whoami               show the active account
 clalt add <name>           capture the current Claude Code login as <name>
 clalt login <name>         authenticate a new account via OAuth and store it
+                           (--magic-link <url> to sign into someone else's
+                           account first, see below)
 clalt run <name> [-- ...]  run claude as <name>, keychain-free, in an isolated
                            profile (parallel: different accounts at once)
 clalt budget [name ...]    show or set per-account spend caps (--daily/--weekly)
@@ -114,6 +116,23 @@ no such command) - every session runs through `clalt run`.
 `clalt add <name>` is still available to capture an existing Claude Code login
 from `~/.claude/.credentials.json` into the vault, but it is optional; `login`
 covers the normal path.
+
+### Logging into an account someone else owns
+
+If you're adding an account that belongs to someone else, they can send you a
+claude.ai magic link (their email sign-in link) instead of handing you a
+password. Pass it straight to `login` and it opens first, in the same browser,
+so that browser is signed into their account before the OAuth consent screen
+comes up:
+
+```
+clalt login theiraccount --magic-link "https://claude.ai/...magic-link-url..."
+```
+
+clalt only accepts `https://claude.ai/...` or `https://*.anthropic.com/...`
+links and refuses anything else - the link is a bearer credential for their
+account, so treat it like a password: request it over a channel you trust, and
+don't reuse or store it once you've logged in.
 
 ## Running accounts in parallel
 

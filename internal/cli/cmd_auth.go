@@ -4,20 +4,73 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/oauth"
 )
 
-func (a *App) cmdLogin(args []string) error {
-	if len(args) < 1 {
-		return errors.New("usage: clalt login <name>")
+// parseLoginArgs parses `clalt login <name> [--magic-link <url>]`. The magic
+// link is optional, order-independent relative to name, and must have a value.
+func parseLoginArgs(args []string) (name, magicLink string, err error) {
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--magic-link":
+			if i+1 >= len(args) {
+				return "", "", errors.New("--magic-link needs a URL")
+			}
+			i++
+			magicLink = args[i]
+		default:
+			name = args[i]
+		}
 	}
-	name := args[0]
+	if name == "" {
+		return "", "", errors.New("usage: clalt login <name> [--magic-link <url>]")
+	}
+	return name, magicLink, nil
+}
+
+// validateMagicLink rejects anything that is not an https link to claude.ai or
+// an anthropic.com (sub)domain. A magic link is a bearer-secret and openBrowser
+// shells out to the OS opener on whatever string it is given, so this is the
+// only check standing between a pasted link and it being launched blind.
+func validateMagicLink(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("invalid magic link: %w", err)
+	}
+	if u.Scheme != "https" {
+		return errors.New("magic link must be an https URL")
+	}
+	host := u.Hostname()
+	if host != "claude.ai" && host != "anthropic.com" && !strings.HasSuffix(host, ".anthropic.com") {
+		return fmt.Errorf("magic link host %q is not claude.ai or an anthropic.com subdomain", host)
+	}
+	return nil
+}
+
+func (a *App) cmdLogin(args []string) error {
+	name, magicLink, err := parseLoginArgs(args)
+	if err != nil {
+		return err
+	}
+
+	if magicLink != "" {
+		if err := validateMagicLink(magicLink); err != nil {
+			return err
+		}
+		a.printf("opening the magic link so your browser signs into that account. approve it there:\n\n%s\n\n", magicLink)
+		openBrowser(magicLink)
+		if _, err := a.prompt("press enter once you're signed in to continue: "); err != nil {
+			return err
+		}
+	}
 
 	pkce, err := oauth.GeneratePKCE()
 	if err != nil {
