@@ -154,6 +154,12 @@ clalt run personal
   `CLAUDE_CONFIG_DIR` there. The profile rotates its own token; clalt syncs it
   back on exit.
 
+On macOS, `clalt run` also supervises the session (see Caveats below for why):
+it refreshes the account's token ahead of expiry and transparently restarts
+claude with the fresh one, using `--resume` so the conversation carries over.
+Pass `--no-supervise` to disable this and get a single unsupervised launch
+instead.
+
 Pass extra args to claude after `--` (e.g. `clalt run work -- --resume`).
 `--refresh` re-resolves the token and re-copies your shared settings.
 
@@ -275,10 +281,15 @@ production backend and does not encrypt at rest; do not point it at real secrets
   claude's environment (`CLAUDE_CODE_OAUTH_TOKEN`), which is readable by other
   processes running as the same user. It is never written to disk by clalt and
   never logged.
-- Session length vs token life: a single `claude` session that runs past the
-  access token's lifetime (about an hour) may hit an auth error, since the
-  injected environment variable cannot be refreshed inside a running process.
-  Relaunch through `clalt run` to start with a fresh token.
+- Session length vs token life: Claude Code has no supported way to refresh
+  CLAUDE_CODE_OAUTH_TOKEN inside an already-running process, so on macOS
+  `clalt run` supervises the session instead - it refreshes the vault token
+  ahead of expiry and transparently restarts claude with the fresh one and
+  `--resume`, so a session survives past a single token's lifetime without
+  you having to relaunch by hand. Pass `--no-supervise` to disable this and
+  fall back to a single unsupervised launch (matches the old behavior: the
+  session then hits an auth error once its token expires, and you relaunch
+  through `clalt run` to start with a fresh one).
 - The live usage endpoint is aggressively rate limited (persistent 429s with no
   Retry-After), so results are cached and polled sparingly; stale cache is shown
   when the endpoint is limiting.

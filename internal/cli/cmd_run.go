@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/profile"
 )
 
@@ -16,7 +17,7 @@ import (
 // in an isolated config dir in parallel with others. On macOS Claude Code reads
 // one global credential regardless of config dir, so run loads the account into
 // the live login before launching (accounts are not parallel there).
-// Usage: clalt run <account> [--isolated] [--refresh] [-- claude args]
+// Usage: clalt run <account> [--isolated] [--refresh] [--no-supervise] [-- claude args]
 func (a *App) cmdRun(args []string) error {
 	account, opts, claudeArgs, err := parseRunArgs(args)
 	if err != nil {
@@ -24,11 +25,7 @@ func (a *App) cmdRun(args []string) error {
 	}
 
 	dir := config.ProfileDir(account)
-	// resolve the account's credential into the mechanism this OS's Claude Code
-	// actually reads: an injected CLAUDE_CODE_OAUTH_TOKEN env entry on macOS
-	// (keychain-free), an isolated per-profile file elsewhere.
-	credEnv, err := a.credentialEnv(account, dir, opts.refresh)
-	if err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
 
@@ -50,6 +47,34 @@ func (a *App) cmdRun(args []string) error {
 	path, err := exec.LookPath(bin)
 	if err != nil {
 		return fmt.Errorf("could not find the %q binary on PATH: %w", bin, err)
+	}
+
+	// resolve the account's credential into the mechanism this OS's Claude Code
+	// actually reads: an injected CLAUDE_CODE_OAUTH_TOKEN env entry on macOS
+	// (keychain-free), an isolated per-profile file elsewhere.
+	var credEnv []string
+	if runtime.GOOS == "darwin" {
+		cred, ok := a.resolveCred(account, opts.refresh)
+		// macOS has no supported mid-session OAuth refresh (Claude Code reads
+		// CLAUDE_CODE_OAUTH_TOKEN once at startup), so a long interactive session
+		// otherwise hard-fails with "Login expired" once the token expires. The
+		// supervisor proactively refreshes and transparently restarts claude
+		// before that happens; see runSupervised.
+		if ok && shouldSupervise(opts, claudeArgs, cred) {
+			baseEnv := append(os.Environ(),
+				"CLAUDE_CONFIG_DIR="+dir,
+				"CLAUDE_SECURESTORAGE_CONFIG_DIR="+dir,
+			)
+			a.printf("launching claude as %q (profile: %s)\n", account, dir)
+			return a.runSupervised(account, dir, claudeArgs, path, baseEnv, cred)
+		}
+		if ok {
+			credEnv = []string{"CLAUDE_CODE_OAUTH_TOKEN=" + cred.AccessToken}
+		}
+		// !ok: credEnv stays nil and claude prompts to log in; resolveCred
+		// already printed the reason, so don't resolve (and re-warn) again.
+	} else if err := a.stageProfileCred(account, dir, opts.refresh); err != nil {
+		return err
 	}
 
 	a.printf("launching claude as %q (profile: %s)\n", account, dir)
@@ -81,20 +106,23 @@ func (a *App) cmdRun(args []string) error {
 	return runErr
 }
 
-// darwinRunEnv resolves the account's token from the vault and returns it as a
-// CLAUDE_CODE_OAUTH_TOKEN env entry for the child claude process. This is the
-// keychain-free path on macOS: Claude Code reads CLAUDE_CODE_OAUTH_TOKEN ahead
-// of the Keychain and the file, so clalt never has to touch the macOS Keychain
-// (which is what caused the recurring password prompt). A missing credential is
-// not fatal: return no env and let claude prompt to log in.
-func (a *App) darwinRunEnv(account string, refresh bool) ([]string, error) {
+// resolveCred fetches the account's stored credential and, if refresh is
+// requested or the token is within 5 minutes of expiry, refreshes it first.
+// This is the keychain-free path on macOS: the resolved token is handed to the
+// child claude process via CLAUDE_CODE_OAUTH_TOKEN (which Claude Code reads
+// ahead of the Keychain and the file), so clalt never has to touch the macOS
+// Keychain (which is what caused the recurring password prompt). ok is false
+// if there is no stored credential or no usable access token (claude will
+// prompt to log in itself in that case).
+func (a *App) resolveCred(account string, refresh bool) (cred credential.Credential, ok bool) {
 	cred, _, err := a.Store.Get(account)
 	if err != nil {
 		a.printf("no stored credential for %q; claude will prompt you to log in\n", account)
-		return nil, nil
+		return credential.Credential{}, false
 	}
 	// refresh a stale (or explicitly --refresh'd) token so the session starts
-	// fresh; a single session outliving the token still needs a relaunch.
+	// fresh; a single session outliving the token still needs a relaunch,
+	// which is exactly what runSupervised handles for the darwin path.
 	if (refresh || cred.IsExpired(5*time.Minute)) && cred.RefreshToken != "" {
 		if nc, rerr := a.refreshAccount(account); rerr == nil {
 			cred = nc
@@ -104,24 +132,9 @@ func (a *App) darwinRunEnv(account string, refresh bool) ([]string, error) {
 	}
 	if cred.AccessToken == "" {
 		a.printf("no usable token for %q; claude will prompt you to log in\n", account)
-		return nil, nil
+		return credential.Credential{}, false
 	}
-	return []string{"CLAUDE_CODE_OAUTH_TOKEN=" + cred.AccessToken}, nil
-}
-
-// credentialEnv resolves the account's credential into the extra environment the
-// child claude needs, using the mechanism that platform's Claude Code actually
-// reads: an injected CLAUDE_CODE_OAUTH_TOKEN on macOS (keychain-free, so no
-// password prompt), an isolated per-profile file elsewhere (which returns no
-// extra env). The profile dir is created either way for settings/skills sharing.
-func (a *App) credentialEnv(account, dir string, refresh bool) ([]string, error) {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return nil, err
-	}
-	if runtime.GOOS == "darwin" {
-		return a.darwinRunEnv(account, refresh)
-	}
-	return nil, a.stageProfileCred(account, dir, refresh)
+	return cred, true
 }
 
 // stageProfileCred writes the account's stored credential into the isolated
@@ -164,8 +177,9 @@ func (a *App) syncProfileBack(account, dir string) {
 
 // runOpts are the flags accepted by `clalt run`.
 type runOpts struct {
-	refresh  bool // re-stage the stored credential and re-copy shared settings
-	isolated bool // do NOT share the user's main config into the profile
+	refresh     bool // re-stage the stored credential and re-copy shared settings
+	isolated    bool // do NOT share the user's main config into the profile
+	noSupervise bool // disable the transparent-restart supervisor (macOS long sessions)
 }
 
 // parseRunArgs pulls the account name, clalt flags, and passthrough claude args
@@ -182,6 +196,8 @@ func parseRunArgs(args []string) (account string, opts runOpts, claudeArgs []str
 			opts.refresh = true
 		case arg == "--isolated":
 			opts.isolated = true
+		case arg == "--no-supervise":
+			opts.noSupervise = true
 		case arg == "--link":
 			// sharing is the default now; accept the old flag as a no-op
 		case account == "":
@@ -192,7 +208,7 @@ func parseRunArgs(args []string) (account string, opts runOpts, claudeArgs []str
 		}
 	}
 	if account == "" {
-		return "", runOpts{}, nil, errors.New("usage: clalt run <account> [--isolated] [--refresh] [-- claude args]")
+		return "", runOpts{}, nil, errors.New("usage: clalt run <account> [--isolated] [--refresh] [--no-supervise] [-- claude args]")
 	}
 	return account, opts, claudeArgs, nil
 }

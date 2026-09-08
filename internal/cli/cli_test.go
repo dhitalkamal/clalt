@@ -64,11 +64,11 @@ func TestStageProfileCredStagesCredential(t *testing.T) {
 	}
 }
 
-// TestDarwinRunEnvInjectsTokenNoKeychain proves the keychain-free fix: on macOS
-// `run` resolves the account token from the vault and hands it to the child via
-// CLAUDE_CODE_OAUTH_TOKEN, and does NOT write Claude Code's live store (the
+// TestResolveCredNoKeychain proves the keychain-free fix: on macOS `run`
+// resolves the account token from the vault (for injection into the child via
+// CLAUDE_CODE_OAUTH_TOKEN), and does NOT write Claude Code's live store (the
 // macOS Keychain item that used to trigger the recurring password prompt).
-func TestDarwinRunEnvInjectsTokenNoKeychain(t *testing.T) {
+func TestResolveCredNoKeychain(t *testing.T) {
 	if runtime.GOOS != "darwin" {
 		t.Skip("macOS-specific run credential path")
 	}
@@ -78,19 +78,12 @@ func TestDarwinRunEnvInjectsTokenNoKeychain(t *testing.T) {
 	if err := app.Store.Save("personal", liveCred("tok-personal"), account.Meta{}); err != nil {
 		t.Fatal(err)
 	}
-	env, err := app.darwinRunEnv("personal", false)
-	if err != nil {
-		t.Fatalf("darwinRunEnv: %v", err)
+	cred, ok := app.resolveCred("personal", false)
+	if !ok {
+		t.Fatal("resolveCred: expected ok=true for a stored account")
 	}
-	want := "CLAUDE_CODE_OAUTH_TOKEN=tok-personal"
-	found := false
-	for _, e := range env {
-		if e == want {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("run env missing token injection %q, got %v", want, env)
+	if cred.AccessToken != "tok-personal" {
+		t.Errorf("resolveCred token = %q, want tok-personal", cred.AccessToken)
 	}
 	// the live store (keychain-backed on macOS) must be left untouched
 	if live, rerr := app.Live.Read(); rerr == nil && live.AccessToken != "" {
