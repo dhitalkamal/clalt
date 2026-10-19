@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/profile"
@@ -19,12 +20,19 @@ import (
 // the live login before launching (accounts are not parallel there).
 // Usage: clalt run <account> [--isolated] [--refresh] [--no-supervise] [-- claude args]
 func (a *App) cmdRun(args []string) error {
-	account, opts, claudeArgs, err := parseRunArgs(args)
+	name, opts, claudeArgs, err := parseRunArgs(args)
 	if err != nil {
 		return err
 	}
+	// name becomes a bare filesystem path segment (config.ProfileDir) below, so
+	// it must be validated before anything touches disk. This also catches
+	// accounts added before this check existed: their only way out is
+	// `clalt rename`, since rename FROM an invalid name is still allowed.
+	if verr := account.ValidateName(name); verr != nil {
+		return fmt.Errorf("%w; if this account predates this check, run `clalt rename %s <new-name>` first", verr, name)
+	}
 
-	dir := config.ProfileDir(account)
+	dir := config.ProfileDir(name)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
@@ -62,7 +70,7 @@ func (a *App) cmdRun(args []string) error {
 	// (keychain-free), an isolated per-profile file elsewhere.
 	var credEnv []string
 	if runtime.GOOS == "darwin" {
-		cred, ok := a.resolveCred(account, opts.refresh)
+		cred, ok := a.resolveCred(name, opts.refresh)
 		// macOS has no supported mid-session OAuth refresh (Claude Code reads
 		// CLAUDE_CODE_OAUTH_TOKEN once at startup), so a long interactive session
 		// otherwise hard-fails with "Login expired" once the token expires. The
@@ -73,19 +81,19 @@ func (a *App) cmdRun(args []string) error {
 				"CLAUDE_CONFIG_DIR="+dir,
 				"CLAUDE_SECURESTORAGE_CONFIG_DIR="+dir,
 			)
-			a.printf("launching claude as %q (profile: %s)\n", account, dir)
-			return a.runSupervised(account, dir, claudeArgs, path, baseEnv, cred)
+			a.printf("launching claude as %q (profile: %s)\n", name, dir)
+			return a.runSupervised(name, dir, claudeArgs, path, baseEnv, cred)
 		}
 		if ok {
 			credEnv = []string{"CLAUDE_CODE_OAUTH_TOKEN=" + cred.AccessToken}
 		}
 		// !ok: credEnv stays nil and claude prompts to log in; resolveCred
 		// already printed the reason, so don't resolve (and re-warn) again.
-	} else if err := a.stageProfileCred(account, dir, opts.refresh); err != nil {
+	} else if err := a.stageProfileCred(name, dir, opts.refresh); err != nil {
 		return err
 	}
 
-	a.printf("launching claude as %q (profile: %s)\n", account, dir)
+	a.printf("launching claude as %q (profile: %s)\n", name, dir)
 	cmd := exec.Command(path, claudeArgs...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, a.Out, a.Err
 	// point Claude Code at the profile dir for settings/skills; on Linux/Windows
@@ -104,13 +112,13 @@ func (a *App) cmdRun(args []string) error {
 	pid := cmd.Process.Pid
 	cwd, _ := os.Getwd()
 	_ = profile.WriteSession(config.SessionsDir(), profile.Session{
-		Account: account, PID: pid, Cwd: cwd, StartedAt: time.Now(),
+		Account: name, PID: pid, Cwd: cwd, StartedAt: time.Now(),
 	})
 	runErr := cmd.Wait()
 	_ = profile.RemoveSession(config.SessionsDir(), pid)
 
 	// capture any rotated token back into the account slot (best-effort)
-	a.syncAfterRun(account, dir)
+	a.syncAfterRun(name, dir)
 	return runErr
 }
 

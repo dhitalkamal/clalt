@@ -104,6 +104,86 @@ func TestRemoveGuardsActive(t *testing.T) {
 	}
 }
 
+// TestSaveRejectsInvalidNewName proves a brand-new name is validated before
+// anything is written: a malicious backup key like "../../../../tmp/x" must
+// never reach the vault or state.json.
+func TestSaveRejectsInvalidNewName(t *testing.T) {
+	s, kc := newStore(t)
+	if err := s.Save("../../../../tmp/x", mkCred("tok", 1), Meta{}); err == nil {
+		t.Fatal("Save with a path-traversal name should error")
+	}
+	if _, _, err := s.Get("../../../../tmp/x"); err == nil {
+		t.Error("nothing should have been written for a rejected name")
+	}
+	if names, _ := kc.List(KeychainService); len(names) != 0 {
+		t.Errorf("keychain should be untouched, got %v", names)
+	}
+}
+
+// TestSaveAllowsUpdatingExistingInvalidLegacyName proves accounts added before
+// this validation existed are not bricked: re-saving (e.g. a token refresh)
+// under the same, already-stored name must keep working even if that name
+// would now fail ValidateName.
+func TestSaveAllowsUpdatingExistingInvalidLegacyName(t *testing.T) {
+	s, kc := newStore(t)
+	// simulate a pre-existing legacy account with a now-invalid name, bypassing
+	// Save's validation the way an old on-disk state.json would.
+	legacy := "weird name!"
+	if err := kc.Set(KeychainService, legacy, []byte(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := s.load()
+	st.Accounts[legacy] = Meta{}
+	if err := s.save(st); err != nil {
+		t.Fatal(err)
+	}
+
+	// re-saving (as a refresh would) must succeed, not brick the account
+	if err := s.Save(legacy, mkCred("tok2", 2), Meta{Email: "e@x.com"}); err != nil {
+		t.Fatalf("Save on existing legacy name should succeed, got %v", err)
+	}
+	_, meta, err := s.Get(legacy)
+	if err != nil || meta.Email != "e@x.com" {
+		t.Errorf("legacy account not updated: %+v %v", meta, err)
+	}
+}
+
+// TestRenameRejectsInvalidNewName proves the destination name of a rename is
+// validated (it becomes a new storage key / profile dir name).
+func TestRenameRejectsInvalidNewName(t *testing.T) {
+	s, _ := newStore(t)
+	_ = s.Save("old", mkCred("tok", 1), Meta{})
+	if err := s.Rename("old", "../evil"); err == nil {
+		t.Fatal("Rename to a path-traversal name should error")
+	}
+	// nothing should have moved
+	if _, _, err := s.Get("old"); err != nil {
+		t.Errorf("old account should be untouched after a rejected rename: %v", err)
+	}
+}
+
+// TestRenameFromInvalidLegacyNameSucceeds proves the only way out of an
+// invalid legacy name (`clalt rename <old> <new>`) still works: the source
+// name is never validated, only the destination.
+func TestRenameFromInvalidLegacyNameSucceeds(t *testing.T) {
+	s, kc := newStore(t)
+	legacy := "weird name!"
+	if err := kc.Set(KeychainService, legacy, []byte(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := s.load()
+	st.Accounts[legacy] = Meta{Email: "e@x.com"}
+	if err := s.save(st); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Rename(legacy, "fixed-name"); err != nil {
+		t.Fatalf("Rename from a legacy invalid name should succeed, got %v", err)
+	}
+	if _, meta, err := s.Get("fixed-name"); err != nil || meta.Email != "e@x.com" {
+		t.Errorf("renamed account wrong: %+v %v", meta, err)
+	}
+}
+
 func TestRenameFixesPointer(t *testing.T) {
 	s, _ := newStore(t)
 	_ = s.Save("old", mkCred("tok", 1), Meta{Email: "e@x.com"})

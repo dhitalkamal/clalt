@@ -33,10 +33,24 @@ func New(kc keychain.Store, statePath, logPath string) *Store {
 }
 
 // Save stores (or replaces) a slot's credential and upserts its metadata.
-// AddedAt is set only on first save; a later save preserves it.
+// AddedAt is set only on first save; a later save preserves it. A brand-new
+// name is validated (this is the "creating an account" boundary: add, login,
+// import); re-saving an already-known name (refresh, sync-back) is not
+// re-validated, so an account added before ValidateName existed keeps working
+// until the user explicitly renames it.
 func (s *Store) Save(name string, c credential.Credential, meta Meta) error {
 	if name == "" {
 		return errors.New("account name is empty")
+	}
+	st, err := s.load()
+	if err != nil {
+		return err
+	}
+	existing, ok := st.Accounts[name]
+	if !ok {
+		if verr := ValidateName(name); verr != nil {
+			return verr
+		}
 	}
 	raw, err := json.Marshal(c)
 	if err != nil {
@@ -45,11 +59,6 @@ func (s *Store) Save(name string, c credential.Credential, meta Meta) error {
 	if err := s.kc.Set(KeychainService, name, raw); err != nil {
 		return fmt.Errorf("store secret: %w", err)
 	}
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	existing, ok := st.Accounts[name]
 	if ok && !existing.AddedAt.IsZero() {
 		meta.AddedAt = existing.AddedAt
 	} else {
@@ -178,10 +187,16 @@ func (s *Store) Delete(name string) error {
 	return s.save(st)
 }
 
-// Rename moves a slot to a new name, fixing the active pointer if needed.
+// Rename moves a slot to a new name, fixing the active pointer if needed. Only
+// newName is validated: it becomes a fresh storage key / profile dir name, so
+// it must be safe, but oldName is not re-validated, which is what lets an
+// account with a pre-validation legacy name be renamed out of that state.
 func (s *Store) Rename(oldName, newName string) error {
 	if newName == "" {
 		return errors.New("new name is empty")
+	}
+	if err := ValidateName(newName); err != nil {
+		return err
 	}
 	st, err := s.load()
 	if err != nil {

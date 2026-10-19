@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/dhitalkamal/clalt/internal/account"
@@ -43,5 +44,48 @@ func TestRunInjectsTokenEndToEnd(t *testing.T) {
 	}
 	if string(got) != "tok-e2e" {
 		t.Errorf("child claude saw CLAUDE_CODE_OAUTH_TOKEN=%q, want tok-e2e", string(got))
+	}
+}
+
+// TestRunRejectsPathTraversalName proves `clalt run` refuses an account name
+// that would escape config.ProfileDir (e.g. from a legacy pre-validation
+// account, or a name typed straight on the command line) before ever touching
+// the filesystem for it: no profile dir gets created anywhere, including
+// outside the intended profiles root.
+func TestRunRejectsPathTraversalName(t *testing.T) {
+	app, _, dir := newTestApp(t)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	err := app.cmdRun([]string{"../../../../tmp/evil"})
+	if err == nil {
+		t.Fatal("cmdRun with a path-traversal name should error")
+	}
+	if !strings.Contains(err.Error(), "only letters, digits") {
+		t.Errorf("error should be the name-validation error, got: %v", err)
+	}
+	// the profiles root itself must never even get created for a rejected name
+	if _, statErr := os.Stat(filepath.Join(dir, "clalt", "profiles")); statErr == nil {
+		t.Error("cmdRun should not have created the profiles dir for a rejected name")
+	}
+}
+
+// TestRunRefusesInvalidLegacyNameWithRenameHint proves that when an existing
+// (pre-validation) account has an invalid name, `run` refuses it rather than
+// staging secrets into an unsafe path, and tells the user to rename it.
+func TestRunRefusesInvalidLegacyNameWithRenameHint(t *testing.T) {
+	app, _, dir := newTestApp(t)
+	t.Setenv("XDG_CONFIG_HOME", dir)
+
+	legacy := "weird name!"
+	if err := app.KC.Set(account.KeychainService, legacy, []byte(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+
+	err := app.cmdRun([]string{legacy})
+	if err == nil {
+		t.Fatal("cmdRun with an invalid legacy name should error")
+	}
+	if !strings.Contains(err.Error(), "clalt rename") {
+		t.Errorf("error should point the user at `clalt rename`, got: %v", err)
 	}
 }
