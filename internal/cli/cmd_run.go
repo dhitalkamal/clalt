@@ -29,6 +29,14 @@ func (a *App) cmdRun(args []string) error {
 		return err
 	}
 
+	// exec spawns a background copy goroutine to relay a child's output
+	// whenever Stdout/Stderr isn't a plain *os.File, which would otherwise
+	// race with clalt's own status-line printf's to the same writer while the
+	// child runs (a real -race failure, see writer.go); *os.File itself needs
+	// no extra locking, so this is a no-op in normal (terminal) operation.
+	a.Out = wrapForChild(a.Out)
+	a.Err = wrapForChild(a.Err)
+
 	// by default a profile inherits the user's full Claude config (settings,
 	// skills, MCP, CLAUDE.md, ...) so a run session behaves like their normal
 	// setup; --isolated opts out for a clean-room profile.
