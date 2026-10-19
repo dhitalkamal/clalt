@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- casey -------------------------------------------------------------+
+ | / sh                   | | [Overview]   Sessions    Limits    History    Profile               |
+ |                        | |                                                                     |
+ | > casey     95% ! * 1  | | casey@example.com   Example   max plan                              |
+ |   harriet  signed out  | | Signed in. Re-login due in 19 days. Last used 11m ago.              |
+ |                        | |                                                                     |
+ |                        | | 5h  ###########################=-  95%  resets 00:41 (in 0h48m)     |
+ |                        | |     at this pace it runs out in about 5 minutes                     |
+ |                        | | 7d  #######################------  80%  resets Thu 18:05 (18h)      |
+ |                        | |     on pace to finish the week at 97%                               |
+ |                        | | Limits as of 4s ago.                                                |
+ |                        | |                                                                     |
+ |                        | | Budget   today  $6.80 of  $8.00   ##################---             |
+ |                        | |          week  $33.20 of $40.00   #################=---             |
+ |                        | |                                                                     |
+ |                        | | Today    3.4M tokens   ~$6.80                                       |
+ |                        | | Week     +#.:+##   16.2M tokens   ~$33.20                           |
+ |                        | |                                                                     |
+ |                        | | Running  1 session: 1 waiting for you                               |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter keep filter   esc clear   up down move   ctrl+c quit

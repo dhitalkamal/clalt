@@ -95,6 +95,7 @@ clalt export <file>        encrypted backup of all accounts
 clalt import <file>        restore accounts from a backup
 clalt usage [name] [--live]  usage stats (local by default)
 clalt dashboard [--live]     interactive usage dashboard (TUI)
+clalt dashboard --demo       preview the new dashboard on demo data
 ```
 
 Add `--json` to most commands for machine-readable output.
@@ -243,6 +244,17 @@ the composition breakdown and cache-hit rate. Cost still includes cache.
 
 `--live` additionally queries Anthropic's usage endpoint for authoritative
 window utilization. See the caveats below before relying on it.
+
+### Preview of the new dashboard
+
+`clalt dashboard --demo` opens the new focus-panes dashboard on made-up data, so
+you can try it without touching any account. The current dashboard stays the
+default and nothing here reads or changes your accounts. Keys: `j`/`k` move,
+`tab` switches pane, `[` `]` or `1`-`5` switch view, `h`/`l` switch the history
+tab, `/` filters, `a` toggles ascii mode, `?` lists every key, `q` quits and
+`esc` never does. Enter, `s`, `e` and `x` only say what they would have done.
+`NO_COLOR` turns the colors off and `CLALT_ASCII=1` starts in ascii mode.
+Without a terminal it prints a single plain frame.
 
 ## Environment overrides
 

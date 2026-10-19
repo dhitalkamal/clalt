@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- harriet -----------------------------------------------------------+
+ |   robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | harriet@example.com   Example                                       |
+ |   jordan     5%        | | Signed out. Press s to sign in.                                     |
+ | > harriet  signed out  | |                                                                     |
+ |                        | |                                                                     |
+ |   jordan has the most  | |                                                                     |
+ |   room left            | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter run  s sign in  e budget  r rename  tab pane  [ ] or 1-5 view  / find  ? keys  q quit

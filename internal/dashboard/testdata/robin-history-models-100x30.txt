@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | |  Overview    Sessions    Limits   [History]   Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | Days  Projects  [Models]                                            |
+ |   jordan     5%        | |                                                                     |
+ |   harriet  signed out  | |   model       cost share         tokens     cost                    |
+ |                        | | > Opus 5.5    ########=---  69%    9.6M  ~$49.10                    |
+ |   jordan has the most  | |   Sonnet 5.5  ###=--------  31%    8.0M  ~$22.10                    |
+ |   room left            | |                                                                     |
+ |                        | | Last 30 days. Share is by cost.                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter run  s sign in  e budget  r rename  tab pane  [ ] or 1-5 view  / find  ? keys  q quit

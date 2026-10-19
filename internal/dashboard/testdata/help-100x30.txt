@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     +- Keys ------------------------------------------------------------+              |
+ |   jordan    |                                                                   |              |
+ |   harriet   |  up/down, k/j     move in the focused pane                        |              |
+ |             |  tab              switch pane                                     | n 1h52m)     |
+ |   jordan ha |  [ ] or 1-5       switch view                                     |              |
+ |   room left |  h/l, left/right  switch history tab                              | 5 (1d 15h)   |
+ |             |  enter            run claude as the account, or open the project  |              |
+ |             |                   when the History Projects table is focused      |              |
+ |             |  s                sign in                                         |              |
+ |             |  e                edit the budget                                 |              |
+ |             |  r                rename the account (accounts pane)              |              |
+ |             |  d                sign out the account (accounts pane)            |              |
+ |             |  x                stop the selected session                       |              |
+ |             |  /                filter accounts                                 |              |
+ |             |  a                toggle ascii mode                               |              |
+ |             |  ?                show or hide this help                          |              |
+ |             |  esc              close help or filter                            |              |
+ |             |  esc, backspace   go back from a project                          |              |
+ |             |  q                quit                                            |              |
+ |             |  ctrl+c           quit from anywhere                              |              |
+ |             |                                                                   |              |
+ |             +- esc closes ------------------------------------------------------+              |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  esc close   ? close   q quit

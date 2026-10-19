@@ -1,12 +1,28 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
 
 // Run parses args (os.Args[1:]) and dispatches a subcommand, returning an exit code.
 func Run(args []string) int {
+	app, err := NewApp()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return 1
+	}
+	return run(app, args)
+}
+
+// usageError is a mistake in the arguments of a command. it exits with 2 and
+// shows how the command is called.
+type usageError struct{ msg, usage string }
+
+func (e usageError) Error() string { return e.msg }
+
+func run(app *App, args []string) int {
 	var rest []string
 	jsonOut := false
 	for _, a := range args {
@@ -16,12 +32,7 @@ func Run(args []string) int {
 		}
 		rest = append(rest, a)
 	}
-
-	app, err := NewApp()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		return 1
-	}
+	var err error
 	app.JSON = jsonOut
 
 	if len(rest) == 0 {
@@ -73,6 +84,11 @@ func Run(args []string) int {
 		return 2
 	}
 
+	var bad usageError
+	if errors.As(err, &bad) {
+		fmt.Fprintf(app.Err, "error: %s\nusage: %s\n", bad.msg, bad.usage)
+		return 2
+	}
 	if err != nil {
 		fmt.Fprintf(app.Err, "error: %v\n", err)
 		return 1
@@ -112,6 +128,7 @@ usage:
   clalt import <file>        restore accounts from a backup
   clalt usage [name] [--live]  usage stats (local by default)
   clalt dashboard [--live]     interactive usage dashboard (TUI)
+  clalt dashboard --demo       preview the new dashboard on demo data
 
 global:
   --json                      machine-readable output where supported
