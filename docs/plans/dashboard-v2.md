@@ -1,5 +1,9 @@
 # Dashboard v2 plan
 
+PR 1 shipped as PR #6. The PR 2 and PR 3 sections below are superseded by
+docs/plans/clalt-v2.md (2026-10-19): thin profiles instead of per-account
+configs, a session wrapper, account switching and Kiro Crew gateways.
+
 Approved 2026-10-15 on branch feat/dashboard-v2. Replaces the internal/tui
 dashboard with a focus-panes dashboard built on Bubble Tea v2 and Lip Gloss v2,
 and moves logins to claude itself so sessions stay alive without clalt holding
