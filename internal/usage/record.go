@@ -15,6 +15,9 @@ type Record struct {
 	CacheRead   int64
 	Project     string
 	SessionID   string
+	Cwd         string // working dir the record was written from; used for --continue/-c session discovery
+	MessageID   string // message.id: repeats across content-block lines of the same reply, used to dedup
+	RequestID   string // top-level requestId: paired with MessageID for the dedup key
 }
 
 // Billable is input + output tokens: the headline "tokens" number. Cache reads

@@ -11,12 +11,18 @@ import (
 )
 
 // transcriptLine is the subset of a Claude Code JSONL entry we care about.
+// RequestID and Message.ID together form the dedup key: Claude Code writes one
+// line per content block, repeating both across every block of one reply
+// (including subagent/sidechain lines, which carry the parent conversation's
+// sessionId, so no special-casing is needed there).
 type transcriptLine struct {
 	Type      string `json:"type"`
 	Timestamp string `json:"timestamp"`
 	SessionID string `json:"sessionId"`
 	Cwd       string `json:"cwd"`
+	RequestID string `json:"requestId"`
 	Message   struct {
+		ID    string `json:"id"`
 		Model string `json:"model"`
 		Usage *struct {
 			Input       int64 `json:"input_tokens"`
@@ -56,6 +62,9 @@ func ParseTranscript(r io.Reader, project string) ([]Record, error) {
 			CacheRead:   u.CacheRead,
 			Project:     project,
 			SessionID:   tl.SessionID,
+			Cwd:         tl.Cwd,
+			MessageID:   tl.Message.ID,
+			RequestID:   tl.RequestID,
 		})
 	}
 	return out, sc.Err()

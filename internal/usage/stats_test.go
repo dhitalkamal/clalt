@@ -38,10 +38,11 @@ func TestWindowFiltersByDuration(t *testing.T) {
 }
 
 func TestCostOf(t *testing.T) {
-	// opus: 1M input @ $15 => exactly $15 for 1,000,000 input tokens
+	// opus-4-8: 1M input @ $5 => exactly $5 for 1,000,000 input tokens (see
+	// cost_test.go for the full priced-model table backing this number)
 	r := Record{Input: 1_000_000, Model: "claude-opus-4-8"}
-	if c := CostOf(r); math.Abs(c-15.0) > 1e-9 {
-		t.Errorf("opus 1M input cost = %f, want 15", c)
+	if c := CostOf(r); math.Abs(c-5.0) > 1e-9 {
+		t.Errorf("opus-4-8 1M input cost = %f, want 5", c)
 	}
 	// unknown model falls back to a nonzero default, never panics
 	if c := CostOf(Record{Input: 1_000_000, Model: "mystery"}); c <= 0 {
@@ -51,11 +52,11 @@ func TestCostOf(t *testing.T) {
 
 func TestTotalCost(t *testing.T) {
 	recs := []Record{
-		{Input: 1_000_000, Model: "claude-opus-4-8"},  // $15
-		{Output: 1_000_000, Model: "claude-opus-4-8"}, // $75
+		{Input: 1_000_000, Model: "claude-opus-4-8"},  // $5
+		{Output: 1_000_000, Model: "claude-opus-4-8"}, // $25
 	}
-	if c := TotalCost(recs); math.Abs(c-90.0) > 1e-9 {
-		t.Errorf("TotalCost = %f, want 90", c)
+	if c := TotalCost(recs); math.Abs(c-30.0) > 1e-9 {
+		t.Errorf("TotalCost = %f, want 30", c)
 	}
 }
 
