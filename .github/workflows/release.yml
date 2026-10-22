@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      # never publish a tag whose code fails its own tests
+      - name: test
+        run: go test ./...
+
+      - name: build archives
+        env:
+          VERSION_PKG: github.com/dhitalkamal/clalt/internal/version
+        run: |
+          set -euo pipefail
+          ver="${GITHUB_REF_NAME}"
+          sha="${GITHUB_SHA}"
+          date="$(date -u +%Y-%m-%d)"
+          ldflags="-s -w -X ${VERSION_PKG}.Version=${ver} -X ${VERSION_PKG}.Commit=${sha} -X ${VERSION_PKG}.Date=${date}"
+          mkdir -p dist
+
+          build_unix() {
+            os="$1"; arch="$2"
+            name="clalt_${ver}_${os}_${arch}"
+            workdir="$(mktemp -d)"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -ldflags "$ldflags" -o "${workdir}/clalt" .
+            tar -C "$workdir" -czf "dist/${name}.tar.gz" clalt
+            rm -rf "$workdir"
+          }
+
+          build_windows() {
+            arch="$1"
+            name="clalt_${ver}_windows_${arch}"
+            workdir="$(mktemp -d)"
+            CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath -ldflags "$ldflags" -o "${workdir}/clalt.exe" .
+            (cd "$workdir" && zip -q "${GITHUB_WORKSPACE}/dist/${name}.zip" clalt.exe)
+            rm -rf "$workdir"
+          }
+
+          build_unix linux amd64
+          build_unix linux arm64
+          build_unix darwin amd64
+          build_unix darwin arm64
+          build_windows amd64
+
+          (cd dist && sha256sum -- * > checksums.txt)
+          ls -1 dist
+
+      # attestations need a public repo; skipped when private so the tag publishes
+      - name: attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: 'dist/*.tar.gz,dist/*.zip'
+
+      - name: publish release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+          generate_release_notes: true

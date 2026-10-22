@@ -42,6 +42,8 @@ func run(app *App, args []string) int {
 
 	cmd, cmdArgs := rest[0], rest[1:]
 	switch cmd {
+	case "version", "--version", "-v":
+		err = app.cmdVersion(cmdArgs)
 	case "list", "ls":
 		err = app.cmdList()
 	case "whoami", "current":
@@ -107,6 +109,7 @@ func (a *App) usage() {
 	a.printf(`clalt - manage multiple Claude accounts for Claude Code
 
 usage:
+  clalt version               print build version (--json for machine-readable)
   clalt list                 list accounts (active one marked)
   clalt whoami               show the active account
   clalt add <name>           capture the current Claude Code login as <name>

@@ -7,11 +7,10 @@ import (
 	"sort"
 )
 
-// FileStore is a plaintext file-backed Store selected via CLALT_KEYCHAIN_DIR.
-// It exists so mutating flows can be exercised in tests and sandbox end-to-end
-// runs WITHOUT touching the real macOS Keychain or Claude Code login. It is not
-// the production backend: files are chmod 0600 but not encrypted at rest, so do
-// not point it at real long-lived secrets.
+// FileStore is a plaintext file-backed Store (chmod 0600, not encrypted at
+// rest). It is the storage engine EncFileStore wraps with AES-256-GCM for the
+// production vault; used bare it is only for tests, so do not point it at real
+// long-lived secrets.
 type FileStore struct{ dir string }
 
 // NewFileStore roots a file-backed store at dir.

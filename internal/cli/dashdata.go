@@ -9,10 +9,8 @@ import (
 	"github.com/dhitalkamal/clalt/internal/scheduler"
 	"github.com/dhitalkamal/clalt/internal/tui"
 	"github.com/dhitalkamal/clalt/internal/usage"
+	"github.com/dhitalkamal/clalt/internal/version"
 )
-
-// version is stamped into the dashboard header.
-const version = "v0.1.0"
 
 // dailyTrendDays is how much history the daily/activity charts cover.
 const dailyTrendDays = 45
@@ -30,7 +28,7 @@ func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
 	}
 	now := time.Now()
 
-	data := tui.Data{Version: version}
+	data := tui.Data{Version: version.Info().Version}
 	nearExpiry := 0
 	for i, ac := range accts {
 		recs := byAccount[ac.Name]

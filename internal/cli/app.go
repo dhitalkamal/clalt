@@ -68,20 +68,15 @@ func (a *App) doRefresh(ctx context.Context, refresh string) (oauth.TokenResult,
 // login for `add` never prompts, and multi-account sessions run via `clalt run`,
 // which injects CLAUDE_CODE_OAUTH_TOKEN so Claude Code never consults the macOS
 // Keychain at all. clalt's own per-account secrets live in a local encrypted
-// vault, not any OS keychain. Any secrets left over from clalt's old
-// Keychain-only storage are migrated into the vault once (macOS only); that
-// migration only reads item data if a legacy item is actually present.
+// vault, not any OS keychain; there is no more legacy macOS Keychain storage to
+// migrate from.
 func NewApp() (*App, error) {
-	sysKC := keychain.NewSystem()
 	// file-only live store: never touches the macOS Keychain (nil keychain)
 	live := livestore.New(nil, config.ClaudeCredentialsPath())
 
 	vault, err := keychain.NewEncFileStore(config.VaultDir(), config.VaultKeyPath())
 	if err != nil {
 		return nil, fmt.Errorf("open credential vault: %w", err)
-	}
-	if _, err := keychain.MigrateVault(sysKC, vault, account.KeychainService); err != nil {
-		return nil, fmt.Errorf("migrate credential vault: %w", err)
 	}
 
 	return &App{

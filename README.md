@@ -275,13 +275,6 @@ CLALT_NO_BROWSER         set to skip auto-opening the browser on login
 CLALT_CLAUDE_BIN         override the claude binary `run` launches (default claude)
 ```
 
-### Sandbox backend
-
-`CLALT_KEYCHAIN_DIR` switches the sandbox secret store to a plaintext file-backed
-store rooted at that directory. This exists only for tests and end-to-end runs so
-the mutating flows can be exercised without touching real secrets. It is not the
-production backend and does not encrypt at rest; do not point it at real secrets.
-
 ## Caveats (read these)
 
 - Compliance: Anthropic's Feb 2026 Legal/Compliance update says OAuth tokens from

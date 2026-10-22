@@ -1,12 +1,15 @@
-// Package account manages named Claude credential slots: secrets live in the
-// macOS Keychain under the "clalt" service, non-secret metadata and the active
-// pointer live in state.json, and switching swaps the active slot into Claude
-// Code's live store.
+// Package account manages named Claude credential slots: secrets live in
+// clalt's local encrypted vault under the "clalt" service namespace, non-secret
+// metadata and the active pointer live in state.json, and switching swaps the
+// active slot into Claude Code's live store.
 package account
 
 import "time"
 
-// KeychainService is the namespace for per-account credential secrets.
+// KeychainService is the vault namespace for per-account credential secrets.
+// The name is historical: this used to be the macOS Keychain service string
+// back when secrets lived in the OS Keychain; it is now just the key prefix
+// used inside the local encrypted vault (keychain.EncFileStore).
 const KeychainService = "clalt"
 
 // Meta is the non-secret info shown in listings and the dashboard.
