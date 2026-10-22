@@ -46,9 +46,11 @@ type accountReport struct {
 
 // recordsByAccount scans local transcripts and groups usage records by the
 // account active at each record's time, folding pre-first-switch usage into the
-// current active account so a fresh user still sees their history.
+// current active account so a fresh user still sees their history. Records are
+// deduped by message id and request id, so a reply Claude Code wrote as several
+// transcript lines counts once.
 func (a *App) recordsByAccount() (map[string][]usage.Record, error) {
-	records, err := usage.ScanProjects(config.ClaudeProjectsDir())
+	records, err := usage.ScanRoots([]string{config.ClaudeProjectsDir()})
 	if err != nil {
 		return nil, err
 	}
