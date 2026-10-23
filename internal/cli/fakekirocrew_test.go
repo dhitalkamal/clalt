@@ -71,6 +71,8 @@ func crewEnv(t *testing.T) (*testEnv, *fakeKirocrew) {
 	// every gateway looks ready at once, and the fake has no sockets to inspect
 	e.app.crewOpts.Ready = func(context.Context, int) bool { return true }
 	e.app.crewOpts.Listeners = func(context.Context, int) ([]string, error) { return []string{"127.0.0.1:5500"}, nil }
+	// no real port is ever probed, so a gateway on this machine cannot shift the port
+	e.app.crewOpts.Busy = func(int) bool { return false }
 	e.signIn("work", "w@example.com")
 	return e, k
 }
