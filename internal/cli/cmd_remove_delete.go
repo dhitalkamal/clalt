@@ -1,0 +1,167 @@
+package cli
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+
+	"github.com/dhitalkamal/clalt/internal/account"
+	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/registry"
+)
+
+// deleteAccount is remove --delete: sign the account out, delete its folder and
+// drop its record. nothing is deleted unless the sign-out is known to have
+// worked, and the folder must be a real folder directly under clalt's accounts
+// dir, so a bad record can never point it at ~/.claude or anywhere else.
+func (a *App) deleteAccount(acc account.Account, force bool) error {
+	if err := a.refuseSharedFolder(acc); err != nil {
+		return err
+	}
+	if err := a.refuseHiddenSharer(acc); err != nil {
+		return err
+	}
+	if err := refuseLiveSession(acc); err != nil {
+		return err
+	}
+	if noFolderFor(acc) {
+		return a.deleteNoFolder(acc, force)
+	}
+	folder, err := folderFor(acc)
+	if err != nil {
+		return err
+	}
+	if err := checkDeletable(folder); err != nil {
+		return fmt.Errorf("will not delete %s: %w. nothing was changed", shown(acc), err)
+	}
+	if !force {
+		email := acc.Meta.Email
+		if email == "" {
+			email = "no email recorded"
+		}
+		q := fmt.Sprintf("delete %s (%s) for good? it is signed out, its record goes, and this folder is deleted: %s",
+			shown(acc), email, folder)
+		if ok, err := a.askDelete(acc, q); !ok {
+			return err
+		}
+	}
+	if err := a.signOutForDelete(acc, folder); err != nil {
+		return err
+	}
+	// RemoveAll deletes symlinks themselves and never follows them
+	if err := os.RemoveAll(folder); err != nil {
+		return fmt.Errorf("%s is signed out, but its folder %s could not be deleted: %w. the record is kept", shown(acc), folder, err)
+	}
+	if err := a.Store.Delete(acc.Name); err != nil {
+		return fmt.Errorf("the folder of %s is deleted, but clalt could not drop its record: %w. 'clalt remove %s --delete' tries again",
+			shown(acc), err, shown(acc))
+	}
+	a.printf("deleted %s and its folder %s\n", shown(acc), folder)
+	return nil
+}
+
+// deleteNoFolder drops the record of an id that never had a folder.
+func (a *App) deleteNoFolder(acc account.Account, force bool) error {
+	if !force {
+		q := fmt.Sprintf("delete %s for good? it has no folder, only its record goes", shown(acc))
+		if ok, err := a.askDelete(acc, q); !ok {
+			return err
+		}
+	}
+	if err := a.Store.Delete(acc.Name); err != nil {
+		return err
+	}
+	a.printf("deleted %s\n", shown(acc))
+	return nil
+}
+
+// askDelete asks the question. ok false with a nil error means the answer was no.
+func (a *App) askDelete(acc account.Account, q string) (bool, error) {
+	yes, err := a.confirm(q)
+	if err != nil {
+		a.printf("\n")
+		return false, fmt.Errorf("no answer was given, so %s was not deleted. pass --force to delete without asking", shown(acc))
+	}
+	if !yes {
+		a.printf("aborted\n")
+	}
+	return yes, nil
+}
+
+// signOutForDelete signs the folder out and stops on any doubt: if claude
+// cannot say whether anyone is signed in, or the sign-out fails, nothing is
+// deleted.
+func (a *App) signOutForDelete(acc account.Account, folder string) error {
+	st, err := liveStatus(folder)
+	if err != nil {
+		return fmt.Errorf("could not check whether %s is signed in: %w. nothing was deleted", shown(acc), err)
+	}
+	if loginMayBeIn(st, nil) {
+		if err := logoutFolder(folder); err != nil {
+			return signOutFailed(acc, err, "nothing was deleted", "clalt remove --delete")
+		}
+	}
+	return nil
+}
+
+// checkDeletable says whether folder is a real directory (not a link) that sits
+// directly under the accounts dir. a folder that is already gone passes.
+func checkDeletable(folder string) error {
+	// the comparison is lexical: it does not guard against ~/.config/clalt or
+	// the accounts folder itself being a symlink
+	if filepath.Dir(folder) != filepath.Clean(config.AccountsDir()) {
+		return fmt.Errorf("%s is not inside clalt's accounts folder", folder)
+	}
+	fi, err := os.Lstat(folder)
+	switch {
+	case os.IsNotExist(err):
+		return nil
+	case err != nil:
+		return err
+	case !fi.IsDir():
+		return fmt.Errorf("%s is a link or a file, not a folder", folder)
+	}
+	return nil
+}
+
+// refuseHiddenSharer looks at every record, hidden ones too: foldersSharedWith
+// skips them, but a removed account that has the same folder would lose it.
+func (a *App) refuseHiddenSharer(acc account.Account) error {
+	groups, err := a.Store.CaseCollisions()
+	if err != nil {
+		return err
+	}
+	for _, g := range groups {
+		if !slices.Contains(g, acc.Name) {
+			continue
+		}
+		for _, id := range g {
+			if id != acc.Name && foldersCollide(acc.Name, id) {
+				return fmt.Errorf("%q has the same folder as %q, which would be deleted with it. nothing was changed",
+					shown(acc), clean(id))
+			}
+		}
+	}
+	return nil
+}
+
+// refuseLiveSession stops a delete under a running session, even with --force:
+// the session works in this very folder.
+func refuseLiveSession(acc account.Account) error {
+	recs, err := registry.Registry{Dir: config.SessionsDir()}.List()
+	if err != nil {
+		return fmt.Errorf("could not check for running sessions: %w. nothing was changed", err)
+	}
+	for _, r := range recs {
+		if r.Account == acc.Name {
+			pid := r.WrapperPID
+			if pid == 0 {
+				pid = r.PID
+			}
+			return fmt.Errorf("%s has a running session (pid %d). end the session first, then delete it. nothing was changed",
+				shown(acc), pid)
+		}
+	}
+	return nil
+}

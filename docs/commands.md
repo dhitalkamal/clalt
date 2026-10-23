@@ -102,6 +102,7 @@ clalt whoami               the account of this shell, with its live state
 clalt logout <name>        claude auth logout in the folder; history stays
 clalt remove <name>        sign out unless claude says nobody is signed in, then
                            hide; history stays
+clalt remove <name> --delete   sign out, then delete the folder and the record
 clalt rename <old> <new>   label only, the folder never moves
 ```
 
@@ -129,6 +130,16 @@ be made, the sign-out state is unknown: they say so, keep clalt's record and the
 account as they were, and `clalt list` shows where it stands. `remove` never
 deletes the folder: the account is hidden, and `clalt login <name>` brings it
 back in the same folder.
+
+`remove <name> --delete` goes further and deletes the account for good, which
+works on a removed account too. It signs the folder out first and stops, deleting
+nothing, if the sign-out fails or claude cannot say whether the folder is signed
+in. It refuses a folder shared with another account, and a folder that is not a
+real folder directly under clalt's accounts folder. It deletes only that folder:
+the links inside it into `~/.claude` are removed, never followed, so shared
+history and settings stay. It names the account, its email and the folder, and
+asks first unless it gets `--force`; with no answer it exits 1. The record is
+dropped from `state.json`. Past usage still shows the account by its id.
 
 ## Rules, picking and moving
 

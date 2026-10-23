@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `clalt remove <name> --delete` signs the account out, then deletes its
+  folder and its record. It refuses shared folders, stops if the sign-out
+  fails, and never follows the links into `~/.claude`.
 - `clalt move` and auto-switch now work on running sessions: `clalt run` keeps
   claude under the session wrapper, which reads the session registry and feed,
   and at a pause (idle after a reply, or a stop that failed with `rate_limit`)

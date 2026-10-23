@@ -11,13 +11,16 @@ const removeUsage = "clalt remove <name> [--force]"
 // cmdRemove signs an account out and hides it. the folder and its history stay,
 // and logging in under the same name brings the account back.
 func (a *App) cmdRemove(args []string) error {
-	label, force, err := parseRemoveArgs(args)
+	label, force, del, err := parseRemoveArgs(args)
 	if err != nil {
 		return err
 	}
 	acc, err := a.findAccount(label)
 	if err != nil {
 		return err
+	}
+	if del {
+		return a.deleteAccount(acc, force)
 	}
 	if acc.Meta.Hidden {
 		return fmt.Errorf("%q is already removed. 'clalt login %s' brings it back", label, label)
@@ -45,17 +48,21 @@ func (a *App) cmdRemove(args []string) error {
 	return nil
 }
 
-func parseRemoveArgs(args []string) (label string, force bool, err error) {
+func parseRemoveArgs(args []string) (label string, force, del bool, err error) {
 	var rest []string
 	for _, arg := range args {
 		if arg == "--force" || arg == "-f" {
 			force = true
 			continue
 		}
+		if arg == "--delete" {
+			del = true
+			continue
+		}
 		rest = append(rest, arg)
 	}
 	label, err = oneAccountArgs(rest, removeUsage)
-	return label, force, err
+	return label, force, del, err
 }
 
 // removeAccount signs the folder out unless claude says plainly that nobody is

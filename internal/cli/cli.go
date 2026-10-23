@@ -151,6 +151,7 @@ usage:
                               left for this folder (rules: clalt rules)
   clalt logout <name>         sign the account out, keep its history
   clalt remove <name>         sign out and hide the account, history stays
+  clalt remove <name> --delete  sign out, delete its folder and record
                               (--force skips the confirmation)
   clalt rename <old> <new>    change the label only, the folder never moves
   clalt list                  accounts with their live sign-in state

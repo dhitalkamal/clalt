@@ -141,6 +141,17 @@ func (s *Store) Hide(id string) error {
 	})
 }
 
+// Delete drops the record of an account from the state file. the caller has
+// already dealt with the folder. an unknown id is not an error: the goal is
+// that the record is gone. older binaries read the same file and just see one
+// account fewer.
+func (s *Store) Delete(id string) error {
+	return s.mutate(func(st *state) error {
+		delete(st.Accounts, id)
+		return nil
+	})
+}
+
 // Unhide undoes Hide. the identity is not restored: the next login records a
 // fresh one.
 func (s *Store) Unhide(id string) error {
