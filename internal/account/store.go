@@ -118,7 +118,7 @@ func (s *Store) load() (state, error) {
 	if err := checkPath(s.statePath); err != nil {
 		return st, err
 	}
-	raw, err := os.ReadFile(s.statePath)
+	raw, err := fsutil.ReadFile(s.statePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return st, nil

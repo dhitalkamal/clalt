@@ -79,6 +79,10 @@ func TestIsAuthEnvVar(t *testing.T) {
 	}
 	// the config dir is replaced rather than stripped, so it is not one of them
 	for _, n := range []string{"", "PATH", "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY_EXTRA", "anthropic_api_key"} {
+		// windows env names are case-insensitive, so the lowercase name matches
+		if n == "anthropic_api_key" && caseFold {
+			continue
+		}
 		if IsAuthEnvVar(n) {
 			t.Errorf("IsAuthEnvVar(%q) = true", n)
 		}

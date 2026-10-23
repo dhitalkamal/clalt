@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -16,6 +17,9 @@ import (
 // the guard is only a guard when it is the claude that a test without a fake
 // reaches, and when it refuses to be claude. this test installs no fake.
 func TestTheGuardIsWhatClaudeResolvesToWhenNoFakeIsInstalled(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the guard is an sh script, which windows cannot run as claude")
+	}
 	bin, err := claudecli.Binary()
 	if err != nil {
 		t.Fatal(err)

@@ -87,7 +87,7 @@ func TestRunReportsATempFileItCannotRemoveAfterAFailedCopy(t *testing.T) {
 		t.Fatalf("got %+v, want the file to fail", p)
 	}
 	msg := p.Failed[0].Error
-	if !strings.Contains(msg, "bad file descriptor") || !strings.Contains(msg, "could not remove the temp file") {
+	if !strings.Contains(msg, badWriteText) || !strings.Contains(msg, "could not remove the temp file") {
 		t.Errorf("failure %q should carry both the copy error and the leftover temp file", msg)
 	}
 }
@@ -109,7 +109,7 @@ func TestRunReportsAPartialCopyItCannotRemove(t *testing.T) {
 		t.Fatalf("got %+v, want the file to fail", p)
 	}
 	msg := p.Failed[0].Error
-	for _, want := range []string{"bad file descriptor", "could not remove the partial copy", "delete it by hand", filepath.Join("-p", "a.jsonl")} {
+	for _, want := range []string{badWriteText, "could not remove the partial copy", "delete it by hand", filepath.Join("-p", "a.jsonl")} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("failure %q lacks %q", msg, want)
 		}

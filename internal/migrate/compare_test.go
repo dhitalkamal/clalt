@@ -41,10 +41,10 @@ func TestCompareOpenReportsAStatError(t *testing.T) {
 	defer a.Close()
 	b.Close()
 
-	if _, _, err := compareOpen(a, b); !errors.Is(err, os.ErrClosed) {
+	if _, _, err := compareOpen(a, b); !closedErr(err) {
 		t.Errorf("other closed: err = %v, want a closed file error", err)
 	}
-	if _, _, err := compareOpen(b, a); !errors.Is(err, os.ErrClosed) {
+	if _, _, err := compareOpen(b, a); !closedErr(err) {
 		t.Errorf("source closed: err = %v, want a closed file error", err)
 	}
 }

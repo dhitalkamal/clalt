@@ -45,13 +45,13 @@ func TestRunReportsEachStepOfACopyThatFails(t *testing.T) {
 		"opening the source": {
 			Options{openSrc: func(string) (*os.File, error) { return nil, errBoom }}, "boom"},
 		"reading the size of the source": {
-			Options{openSrc: closedSource}, "file already closed"},
+			Options{openSrc: closedSource}, closedText},
 		"making the folder": {
 			withFaults(faulty{mkdirAll: func(store, string, fs.FileMode) error { return errBoom }}), "boom"},
 		"creating the temp file": {
 			withFaults(faulty{openFile: failFor(isTemp)}), "boom"},
 		"copying into the temp file": {
-			withFaults(faulty{openFile: readOnlyAfterCreate(isTemp)}), "bad file descriptor"},
+			withFaults(faulty{openFile: readOnlyAfterCreate(isTemp)}), badWriteText},
 		"setting the mtime": {
 			withFaults(faulty{chtimes: func(store, string, time.Time, time.Time) error { return errBoom }}), "boom"},
 		"linking": {
@@ -66,7 +66,7 @@ func TestRunReportsEachStepOfACopyThatFails(t *testing.T) {
 		"creating the file in place": {
 			withFaults(faulty{link: noLinks, openFile: failFor(isFinal)}), "boom"},
 		"copying in place": {
-			withFaults(faulty{link: noLinks, openFile: readOnlyAfterCreate(isFinal)}), "bad file descriptor"},
+			withFaults(faulty{link: noLinks, openFile: readOnlyAfterCreate(isFinal)}), badWriteText},
 		"setting the mtime in place": {
 			withFaults(faulty{link: noLinks, chtimes: func(s store, name string, atime, mtime time.Time) error {
 				if isFinal(name) {
@@ -112,11 +112,11 @@ func TestRunReportsAFailureToLookAtWhatIsThere(t *testing.T) {
 					f.Close()
 				}
 				return f, err
-			}}), "file already closed"},
+			}}), closedText},
 		"opening the source to compare": {
 			Options{openSrc: func(string) (*os.File, error) { return nil, errBoom }}, "boom"},
 		"reading the size of the source to compare": {
-			Options{openSrc: closedSource}, "file already closed"},
+			Options{openSrc: closedSource}, closedText},
 	} {
 		t.Run(name, func(t *testing.T) {
 			profiles, dest := dirs(t)

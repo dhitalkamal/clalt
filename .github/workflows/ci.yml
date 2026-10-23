@@ -18,10 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    # windows is informational until its tests are portable: it may fail
-    # without failing the run. ubuntu and macos stay blocking.
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
-    # backstop for the known windows hang (360 is the github default)
+    # backstop against a hang on windows (360 is the github default)
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 15 || 360 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,8 +37,8 @@ jobs:
       - name: test (race)
         if: matrix.os != 'windows-latest'
         run: go test -race ./...
-      # the fsutil concurrency test hangs on windows; fail in 3 minutes instead
-      # of waiting out go test's 10 minute default
+      # a stuck test fails in 3 minutes instead of waiting out go test's 10
+      # minute default
       - name: test
         if: matrix.os == 'windows-latest'
         run: go test -timeout 3m ./...

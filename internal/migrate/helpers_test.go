@@ -186,3 +186,17 @@ func sameSnapshot(t *testing.T, want, got map[string]string) {
 		}
 	}
 }
+
+// the text of an error differs by OS: writing to a read-only handle and using a
+// closed file say other things on windows than they do on unix.
+var badWriteText, closedText = func() (string, string) {
+	if runtime.GOOS == "windows" {
+		return "Access is denied", "The handle is invalid"
+	}
+	return "bad file descriptor", "file already closed"
+}()
+
+// closedErr reports whether err is what using a closed file gives.
+func closedErr(err error) bool {
+	return err != nil && (errors.Is(err, os.ErrClosed) || strings.Contains(err.Error(), closedText))
+}

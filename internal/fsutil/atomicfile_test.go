@@ -3,6 +3,7 @@ package fsutil
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +36,9 @@ func TestWriteFileAtomicSetsPermissions(t *testing.T) {
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("windows has no unix permission bits to set")
 	}
 	if info.Mode().Perm() != 0o600 {
 		t.Errorf("perm = %v, want 0600", info.Mode().Perm())
@@ -93,6 +97,9 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		// the reader runs until stop closes, so close it on any exit or a
+		// failed write would leave the reader spinning forever
+		defer close(stop)
 		toggle := false
 		for i := 0; i < 200; i++ {
 			p := payloadA
@@ -108,7 +115,6 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 				return
 			}
 		}
-		close(stop)
 	}()
 
 	wg.Add(1)
@@ -120,9 +126,9 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 				return
 			default:
 			}
-			data, err := os.ReadFile(path)
+			data, err := ReadFile(path)
 			if err != nil {
-				continue // rename races an open; a miss here is fine, not a torn read
+				continue // a miss here is fine, not a torn read
 			}
 			switch len(data) {
 			case len(payloadA):

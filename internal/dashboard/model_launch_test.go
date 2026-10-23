@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -111,6 +112,9 @@ func TestQuittingClaudeWithCtrlCOrASignalIsQuiet(t *testing.T) {
 	quiet, _ := upd(m, execDoneMsg{err: exitError(t, 130)})
 	if quiet.flash.text != "" {
 		t.Errorf("status 130 is ctrl+c, a normal way to leave claude: %q", quiet.flash.text)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("windows has no signals: a killed process reports status 1")
 	}
 	killed := helperCmd(0)
 	if err := killed.Start(); err != nil {

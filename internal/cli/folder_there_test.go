@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/dhitalkamal/clalt/internal/config"
@@ -32,7 +33,15 @@ func TestFolderThere(t *testing.T) {
 		{"a file", file, true, false},
 		{"a link to nowhere is an entry", filepath.Join(dir, "dangling"), true, false},
 		{"nothing", filepath.Join(dir, "none"), false, false},
-		{"below a file", filepath.Join(file, "below"), false, true},
+	}
+	// windows reports a path below a file as not found, same as a missing one
+	if runtime.GOOS != "windows" {
+		cases = append(cases, struct {
+			name    string
+			path    string
+			there   bool
+			wantErr bool
+		}{"below a file", filepath.Join(file, "below"), false, true})
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

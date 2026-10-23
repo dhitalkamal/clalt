@@ -31,7 +31,7 @@ func TestRunDryRunReportsASourceItCannotStat(t *testing.T) {
 	put(t, profiles, "work/projects/-p/a.jsonl", "mine")
 
 	p := only(t, mustRun(t, profiles, dest, Options{DryRun: true, openSrc: closedSource}))
-	if p.Copied != 0 || len(p.Failed) != 1 || !strings.Contains(p.Failed[0].Error, "file already closed") {
+	if p.Copied != 0 || len(p.Failed) != 1 || !strings.Contains(p.Failed[0].Error, closedText) {
 		t.Errorf("got %+v, want a.jsonl failed in the dry run too", p)
 	}
 }

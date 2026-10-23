@@ -19,7 +19,9 @@ import (
 var rename = os.Rename
 var retryRename = runtime.GOOS == "windows"
 
-const renameAttempts = 10
+// the readers of state.json can hold the target open back to back, so the
+// budget is about half a second of 10 ms waits rather than a few tries.
+const renameAttempts = 50
 
 // WriteFileAtomic writes data to path so a reader either sees the old
 // content or the new content in full, never a torn write. It writes to a

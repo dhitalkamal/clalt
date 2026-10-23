@@ -6,9 +6,10 @@ import (
 )
 
 func TestClaudeProjectsDir(t *testing.T) {
-	t.Setenv("CLAUDE_CONFIG_DIR", "/custom/cfg")
+	cfg := filepath.Join(t.TempDir(), "cfg")
+	t.Setenv("CLAUDE_CONFIG_DIR", cfg)
 	got := ClaudeProjectsDir()
-	want := "/custom/cfg/projects"
+	want := filepath.Join(cfg, "projects")
 	if got != want {
 		t.Errorf("ClaudeProjectsDir() = %q, want %q", got, want)
 	}
@@ -47,33 +48,38 @@ func TestClaudeProjectsDirIsEmptyWithoutAHome(t *testing.T) {
 }
 
 func TestClaltDirRespectsXDG(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", "/xdg")
-	if got := ClaltDir(); got != "/xdg/clalt" {
-		t.Errorf("ClaltDir() = %q, want /xdg/clalt", got)
+	xdg := t.TempDir()
+	clalt := filepath.Join(xdg, "clalt")
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	if got := ClaltDir(); got != clalt {
+		t.Errorf("ClaltDir() = %q, want %q", got, clalt)
 	}
 	// derived paths hang off ClaltDir
-	if got := StatePath(); got != filepath.Join("/xdg/clalt", "state.json") {
+	if got := StatePath(); got != filepath.Join(clalt, "state.json") {
 		t.Errorf("StatePath() = %q", got)
 	}
-	if got := SwitchLogPath(); got != filepath.Join("/xdg/clalt", "switches.jsonl") {
+	if got := SwitchLogPath(); got != filepath.Join(clalt, "switches.jsonl") {
 		t.Errorf("SwitchLogPath() = %q", got)
 	}
 }
 
 func TestClaltDirFallsBackToHome(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
-	t.Setenv("HOME", "/home/tester")
-	if got := ClaltDir(); got != "/home/tester/.config/clalt" {
-		t.Errorf("ClaltDir() = %q, want /home/tester/.config/clalt", got)
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	// the same ~/.config/clalt on every OS: on windows that is under the home folder
+	if want := filepath.Join(h, ".config", "clalt"); ClaltDir() != want {
+		t.Errorf("ClaltDir() = %q, want %q", ClaltDir(), want)
 	}
 }
 
 func TestAccountDirsHangOffClaltDir(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", "/xdg")
-	if got := AccountsDir(); got != filepath.Join("/xdg/clalt", "accounts") {
+	xdg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	if got := AccountsDir(); got != filepath.Join(xdg, "clalt", "accounts") {
 		t.Errorf("AccountsDir() = %q", got)
 	}
-	if got := accountDir("robin-2"); got != filepath.Join("/xdg/clalt", "accounts", "robin-2") {
+	if got := accountDir("robin-2"); got != filepath.Join(xdg, "clalt", "accounts", "robin-2") {
 		t.Errorf("accountDir() = %q", got)
 	}
 }
