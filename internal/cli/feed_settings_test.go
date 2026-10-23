@@ -65,6 +65,9 @@ func TestFeedSettingsInstallsEveryEventWithTheQuotedBinary(t *testing.T) {
 		"StopFailure":  {"", 5, false},
 		"Notification": {"permission_prompt|elicitation_dialog|elicitation_url_dialog|agent_needs_input", 5, false},
 		"SessionEnd":   {"", 1, false}, "PostToolUse": {"", 0, true}, "PostToolUseFailure": {"", 0, true},
+		"SubagentStart": {"", 5, false}, "SubagentStop": {"", 5, false},
+		// only the Agent tool (and its alias Task), never every tool call
+		"PreToolUse": {"Agent|Task", 5, false},
 	}
 	if len(p.Hooks) != len(want) {
 		t.Errorf("%d events, want %d", len(p.Hooks), len(want))

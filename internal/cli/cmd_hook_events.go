@@ -23,4 +23,11 @@ var hookEvents = []struct {
 	// these two only end needs-you, see feed.ApplyHook
 	{name: "PostToolUse", async: true},
 	{name: "PostToolUseFailure", async: true},
+	// subagent starts and stops, and the Agent tool call (Task is its old
+	// name) that only supplies the short description. the matcher keeps this
+	// from running for any other tool. sync, so that the description is
+	// stored before the SubagentStart that claims it.
+	{name: "SubagentStart", timeout: 5},
+	{name: "SubagentStop", timeout: 5},
+	{name: "PreToolUse", matcher: "Agent|Task", timeout: 5},
 }

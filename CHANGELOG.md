@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The session feed lists the subagents of each session (`subagents` in
+  `feed/sessions/<handle>.json`: id, type, short label, running or done, times),
+  from new `SubagentStart`, `SubagentStop` and `PreToolUse` (matcher
+  `Agent|Task`) hooks, for `clalt run` and `clalt feed install`. Run
+  `clalt feed install` again to add them to an existing install. Prompts and
+  replies are never stored.
+
 ### Removed
 
 - `clalt crew` and the Kiro Crew gateway support, including the dashboard

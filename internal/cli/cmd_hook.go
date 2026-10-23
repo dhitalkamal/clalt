@@ -106,6 +106,10 @@ func (a *App) applyHook(reg registry.Registry, rec registry.Record, event string
 		store.LockWait, reg.LockWait = capWait(wait, deadline), capWait(wait, deadline)
 		pruneFeed(store, reg, now)
 	}
+	if event == "SubagentStart" || event == "SubagentStop" || event == "PreToolUse" {
+		// not a turn event: it must not end a notification wait
+		return
+	}
 	// last, so that a slow notification cannot starve the feed and the registry
 	a.hookNotify(rec, event, in, needs, now, deadline)
 }

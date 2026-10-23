@@ -30,6 +30,11 @@ type SessionState struct {
 	Cwd        string    `json:"cwd,omitempty"`
 	ContextPct *float64  `json:"contextPct,omitempty"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+
+	// Subagents is what the office draws as characters, see Subagent.
+	// PendingAgents holds Agent call descriptions waiting for their start.
+	Subagents     []Subagent     `json:"subagents,omitempty"`
+	PendingAgents []PendingAgent `json:"pendingAgents,omitempty"`
 }
 
 // Window is one rate limit window of an account.

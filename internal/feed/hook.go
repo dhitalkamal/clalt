@@ -1,6 +1,9 @@
 package feed
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // HookInput is the part of a hook's stdin that clalt reads. the rest is ignored.
 type HookInput struct {
@@ -11,6 +14,13 @@ type HookInput struct {
 	Reason           string `json:"reason"`
 	Error            string `json:"error"`
 	Source           string `json:"source"`
+	AgentID          string `json:"agent_id"`
+	AgentType        string `json:"agent_type"`
+	ToolName         string `json:"tool_name"`
+
+	// ToolInput is kept raw: only description and subagent_type of an Agent
+	// call are ever read from it, see applySubagent.
+	ToolInput json.RawMessage `json:"tool_input"`
 
 	// RecentActivity is set by the caller, not read from the input: a tool
 	// finished a moment ago, so a permission prompt notification that arrives
@@ -51,6 +61,8 @@ func ApplyHook(s *SessionState, event string, in HookInput, now time.Time) bool 
 		s.setState(StateBusy, now)
 		s.Reason, s.LastError = "", ""
 	case "Stop":
+		// the turn is over, so Agent calls that did not start will not
+		s.PendingAgents = nil
 		s.setState(StateIdle, now)
 		s.Reason, s.LastError = "", ""
 	case "StopFailure":
@@ -71,7 +83,12 @@ func ApplyHook(s *SessionState, event string, in HookInput, now time.Time) bool 
 		}
 		s.setState(StateBusy, now)
 		s.Reason = ""
+	case "PreToolUse", "SubagentStart", "SubagentStop":
+		// no state change, and no Cwd update: only the subagent list moves
+		return applySubagent(s, event, in, now)
 	case "SessionEnd":
+		s.closeSubagents(now)
+		s.PendingAgents = nil
 		// /clear and /resume end a conversation, not the session
 		if in.Reason == "clear" || in.Reason == "resume" {
 			s.setState(StateIdle, now)

@@ -44,6 +44,39 @@ or an interrupt can still leave it until the next event); in an interactive sess
 holds hooks and the status line back until you have accepted the trust dialog of
 the folder, so the session stays `starting` until then.
 
+## Subagents
+
+The session feed record also holds `subagents`, a list the office draws as
+characters: `{"id", "type", "label", "state": "running"|"done", "startedAt",
+"endedAt"}` (`endedAt` is left out while running, and the whole list while the
+session has had no subagent). Hooks used: `SubagentStart` (`agent_id`,
+`agent_type`), `SubagentStop` (`agent_id`, `agent_type`) and `PreToolUse` with
+the matcher `Agent|Task` (`tool_name`, `tool_input.description`,
+`tool_input.subagent_type`). Field names are from the hooks reference at
+https://code.claude.com/docs/en/hooks (SubagentStart, SubagentStop, and the
+Agent tool input table; `Task` is not documented there, it is matched as the
+older name of the Agent tool). The matcher means one process per Agent call and
+not one per tool call.
+
+- A start adds or updates the record by id, a stop marks it done with
+  `endedAt`, a stop with no start makes a done record.
+- The label is the description of the oldest Agent call of the session that
+  no start has claimed yet and has the same `subagent_type` (an empty one counts
+  as `general-purpose`), so parallel subagents of one type get their own. It is
+  stripped of control and format characters and cut at 80 characters. Unclaimed
+  descriptions wait in `pendingAgents` in the same file, at most 20, for at
+  most 10 minutes, and are dropped at `Stop` and `SessionEnd` (a denied or
+  interrupted call never starts). Parallel same-type subagents that start in a
+  different order than they were called can still swap labels.
+- At most 50 records per session, oldest done ones dropped first. A
+  `SessionEnd` marks the running ones done.
+- Never stored: the Agent `prompt`, `last_assistant_message` and
+  `agent_transcript_path`.
+
+An existing `clalt feed install` picks the three new events up the next time
+`clalt feed install` runs (install adds each event that has no clalt handler
+yet); uninstall removes them with the rest, by the `clalt-feed` marker.
+
 ## The status line
 
 With no status line of your own, clalt's prints nothing, and claude hides most of its
