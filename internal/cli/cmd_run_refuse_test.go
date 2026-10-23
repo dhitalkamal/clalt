@@ -125,8 +125,10 @@ func TestRunNeverCreatesAFolderForAnUnknownName(t *testing.T) {
 	}
 }
 
+// a run with no name is no mistake any more: it picks an account, see
+// cmd_run_pick_test.go
 func TestRunMistakesAreUsageErrors(t *testing.T) {
-	for _, args := range [][]string{{"run"}, {"run", "--"}, {"run", "-x", "work"}} {
+	for _, args := range [][]string{{"run", "-x", "work"}, {"run", "-x"}} {
 		e := newEnv(t)
 		code := e.run(args...)
 		if code != 2 || !strings.Contains(e.errOut.String(), "usage: clalt run <name> [-- claude args]") {

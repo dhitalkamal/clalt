@@ -27,6 +27,12 @@ type state struct {
 	// when the first sign-in of the folder design worked, see Store.ThinSince.
 	// the v0.1.0 binary ignores a key it does not know
 	ThinSince time.Time `json:"thinSince,omitempty,omitzero"`
+
+	// the folders each account may serve and whether auto-switch may use it, by
+	// account id. it is a map of its own and not a field of Meta so that Meta stays
+	// a value that can be compared with ==, which tests of several commands use to
+	// check that a refused command changed nothing. v0.1.0 ignores the key.
+	Rules map[string]Rules `json:"rules,omitempty"`
 }
 
 // Store is the account manager.

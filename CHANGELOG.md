@@ -138,6 +138,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   is a reserved label, in any case, so that no account is taken for that row:
   `login` and `rename` refuse it.
 
+- `clalt rules <name>` shows and edits per-account rules, kept under a `rules`
+  key of `state.json` (v0.1.0 ignores it): the folders the account may serve (a
+  rule matches the folder and everything under it, links followed, case ignored
+  where the file system ignores it; no rules means any folder) and whether
+  auto-switch may use the account. Flags: `--add-folder`, `--remove-folder`,
+  `--auto-switch`, `--no-auto-switch`, `--json`. `clalt doctor` warns about a rule
+  for a folder that is gone or that is not an absolute path.
+- `clalt run` with no name (or `clalt run -- <claude args>`) picks the allowed
+  account with the most room, 100 minus the higher of the 5-hour and 7-day
+  figures from the feed, and says on stderr which and why. Accounts without
+  recent limit data rank after those with data, then by label. Until the feed is
+  wired in every account ranks by label.
+- `clalt move <session> <account>` asks the wrapper of a running session to move
+  it to another account at its next pause, with `claude --resume`, after the same
+  link sync and sign-in check as `run`. The wrapper ends claude with SIGTERM,
+  restores the terminal and prints one line. It waits for the session feed
+  (step 3a): until then `move` says it cannot see sessions.
+- Auto-switch, off unless turned on per account, moves an idle session whose
+  5-hour window reached 90 percent, or whose claude reported the limit, to an
+  allowed account with auto-switch on and at least 20 points more room, never
+  within 30 minutes of a move. It is meant for accounts you are entitled to use
+  for the work at hand, such as your own personal and work accounts, and each
+  account's terms apply. See docs/move.md.
+
 ### Changed
 
 - `clalt rename` changes the label only: the account keeps its id and folder,

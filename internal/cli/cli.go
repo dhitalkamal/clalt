@@ -88,6 +88,10 @@ func run(app *App, args []string) int {
 		err = app.cmdDashboard(cmdArgs)
 	case "migrate":
 		err = app.cmdMigrate(cmdArgs)
+	case "rules":
+		err = app.cmdRules(cmdArgs)
+	case "move":
+		err = app.cmdMove(cmdArgs)
 	case "hook":
 		err = app.cmdHook(cmdArgs)
 	case "statusline":
@@ -133,6 +137,8 @@ usage:
                               new name makes the account, a removed one comes back)
   clalt run <name> [-- ...]   run claude as <name>, in its own folder, with the
                               history shared with ~/.claude (accounts run in parallel)
+  clalt run [-- ...]          run claude as the allowed account with the most room
+                              left for this folder (rules: clalt rules)
   clalt logout <name>         sign the account out, keep its history
   clalt remove <name>         sign out and hide the account, history stays
                               (--force skips the confirmation)
@@ -143,6 +149,12 @@ usage:
                               (only reports, never changes anything)
   clalt migrate [--dry-run]   copy history from per-account profile folders into
                               the shared projects folder (safe to repeat)
+  clalt rules <name>          show or set the folders an account may serve and
+                              whether auto-switch may use it (--add-folder,
+                              --remove-folder, --auto-switch, --no-auto-switch)
+  clalt move <session> <account>
+                              move a running session to another account at its
+                              next pause (the session by handle, pid or id prefix)
   clalt sessions              list live parallel run sessions
   clalt budget [name]         show or set per-account spend caps (--daily/--weekly/--clear)
   clalt usage [name]          local usage stats

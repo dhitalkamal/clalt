@@ -130,6 +130,14 @@ account as they were, and `clalt list` shows where it stands. `remove` never
 deletes the folder: the account is hidden, and `clalt login <name>` brings it
 back in the same folder.
 
+## Rules, picking and moving
+
+`clalt rules <name>` shows and edits the folders an account may serve and
+whether auto-switch may use it. `clalt run` with no name picks the allowed
+account with the most room. `clalt move <session> <account>` moves a running
+session to another account at its next pause. All three are in
+[move.md](move.md), with the terms that apply to auto-switch.
+
 ## Usage, budgets and sessions
 
 `clalt usage [name]`, `clalt budget [name]`, `clalt sessions` and

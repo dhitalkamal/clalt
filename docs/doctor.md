@@ -30,6 +30,10 @@ right after upgrading from v0.1.0, exits 0 with warnings.
   the way `run` is going to find them: a shared `projects` folder that is
   missing, or an empty `projects` folder in the account, is a warning, since
   `run` makes the one and replaces the other with the link.
+- For each account that has rules (see [move.md](move.md)): a `rules` line. It
+  is `warn` when a rule is for a folder that is gone or is not an absolute path,
+  since such a rule matches nothing, and says to remove it with `clalt rules
+  <name> --remove-folder <folder>`. An account with no rules gets no line.
 - For each account you removed (they are not in the list any more): when its
   folder is there, claude is asked about it. A folder that still holds a login
   warns with `clalt logout <name>`, which signs it out and leaves the account

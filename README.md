@@ -67,6 +67,12 @@ clalt login <name>         sign an account in through claude's own login. a new
                            name makes the account, a removed one comes back
 clalt run <name> [-- ...]  run claude as <name>, in its own folder, with the
                            history shared with ~/.claude (accounts run in parallel)
+clalt run [-- ...]         run claude as the allowed account with the most room
+                           for this folder
+clalt rules <name>         the folders an account may serve, and auto-switch
+                           (--add-folder, --remove-folder, --auto-switch)
+clalt move <session> <account>
+                           move a running session at its next pause
 clalt logout <name>        sign the account out, keep its history
 clalt remove <name>        sign out and hide the account, history stays
                            (--force skips the confirmation)
@@ -113,6 +119,8 @@ The details are in `docs/`, one file per subject:
   home, the history check and MCP servers
 - [docs/auth.md](docs/auth.md): the environment variables clalt removes before
   every claude call
+- [docs/move.md](docs/move.md): account rules, how `clalt run` picks an account,
+  moving a session between accounts, auto-switch and its terms
 - [docs/feed.md](docs/feed.md): the session registry and feed that hooks and the
   status line fill, and what `clalt run` passes to claude for it
 - [docs/doctor.md](docs/doctor.md): the checks of `clalt doctor`, and when it

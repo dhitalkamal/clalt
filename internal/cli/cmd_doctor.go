@@ -68,6 +68,7 @@ func (a *App) runDoctor() doctorReport {
 		checks = append(checks, stateOK())
 	}
 	checks = append(checks, accounts...)
+	checks = append(checks, a.ruleChecks()...)
 	checks = append(checks, envCheck(), settingsCheck())
 	checks = append(checks, a.feedChecks()...)
 	checks = append(checks, a.leftoverChecks()...)

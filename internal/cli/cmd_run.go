@@ -36,7 +36,18 @@ func (a *App) cmdRun(args []string) error {
 	if err != nil {
 		return err
 	}
-	acc, found, err := a.Store.ResolveLabel(label)
+	var acc account.Account
+	var found bool
+	if label == "" {
+		// the account itself is kept: looking it up again by label could land on
+		// another one that folds to the same label
+		if acc, err = a.pickAccount(); err != nil {
+			return err
+		}
+		label, found = acc.Label(), true
+	} else {
+		acc, found, err = a.Store.ResolveLabel(label)
+	}
 	switch {
 	case err != nil:
 		return err
@@ -76,7 +87,8 @@ func (a *App) cmdRun(args []string) error {
 }
 
 // parseRunArgs takes the account name, which is the first argument, and hands
-// everything else to claude, with or without a double dash in front of it.
+// everything else to claude, with or without a double dash in front of it. with
+// no name the label is empty and run picks an account.
 func parseRunArgs(args []string) (label string, claudeArgs []string, err error) {
 	for i, arg := range args {
 		switch {
@@ -94,9 +106,6 @@ func parseRunArgs(args []string) (label string, claudeArgs []string, err error) 
 }
 
 func finishRunArgs(label string, claudeArgs []string) (string, []string, error) {
-	if label == "" {
-		return "", nil, usageError{"which account? give it a name", runUsage}
-	}
 	return label, claudeArgs, nil
 }
 
