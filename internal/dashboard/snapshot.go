@@ -10,7 +10,18 @@ import "time"
 // spend all come from History.Days, so the views cannot disagree.
 type Snapshot struct {
 	Accounts []Account
-	Warnings []string // about the read as a whole, shown under the header
+	Removed  []Removed // accounts taken out of the list, never counted in anything above
+	Warnings []string  // about the read as a whole, shown under the header
+}
+
+// Removed is an account that was taken out of the list but still has its
+// folder. the only things to do with it are delete it and sign it in again,
+// so it carries a record and no usage. its ID is unique among Accounts too.
+type Removed struct {
+	ID     string
+	Label  string
+	Email  string // as recorded, empty when none was
+	Folder string
 }
 
 // Account is one profile. Actions address it by ID, which is unique and stable.

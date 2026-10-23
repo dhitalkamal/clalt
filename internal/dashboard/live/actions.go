@@ -12,13 +12,18 @@ import (
 )
 
 // find is the visible account with this id
-func (a *Adapter) find(id string) (account.Account, error) {
+func (a *Adapter) find(id string) (account.Account, error) { return a.lookup(id, false) }
+
+// lookup is the account with this id. a removed one counts only when
+// withRemoved is set: delete and sign-in are the two things a removed account
+// can be given.
+func (a *Adapter) lookup(id string, withRemoved bool) (account.Account, error) {
 	all, err := a.cfg.Store.List()
 	if err != nil {
 		return account.Account{}, err
 	}
 	for _, acc := range all {
-		if acc.Name == id && !acc.Meta.Hidden {
+		if acc.Name == id && (withRemoved || !acc.Meta.Hidden) {
 			return acc, nil
 		}
 	}
@@ -44,8 +49,8 @@ func (l launched) StartError() error {
 	return nil
 }
 
-func (a *Adapter) launch(id string, make func(account.Account) dashboard.Launch) (dashboard.Launch, error) {
-	acc, err := a.find(id)
+func (a *Adapter) launch(id string, withRemoved bool, make func(account.Account) dashboard.Launch) (dashboard.Launch, error) {
+	acc, err := a.lookup(id, withRemoved)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +79,13 @@ func (a *Adapter) forget(id string) {
 
 // Run starts claude as the account, through the code of `clalt run`.
 func (a *Adapter) Run(_ context.Context, id string) (dashboard.Launch, error) {
-	return a.launch(id, a.cfg.Host.Run)
+	return a.launch(id, false, a.cfg.Host.Run)
 }
 
-// SignIn signs the account in, through the code of `clalt login`.
+// SignIn signs the account in, through the code of `clalt login`. that also
+// brings a removed account back.
 func (a *Adapter) SignIn(_ context.Context, id string) (dashboard.Launch, error) {
-	return a.launch(id, a.cfg.Host.Login)
+	return a.launch(id, true, a.cfg.Host.Login)
 }
 
 // Rename changes the label and nothing else.
@@ -117,11 +123,11 @@ func (a *Adapter) SignOut(_ context.Context, id string) error {
 	return nil
 }
 
-// Delete deletes the account and its folder through the host, which refuses a
-// live session, a shared folder and a failed sign-out. the cached state of
-// the account goes with it.
+// Delete deletes the account and its folder through the host, removed ones
+// included. the host refuses a live session, a shared folder and a failed
+// sign-out. the cached state of the account goes with it.
 func (a *Adapter) Delete(_ context.Context, id string) error {
-	acc, err := a.find(id)
+	acc, err := a.lookup(id, true)
 	if err != nil {
 		return err
 	}

@@ -25,7 +25,7 @@ func (m model) accountsPane(g geom) []string {
 		rows = []rich{{bad("Load failed.")}}
 	case !m.have:
 		rows = []rich{{dim("Loading...")}}
-	case len(m.snap.Accounts) == 0:
+	case len(m.snap.Accounts) == 0 && len(m.snap.Removed) == 0:
 		rows = []rich{{dim("No accounts yet.")}}
 	default:
 		rows = m.accountRows(g, wide, rowW)
@@ -39,17 +39,27 @@ func (m model) accountRows(g geom, wide bool, rowW int) []rich {
 	if filtered {
 		rows = append(rows, m.filterRow(), nil)
 	}
-	vis := m.visible()
-	shown := m.listRoom(g, len(vis))
-	off := clampInt(m.listOff, 0, max(len(vis)-shown, 0))
-	for _, i := range vis[off : off+shown] {
-		a := m.snap.Accounts[i]
-		rows = append(rows, accountRow(m.th.g, a, m.now(), a.ID == m.sel, wide, rowW))
+	lines := m.listLines()
+	shown := m.listRoom(g, len(lines))
+	off := clampInt(m.listOff, 0, max(len(lines)-shown, 0))
+	for _, l := range lines[off : off+shown] {
+		switch l.kind {
+		case lineAccount:
+			a := m.snap.Accounts[l.idx]
+			rows = append(rows, accountRow(m.th.g, a, m.now(), a.ID == m.sel, wide, rowW))
+		case lineBlank:
+			rows = append(rows, nil)
+		case lineHeader:
+			rows = append(rows, rich{gap(2), dim("Removed")})
+		case lineRemoved:
+			r := m.snap.Removed[l.idx]
+			rows = append(rows, removedRow(m.th.g, r, r.ID == m.sel, rowW))
+		}
 	}
-	if hidden := len(vis) - shown; hidden > 0 {
+	if hidden := len(lines) - shown; hidden > 0 {
 		rows = append(rows, rich{gap(2), dim(fmt.Sprintf("+%d more", hidden))})
 	}
-	if len(vis) == 0 {
+	if len(lines) == 0 {
 		rows = append(rows, rich{gap(2), dim("no match")})
 	}
 	if hint := roomHint(m.snap.Accounts); hint != "" && !filtered {
@@ -80,10 +90,13 @@ func (m model) detailPane(g geom) []string {
 		return m.plainPane(g, "Load failed", rows)
 	case !m.have:
 		return m.plainPane(g, "clalt", []rich{{dim("Reading your accounts...")}})
-	case len(m.snap.Accounts) == 0:
+	case len(m.snap.Accounts) == 0 && len(m.snap.Removed) == 0:
 		return m.plainPane(g, "No accounts", []rich{prompt("Add one with ", "clalt login <name>", ".")})
 	}
 	a, ok := m.selected()
+	if r, gone := m.selectedRemoved(); !ok && gone {
+		return m.removedPane(g, r)
+	}
 	if !ok {
 		return m.plainPane(g, "No account", []rich{{dim("No account matches the filter.")}, {dim("Press esc to clear it.")}})
 	}

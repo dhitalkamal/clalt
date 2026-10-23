@@ -17,6 +17,7 @@ var helpRows = [][2]string{
 	{"r", "rename the account (accounts pane)"},
 	{"d", "sign out the account (accounts pane)"},
 	{"D", "delete the account (accounts pane)"},
+	{"D, enter", "on a removed account: delete, or sign in"},
 	{"x", "stop the selected session"},
 	{"/", "filter accounts"},
 	{"a", "toggle ascii mode"},

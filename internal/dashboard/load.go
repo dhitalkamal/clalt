@@ -131,6 +131,15 @@ func checkSnapshot(snap Snapshot) error {
 		}
 		seen[a.ID] = i
 	}
+	for i, r := range snap.Removed {
+		if r.ID == "" {
+			return fmt.Errorf("removed account %d (%q) has no id", i+1, r.Label)
+		}
+		if _, dup := seen[r.ID]; dup {
+			return fmt.Errorf("the removed account %d shares the id %q with another", i+1, r.ID)
+		}
+		seen[r.ID] = -1
+	}
 	return nil
 }
 

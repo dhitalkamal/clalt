@@ -52,6 +52,7 @@ e                set the budget
 r                rename the account (accounts pane)
 d                sign out the account (accounts pane)
 D                delete the account and its folder (accounts pane)
+                 on a removed account: enter signs it back in, D deletes it
 x                stop the selected session
 /                filter the accounts
 a                switch ascii mode
@@ -74,6 +75,15 @@ the footer line. Conversation history under `~/.claude` stays. `r` changes the
 label only; `e` asks for
 the daily and then the weekly cap, empty for none. `NO_COLOR` turns the colors
 off and `CLALT_ASCII=1` starts in ascii mode.
+
+Removed accounts (taken out of the list with `clalt remove`) show at the bottom
+of the accounts pane under a dim `Removed` header, with their label and the
+email on record. The section is left out when there are none. A removed account
+counts toward no total, no room ranking, no limit and no session. The right pane
+shows its label, email, folder and `removed`. Two keys work on it: `D` opens the
+same type-the-label box and deletes it for good, and `enter` signs it back in,
+like `clalt login <label>`, which brings it back into the list. Every other
+action key says so on the footer line.
 
 Token accounting: the headline "tokens" figure is input + output only. Cache
 reads are excluded from that number (with a high cache-hit rate they are ~30x

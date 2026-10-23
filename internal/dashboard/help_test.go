@@ -59,6 +59,7 @@ func TestHelpBoxLayoutAt100x30(t *testing.T) {
 		row("r", "rename the account (accounts pane)"),
 		row("d", "sign out the account (accounts pane)"),
 		row("D", "delete the account (accounts pane)"),
+		row("D, enter", "on a removed account: delete, or sign in"),
 		row("x", "stop the selected session"),
 		row("/", "filter accounts"),
 		row("a", "toggle ascii mode"),

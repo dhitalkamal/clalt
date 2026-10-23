@@ -6,11 +6,11 @@
  |   jordan     5%        | |                                                                     |
  |   harriet  signed out  | |   project  share              tokens     cost  sessions             |
  |                        | | > clalt    ########----  66%   11.5M  ~$47.10        48             |
- |   jordan has the most  | |   web      #=----------  13%    2.5M   ~$9.26        10             |
- |   room left            | |   portal   #-----------   9%    1.6M   ~$6.41         8             |
+ |   Removed              | |   web      #=----------  13%    2.5M   ~$9.26        10             |
+ |   old-work  old-wo...  | |   portal   #-----------   9%    1.6M   ~$6.41         8             |
  |                        | |   site     =-----------   6%    1.0M   ~$4.27         3             |
- |                        | |   infra    =-----------   3%    555k   ~$2.14         2             |
- |                        | |   other    =-----------   3%    471k   ~$2.02         3             |
+ |   jordan has the most  | |   infra    =-----------   3%    555k   ~$2.14         2             |
+ |   room left            | |   other    =-----------   3%    471k   ~$2.02         3             |
  |                        | |                                                                     |
  |                        | | Last 30 days. Share is by cost.                                     |
  |                        | |                                                                     |

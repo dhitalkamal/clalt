@@ -77,7 +77,7 @@ func TestAccountSelectionMoves(t *testing.T) {
 	m := sized(config{ascii: true}, 100, 30)
 	steps := []struct{ key, want string }{
 		{"down", "morgan"}, {"j", "casey"}, {"up", "morgan"}, {"k", "robin"}, {"k", "robin"},
-		{"j", "morgan"}, {"j", "casey"}, {"j", "jordan"}, {"j", "harriet"}, {"j", "harriet"},
+		{"j", "morgan"}, {"j", "casey"}, {"j", "jordan"}, {"j", "harriet"}, {"j", "old-work"}, {"j", "old-work"},
 	}
 	for _, s := range steps {
 		m, _ = press(m, s.key)

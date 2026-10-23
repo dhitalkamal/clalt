@@ -38,6 +38,10 @@ func cleanAll(in []string) []string {
 // ids, which are keys the actions use and are never drawn
 func cleanSnapshot(snap Snapshot) Snapshot {
 	out := Snapshot{Warnings: cleanAll(snap.Warnings)}
+	for _, r := range snap.Removed {
+		r.Label, r.Email, r.Folder = clean(r.Label), clean(r.Email), clean(r.Folder)
+		out.Removed = append(out.Removed, r)
+	}
 	if snap.Accounts == nil {
 		return out
 	}

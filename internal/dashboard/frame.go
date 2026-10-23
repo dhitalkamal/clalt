@@ -113,6 +113,10 @@ func (m model) footerLine() rich {
 		return hintsLine(filterHints, m.w)
 	case m.drillFocused():
 		return hintsLine(drillHints, m.w)
+	case m.removedSelected() && m.filter != "":
+		return hintsLine(append([]hint{{"esc", "clear filter", 10}}, removedHints...), m.w)
+	case m.removedSelected():
+		return hintsLine(removedHints, m.w)
 	case m.filter != "":
 		return hintsLine(keptHints(), m.w)
 	}

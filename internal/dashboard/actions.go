@@ -86,6 +86,9 @@ func (m model) onAction(k string) (model, tea.Cmd) {
 		return m, nil
 	}
 	a, ok := m.selected()
+	if r, gone := m.selectedRemoved(); !ok && gone {
+		return m.removedKey(r, k)
+	}
 	switch {
 	case !ok:
 		return m.say("No account selected.", false)
@@ -108,6 +111,9 @@ func (m model) accountKey(k string) (model, tea.Cmd) {
 		return m, nil
 	}
 	a, ok := m.selected()
+	if r, gone := m.selectedRemoved(); !ok && gone {
+		return m.removedKey(r, k)
+	}
 	if !ok {
 		return m.say("No account selected.", false)
 	}

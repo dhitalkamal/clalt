@@ -6,11 +6,11 @@
  |   jordan     5%        | | Signed in. Re-login due in 23 days. Last used 4m ago.               |
  |   harriet  signed out  | |                                                                     |
  |                        | | 5h  #######=---------------------  26%  resets 01:45 (in 1h52m)     |
- |   jordan has the most  | |     at this pace it runs out around 01:10                           |
- |   room left            | | 7d  ############-----------------  42%  resets Fri 15:45 (1d 15h)   |
+ |   Removed              | |     at this pace it runs out around 01:10                           |
+ |   old-work  old-wo...  | | 7d  ############-----------------  42%  resets Fri 15:45 (1d 15h)   |
  |          +- Delete robin -----------------------------------------------------------+          |
- |          | Account  robin (robin@example.com)                                       |          |
- |          | Folder   ~/.config/clalt/profiles/robin                                  |          |
+ |   jordan | Account  robin (robin@example.com)                                       |          |
+ |   room l | Folder   ~/.config/clalt/profiles/robin                                  |          |
  |          |                                                                          |          |
  |          | this deletes the account; your conversation history stays                |          |
  |          |                                                                          |          |

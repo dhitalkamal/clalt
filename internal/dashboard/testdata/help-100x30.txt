@@ -6,14 +6,15 @@
  |   jordan    |  up/down, k/j     move in the focused pane                        |              |
  |   harriet   |  tab              switch pane                                     |              |
  |             |  [ ] or 1-5       switch view                                     | n 1h52m)     |
- |   jordan ha |  h/l, left/right  switch history tab                              |              |
- |   room left |  enter            run claude as the account, or open the project  | 5 (1d 15h)   |
+ |   Removed   |  h/l, left/right  switch history tab                              |              |
+ |   old-work  |  enter            run claude as the account, or open the project  | 5 (1d 15h)   |
  |             |                   when the History Projects table is focused      |              |
- |             |  s                sign in                                         |              |
- |             |  e                edit the budget                                 |              |
+ |   jordan ha |  s                sign in                                         |              |
+ |   room left |  e                edit the budget                                 |              |
  |             |  r                rename the account (accounts pane)              |              |
  |             |  d                sign out the account (accounts pane)            |              |
  |             |  D                delete the account (accounts pane)              |              |
+ |             |  D, enter         on a removed account: delete, or sign in        |              |
  |             |  x                stop the selected session                       |              |
  |             |  /                filter accounts                                 |              |
  |             |  a                toggle ascii mode                               |              |
@@ -24,7 +25,6 @@
  |             |  ctrl+c           quit from anywhere                              |              |
  |             |                                                                   |              |
  |             +- esc closes ------------------------------------------------------+              |
- |                        | |                                                                     |
  |                        | |                                                                     |
  +------------------------+ +---------------------------------------------------------------------+
   esc close   ? close   q quit

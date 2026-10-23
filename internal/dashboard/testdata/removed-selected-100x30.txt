@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- old-work ----------------------------------------------------------+
+ |   robin     26%   * 2  | | Label      old-work                                                 |
+ |   morgan    22% !      | | Email      old-work@example.com                                     |
+ |   casey     95% ! * 1  | | Folder     ~/.config/clalt/profiles/old-work                        |
+ |   jordan     5%        | | Status     removed                                                  |
+ |   harriet  signed out  | |                                                                     |
+ |                        | | removed: D deletes it for good, enter signs it back in              |
+ |   Removed              | |                                                                     |
+ | > old-work  old-wo...  | |                                                                     |
+ |                        | |                                                                     |
+ |   jordan has the most  | |                                                                     |
+ |   room left            | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter sign in   D delete   tab pane   / find   ? keys   q quit

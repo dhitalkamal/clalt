@@ -6,11 +6,11 @@
  |   jordan     5%        | | Total   ~$47.10 (66% of cost)   11.5M tokens   48 sessions          |
  |   harriet  signed out  | |                                                                     |
  |                        | |   day     model       sessions  tokens    cost                      |
- |   jordan has the most  | |   Wed 15  Opus 5.5           2    238k  ~$1.52                      #
- |   room left            | |   Tue 14  Opus 5.5           4    894k  ~$3.62                      #
+ |   Removed              | |   Wed 15  Opus 5.5           2    238k  ~$1.52                      #
+ |   old-work  old-wo...  | |   Tue 14  Opus 5.5           4    894k  ~$3.62                      #
  |                        | |   Mon 13  Opus 5.5           3    709k  ~$2.87                      #
- |                        | |   Sat 11  Opus 5.5           2    346k  ~$1.40                      #
- |                        | |   Fri 10  Opus 5.5           2    269k  ~$1.72                      #
+ |   jordan has the most  | |   Sat 11  Opus 5.5           2    346k  ~$1.40                      #
+ |   room left            | |   Fri 10  Opus 5.5           2    269k  ~$1.72                      #
  |                        | |   Thu 9   Opus 5.5           3    521k  ~$2.81                      #
  |                        | |   Thu 9   Sonnet 5.5         1    311k  ~$0.56                      #
  |                        | |   Wed 8   Sonnet 5.5         1    416k  ~$1.31                      #

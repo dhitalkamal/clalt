@@ -6,11 +6,11 @@
  |   jordan     5%        | | Signed in. Re-login due in 19 days. Last used 11m ago.              |
  |   harriet  signed out  | |                                                                     |
  |                        | | 5h  ###########################=-  95%  resets 00:41 (in 0h48m)     |
- |   jordan has the most  | |     at this pace it runs out in about 5 minutes                     |
- |   room left            | | 7d  #######################------  80%  resets Thu 18:05 (18h)      |
+ |   Removed              | |     at this pace it runs out in about 5 minutes                     |
+ |   old-work  old-wo...  | | 7d  #######################------  80%  resets Thu 18:05 (18h)      |
  |                        | |     on pace to finish the week at 97%                               |
- |                        | | Limits as of 4s ago.                                                |
- |                        | |                                                                     |
+ |   jordan has the most  | | Limits as of 4s ago.                                                |
+ |   room left            | |                                                                     |
  |                        | | Budget   today  $6.80 of  $8.00   ##################---             |
  |                        | |          week  $33.20 of $40.00   #################=---             |
  |                        | |                                                                     |

@@ -26,7 +26,7 @@ func (m model) visible() []int {
 	return out
 }
 
-// listRoom is how many of n accounts the list shows. when they do not all fit,
+// listRoom is how many of the n lines of the list show. when they do not all fit,
 // the last line of the pane says how many are left out.
 func (m model) listRoom(g geom, n int) int {
 	room := g.paneH - 2
@@ -41,18 +41,18 @@ func (m model) listRoom(g geom, n int) int {
 
 // scrollList keeps the selected account inside the window of rows shown
 func (m model) scrollList(g geom) model {
-	vis := m.visible()
-	shown := m.listRoom(g, len(vis))
-	for pos, i := range vis {
+	lines := m.listLines()
+	shown := m.listRoom(g, len(lines))
+	for pos, l := range lines {
 		switch {
-		case m.snap.Accounts[i].ID != m.sel:
+		case !l.selectable() || m.lineID(l) != m.sel:
 		case pos < m.listOff:
 			m.listOff = pos
 		case pos >= m.listOff+shown:
 			m.listOff = pos - shown + 1
 		}
 	}
-	m.listOff = clampInt(m.listOff, 0, max(len(vis)-shown, 0))
+	m.listOff = clampInt(m.listOff, 0, max(len(lines)-shown, 0))
 	return m
 }
 
@@ -73,14 +73,14 @@ func (m model) resetRight() model {
 
 // refilter keeps the selection if it still shows, else takes the first match
 func (m model) refilter() model {
-	vis := m.visible()
-	for _, i := range vis {
-		if m.snap.Accounts[i].ID == m.sel {
+	ids := m.order()
+	for _, id := range ids {
+		if id == m.sel {
 			return m
 		}
 	}
-	if len(vis) > 0 {
-		m.sel = m.snap.Accounts[vis[0]].ID
+	if len(ids) > 0 {
+		m.sel = ids[0]
 		m = m.resetRight()
 	}
 	return m
@@ -100,18 +100,18 @@ func (m model) histStep(d int) model {
 }
 
 func (m model) moveSel(d int) model {
-	vis := m.visible()
+	ids := m.order()
 	pos := -1
-	for i, v := range vis {
-		if m.snap.Accounts[v].ID == m.sel {
+	for i, id := range ids {
+		if id == m.sel {
 			pos = i
 		}
 	}
 	if pos < 0 {
 		return m
 	}
-	if next := clampInt(pos+d, 0, len(vis)-1); next != pos {
-		m.sel = m.snap.Accounts[vis[next]].ID
+	if next := clampInt(pos+d, 0, len(ids)-1); next != pos {
+		m.sel = ids[next]
 		m = m.resetRight()
 	}
 	return m

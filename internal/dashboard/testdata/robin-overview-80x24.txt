@@ -6,11 +6,11 @@
  |   jordan      5%   | | Signed in. Re-login due in 23 days.                 |
  |   harriet no login | | Last used 4m ago.                                   |
  |                    | |                                                     |
- |   jordan has the   | | 5h  ###=---------  26%  resets 01:45 (in 1h52m)     |
- |   most room left   | |     at this pace it runs out around 01:10           |
+ |   Removed          | | 5h  ###=---------  26%  resets 01:45 (in 1h52m)     |
+ |   old-work  old... | |     at this pace it runs out around 01:10           |
  |                    | | 7d  #####=-------  42%  resets Fri 15:45 (1d 15h)   |
- |                    | |     on pace to finish the week at 71%               |
- |                    | | Limits as of 4s ago.                                |
+ |   jordan has the   | |     on pace to finish the week at 71%               |
+ |   most room left   | | Limits as of 4s ago.                                |
  |                    | |                                                     |
  |                    | | Budget   today  $2.14 of $10.00   #=----            |
  |                    | |          week  $18.40 of $50.00   ##----            |

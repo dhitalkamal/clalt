@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The dashboard lists removed accounts in a dim `Removed` section at the bottom
+  of the accounts pane. On one, `D` deletes it for good (same type-the-label
+  box) and `enter` signs it back in; other action keys say what works. They
+  count toward no total, ranking, limit or session.
+
 - `clalt remove <name> --delete` signs the account out, then deletes its
   folder and its record. It refuses shared folders, stops if the sign-out
   fails, and never follows the links into `~/.claude`.

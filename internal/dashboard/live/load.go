@@ -30,7 +30,7 @@ func (a *Adapter) Load(ctx context.Context) (dashboard.Snapshot, error) {
 	if err != nil {
 		return dashboard.Snapshot{}, err
 	}
-	accts := visible(all)
+	accts, gone := visible(all), removedOf(all)
 	now := a.cfg.Now()
 	var warns []string
 
@@ -78,7 +78,22 @@ func (a *Adapter) Load(ctx context.Context) (dashboard.Snapshot, error) {
 			snap.Warnings = append(snap.Warnings, warn)
 		}
 	}
+	for _, acc := range gone {
+		folder, _ := config.AccountDirFor(acc.Name)
+		snap.Removed = append(snap.Removed, dashboard.Removed{ID: acc.Name, Label: acc.Label(), Email: acc.Meta.Email, Folder: folder})
+	}
 	return snap, nil
+}
+
+// removedOf are the accounts that were removed, ordered like visible
+func removedOf(all []account.Account) []account.Account {
+	var hidden []account.Account
+	for _, acc := range all {
+		if acc.Meta.Hidden {
+			hidden = append(hidden, acc)
+		}
+	}
+	return sortedByLabel(hidden)
 }
 
 // visible are the accounts that were not removed, by label ignoring case and
@@ -90,6 +105,11 @@ func visible(all []account.Account) []account.Account {
 			out = append(out, acc)
 		}
 	}
+	return sortedByLabel(out)
+}
+
+// sortedByLabel sorts in place: label ignoring case, then id
+func sortedByLabel(out []account.Account) []account.Account {
 	sort.Slice(out, func(i, j int) bool {
 		li, lj := strings.ToLower(out[i].Label()), strings.ToLower(out[j].Label())
 		if li != lj {

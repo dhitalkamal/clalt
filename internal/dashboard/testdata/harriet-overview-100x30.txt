@@ -6,11 +6,11 @@
  |   jordan     5%        | | Signed out. Press s to sign in.                                     |
  | > harriet  signed out  | |                                                                     |
  |                        | |                                                                     |
+ |   Removed              | |                                                                     |
+ |   old-work  old-wo...  | |                                                                     |
+ |                        | |                                                                     |
  |   jordan has the most  | |                                                                     |
  |   room left            | |                                                                     |
- |                        | |                                                                     |
- |                        | |                                                                     |
- |                        | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |

@@ -6,11 +6,11 @@
  |   jordan     5%        | |                                                                     |
  |   harriet  signed out  | |   model       cost share         tokens     cost                    |
  |                        | | > Opus 5.5    ########=---  69%    9.6M  ~$49.10                    |
- |   jordan has the most  | |   Sonnet 5.5  ###=--------  31%    8.0M  ~$22.10                    |
- |   room left            | |                                                                     |
+ |   Removed              | |   Sonnet 5.5  ###=--------  31%    8.0M  ~$22.10                    |
+ |   old-work  old-wo...  | |                                                                     |
  |                        | | Last 30 days. Share is by cost.                                     |
- |                        | |                                                                     |
- |                        | |                                                                     |
+ |   jordan has the most  | |                                                                     |
+ |   room left            | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |

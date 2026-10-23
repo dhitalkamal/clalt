@@ -6,11 +6,11 @@
  |   jordan     5%        | | Claude     2.1.296                                                  |
  |   harriet  signed out  | | Settings   shared with ~/.claude (skills, agents, MCP)              |
  |                        | | Login      signed in 7 days ago, re-login due in 23 days            |
- |   jordan has the most  | | Usage feed installed, last reading 4s ago                           |
- |   room left            | | Last used  4m ago in ~/Projects/personal/clalt                      |
+ |   Removed              | | Usage feed installed, last reading 4s ago                           |
+ |   old-work  old-wo...  | | Last used  4m ago in ~/Projects/personal/clalt                      |
  |                        | |                                                                     |
- |                        | |                                                                     |
- |                        | |                                                                     |
+ |   jordan has the most  | |                                                                     |
+ |   room left            | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |
  |                        | |                                                                     |

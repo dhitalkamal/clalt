@@ -32,5 +32,9 @@ func (s source) Load(ctx context.Context) (dashboard.Snapshot, error) {
 	for _, p := range people {
 		snap.Accounts = append(snap.Accounts, p.account(now))
 	}
+	snap.Removed = []dashboard.Removed{{
+		ID: "old-work", Label: "old-work", Email: "old-work@example.com",
+		Folder: "~/.config/clalt/profiles/old-work",
+	}}
 	return snap, nil
 }
