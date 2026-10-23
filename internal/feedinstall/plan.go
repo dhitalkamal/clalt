@@ -28,6 +28,8 @@ type Options struct {
 	Quote  func(string) string
 	Events []Event
 	Now    time.Time
+	// Protected are clalt's own folders: a link into one is refused
+	Protected []string
 }
 
 func (o Options) quote(s string) string {
@@ -42,6 +44,7 @@ func (o Options) quote(s string) string {
 type state struct {
 	InstalledAt time.Time       `json:"installedAt"`
 	Settings    string          `json:"settings"`
+	Target      string          `json:"target,omitempty"` // the file install edited, after links
 	Backup      string          `json:"backup,omitempty"`
 	Bin         string          `json:"bin,omitempty"`     // the clalt the commands run
 	Created     bool            `json:"created,omitempty"` // there was no settings.json
@@ -60,11 +63,14 @@ type Plan struct {
 	StatusLine bool // it sets the statusLine
 	Chained    bool // the user's statusLine will run through clalt's
 	BackupPath string
+	target     Target
 }
 
-// inspect reads the settings file, refusing one that clalt must not edit: a
-// symlink (the real file may be shared or under version control), anything that
-// is not a regular file, and what is not a JSON object.
+// Target is the file this plan edits.
+func (p Plan) Target() Target { return p.target }
+
+// inspect reads the settings file at path, which is already resolved past any
+// link: it refuses what is not a regular file and what is not a JSON object.
 func inspect(path string) (raw []byte, existed bool, err error) {
 	fi, err := os.Lstat(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -73,10 +79,7 @@ func inspect(path string) (raw []byte, existed bool, err error) {
 	if err != nil {
 		return nil, false, err
 	}
-	switch {
-	case fi.Mode()&fs.ModeSymlink != 0:
-		return nil, true, fmt.Errorf("%s is a symlink: clalt will not edit it, point the feed at the real file or install by hand", path)
-	case !fi.Mode().IsRegular():
+	if !fi.Mode().IsRegular() {
 		return nil, true, fmt.Errorf("%s is not a regular file", path)
 	}
 	raw, err = fsutil.ReadFile(path)
@@ -91,7 +94,11 @@ func inspect(path string) (raw []byte, existed bool, err error) {
 
 // Prepare works out the edit and changes nothing.
 func Prepare(o Options) (Plan, error) {
-	raw, existed, err := inspect(o.Settings)
+	t, err := ResolveTarget(o)
+	if err != nil {
+		return Plan{}, err
+	}
+	raw, existed, err := inspect(t.Path)
 	if err != nil {
 		return Plan{}, err
 	}
@@ -102,7 +109,7 @@ func Prepare(o Options) (Plan, error) {
 	if err := checkParses(m.Out); err != nil {
 		return Plan{}, err
 	}
-	p := Plan{opts: o, raw: raw, existed: existed, m: m, Changed: m.changed(), Hooks: m.Hooks, StatusLine: m.Line}
+	p := Plan{opts: o, target: t, raw: raw, existed: existed, m: m, Changed: m.changed(), Hooks: m.Hooks, StatusLine: m.Line}
 	p.Chained = m.Original != nil
 	return p, nil
 }
@@ -116,14 +123,21 @@ func (p *Plan) Apply() error {
 	o := p.opts
 	// the question may have been on screen for a while, and claude saves this
 	// file too: what was worked out is only good for the bytes it was worked from
-	now, existedNow, err := inspect(o.Settings)
+	t, err := ResolveTarget(o)
+	if err != nil {
+		return err
+	}
+	if t.Path != p.target.Path {
+		return errors.New("settings.json points somewhere else now, run clalt feed install again")
+	}
+	now, existedNow, err := inspect(t.Path)
 	if err != nil {
 		return err
 	}
 	if existedNow != p.existed || !bytes.Equal(now, p.raw) {
 		return errors.New("settings.json changed while waiting, run clalt feed install again")
 	}
-	st := state{Bin: o.Bin, InstalledAt: o.Now.UTC(), Settings: o.Settings, Created: !p.existed, Wrote: sum(p.m.Out), Original: p.m.Original}
+	st := state{Bin: o.Bin, InstalledAt: o.Now.UTC(), Settings: o.Settings, Target: t.Path, Created: !p.existed, Wrote: sum(p.m.Out), Original: p.m.Original}
 	prev, hadPrev := loadState(o.StatePath)
 	if hadPrev && st.Original == nil {
 		// a second pass that adds a missing event must not forget the first
@@ -151,12 +165,13 @@ func (p *Plan) Apply() error {
 		}
 	}
 	mode := os.FileMode(0o600)
-	if fi, err := os.Stat(o.Settings); err == nil {
+	if fi, err := os.Stat(t.Path); err == nil {
 		mode = fi.Mode().Perm()
 	}
-	if err := fsutil.WriteFileAtomic(o.Settings, p.m.Out, mode); err != nil {
+	// write beside the real file, never over the link
+	if err := fsutil.WriteFileAtomic(t.Path, p.m.Out, mode); err != nil {
 		undoState()
-		return fmt.Errorf("write %s: %w", o.Settings, err)
+		return fmt.Errorf("write %s: %w", t.Path, err)
 	}
 	return nil
 }

@@ -116,18 +116,8 @@ func TestFeedInstallNeedsAMatchedDefaultHome(t *testing.T) {
 	}
 }
 
-func TestFeedInstallRefusesASymlinkAndInvalidJson(t *testing.T) {
-	skipWindows(t, "symlinks need privileges on windows")
+func TestFeedInstallRefusesInvalidJson(t *testing.T) {
 	e := feedReady(t, "")
-	target := filepath.Join(e.home, "real.json")
-	os.WriteFile(target, []byte("{}"), 0o600)
-	if err := os.Symlink(target, e.settingsPath()); err != nil {
-		t.Fatal(err)
-	}
-	if code := e.run("feed", "install", "--yes"); code == 0 || !strings.Contains(e.errOut.String(), "symlink") {
-		t.Errorf("symlink: exit %d %s", code, e.errOut.String())
-	}
-	os.Remove(e.settingsPath())
 	os.WriteFile(e.settingsPath(), []byte(`{"hooks": `), 0o600)
 	e.reset()
 	if code := e.run("feed", "install", "--yes"); code == 0 || !strings.Contains(e.errOut.String(), "not valid JSON") {

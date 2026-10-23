@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `clalt feed status` no longer fails when `~/.claude/settings.json` is a
+  symlink: it says where the link points and whether the feed is installed.
+  `clalt feed install` and `uninstall` now work through such a link by editing
+  the real file after asking, with a git work tree warning, and never replace
+  the link. A dangling or looping link, a target that is not a regular file or
+  belongs to someone else, and a link that moved since install are refused.
 - A plugins file that claude saved by renaming over its link
   (`installed_plugins.json`, `known_marketplaces.json`,
   `plugin-catalog-cache.json`) no longer leaves the account on its own copy:

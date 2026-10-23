@@ -21,17 +21,24 @@ type Result struct {
 // it). one the user changed since is edited in place, see strip, after a backup
 // of it.
 func Uninstall(o Options) (Result, error) {
-	raw, existed, err := inspect(o.Settings)
+	t, err := ResolveTarget(o)
 	if err != nil {
 		return Result{}, err
 	}
 	st, haveState := loadState(o.StatePath)
+	if haveState && st.Target != "" && st.Target != t.Path {
+		return Result{}, fmt.Errorf("%s points somewhere else now: install edited %s, so clalt changed nothing", o.Settings, st.Target)
+	}
+	raw, existed, err := inspect(t.Path)
+	if err != nil {
+		return Result{}, err
+	}
 	if !existed {
 		_ = os.Remove(o.StatePath)
 		return Result{}, nil
 	}
 	if haveState && st.Wrote == sum(raw) {
-		res, err := restore(o, st)
+		res, err := restore(t.Path, st)
 		if err == nil {
 			_ = os.Remove(o.StatePath)
 		}
@@ -50,19 +57,19 @@ func Uninstall(o Options) (Result, error) {
 		return Result{}, err
 	}
 	mode := os.FileMode(0o600)
-	if fi, err := os.Stat(o.Settings); err == nil {
+	if fi, err := os.Stat(t.Path); err == nil {
 		mode = fi.Mode().Perm()
 	}
-	if err := fsutil.WriteFileAtomic(o.Settings, out, mode); err != nil {
-		return Result{}, fmt.Errorf("write %s: %w", o.Settings, err)
+	if err := fsutil.WriteFileAtomic(t.Path, out, mode); err != nil {
+		return Result{}, fmt.Errorf("write %s: %w", t.Path, err)
 	}
 	_ = os.Remove(o.StatePath)
 	return Result{Removed: n, Backup: b}, nil
 }
 
-func restore(o Options, st state) (Result, error) {
+func restore(path string, st state) (Result, error) {
 	if st.Created {
-		if err := os.Remove(o.Settings); err != nil {
+		if err := os.Remove(path); err != nil {
 			return Result{}, err
 		}
 		return Result{Removed: 1, Deleted: true}, nil
@@ -72,11 +79,11 @@ func restore(o Options, st state) (Result, error) {
 		return Result{}, fmt.Errorf("read the backup %s: %w", st.Backup, err)
 	}
 	mode := os.FileMode(0o600)
-	if fi, err := os.Stat(o.Settings); err == nil {
+	if fi, err := os.Stat(path); err == nil {
 		mode = fi.Mode().Perm()
 	}
-	if err := fsutil.WriteFileAtomic(o.Settings, orig, mode); err != nil {
-		return Result{}, fmt.Errorf("write %s: %w", o.Settings, err)
+	if err := fsutil.WriteFileAtomic(path, orig, mode); err != nil {
+		return Result{}, fmt.Errorf("write %s: %w", path, err)
 	}
 	return Result{Removed: 1, Restored: true, Backup: st.Backup}, nil
 }
@@ -91,16 +98,38 @@ type Status struct {
 	InstalledAt time.Time
 	Bin         string // the clalt the commands run, from the state
 	BinMissing  bool   // and it is not there any more
+	Link        bool   // settings.json is a symlink
+	LinkTarget  string // where it points, as far as it could be followed
+	LinkProblem string // why the link cannot be edited, when it cannot
 }
 
 // Check reads the file, not the state: that is what claude runs.
 func Check(o Options) (Status, error) {
-	raw, existed, err := inspect(o.Settings)
+	var s Status
+	t, err := resolve(o, false)
+	if t.Link {
+		s.Link, s.LinkTarget = true, t.Path
+		if s.LinkTarget == "" {
+			s.LinkTarget = readLink(o.Settings)
+		}
+	}
+	if err != nil && t.Link {
+		// a link status cannot follow is reported, never an error
+		s.LinkProblem = err.Error()
+		return s, nil
+	}
+	if err != nil {
+		return Status{}, err
+	}
+	raw, existed, err := inspect(t.Path)
+	if err != nil && t.Link {
+		s.LinkProblem = err.Error()
+		return s, nil
+	}
 	if err != nil || !existed {
 		return Status{}, err
 	}
 	obj, _ := parseObject(raw)
-	var s Status
 	hooks, err := hooksOf(obj)
 	if err != nil {
 		return Status{}, err

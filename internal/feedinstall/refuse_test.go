@@ -36,26 +36,6 @@ func TestRefusals(t *testing.T) {
 			t.Errorf("%v", err)
 		}
 	})
-	t.Run("a symlink", func(t *testing.T) {
-		if isWindows() {
-			t.Skip("symlinks need privileges on windows")
-		}
-		r := newRig(t, "")
-		target := filepath.Join(t.TempDir(), "real.json")
-		os.WriteFile(target, []byte("{}"), 0o600)
-		if err := os.Symlink(target, r.settings); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := Prepare(r.opts); err == nil || !strings.Contains(err.Error(), "symlink") {
-			t.Errorf("%v", err)
-		}
-		if _, err := Uninstall(r.opts); err == nil {
-			t.Error("uninstall followed a symlink")
-		}
-		if b, _ := os.ReadFile(target); string(b) != "{}" {
-			t.Error("the target changed")
-		}
-	})
 }
 
 func TestApplyAbortsWhenTheFileChangedAfterPrepare(t *testing.T) {

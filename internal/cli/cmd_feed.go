@@ -82,7 +82,7 @@ func (a *App) feedOptions() (feedinstall.Options, error) {
 	}
 	return feedinstall.Options{
 		Settings: filepath.Join(home, "settings.json"), BackupDir: filepath.Join(config.ClaltDir(), "backups", "settings"),
-		StatePath: feedInstallPath(), Bin: bin, Quote: shQuote, Events: evs, Now: a.clock(),
+		StatePath: feedInstallPath(), Protected: []string{config.ClaltDir()}, Bin: bin, Quote: shQuote, Events: evs, Now: a.clock(),
 	}, nil
 }
 
@@ -106,6 +106,7 @@ func (a *App) feedInstall(yes bool) error {
 		a.printf("the feed is already installed in %s, nothing to change\n", clean(opts.Settings))
 		return nil
 	}
+	a.linkNotice(plan.Target(), opts.Settings)
 	a.printf("this adds clalt's hooks (%d) and statusline to %s, so plain claude reports to clalt as %s.\n", plan.Hooks, clean(opts.Settings), clean(a.accountLabel(c.Account)))
 	a.printf("your own hooks stay, and your statusLine keeps running through clalt. a copy of the file is kept first.\n")
 	if !yes {
@@ -138,10 +139,21 @@ func (a *App) feedUninstall(yes bool) error {
 	if err != nil {
 		return cleanErr(err)
 	}
+	if st.Link {
+		a.printf("settings.json is a link to %s\n", clean(st.LinkTarget))
+		if st.LinkProblem != "" {
+			a.printf("clalt cannot use it: %s\n", clean(st.LinkProblem))
+		}
+	}
 	if !st.Installed {
 		a.printf("the feed is not installed in %s\n", clean(opts.Settings))
 		return nil
 	}
+	t, err := feedinstall.ResolveTarget(opts)
+	if err != nil {
+		return cleanErr(err)
+	}
+	a.linkNotice(t, opts.Settings)
 	if !yes {
 		ok, err := a.confirm("remove clalt's hooks and statusline from " + clean(opts.Settings) + "?")
 		if err != nil {
@@ -178,6 +190,8 @@ type feedStatusJSON struct {
 	Account    string `json:"account,omitempty"`
 	Default    string `json:"defaultHome"`
 	Reason     string `json:"reason,omitempty"`
+	LinkTarget string `json:"settingsLinkTarget,omitempty"`
+	LinkIssue  string `json:"settingsLinkProblem,omitempty"`
 }
 
 func (a *App) feedStatus(rest []string) error {
@@ -199,9 +213,16 @@ func (a *App) feedStatus(rest []string) error {
 	out := feedStatusJSON{
 		Installed: st.Installed, Settings: opts.Settings, Hooks: st.Hooks, StatusLine: st.StatusLine, Chained: st.Chained,
 		Backup: st.Backup, Account: c.Account, Default: string(c.State), Reason: clean(c.Reason),
+		LinkTarget: clean(st.LinkTarget), LinkIssue: clean(st.LinkProblem),
 	}
 	if a.JSON {
 		return a.emitJSON(out)
+	}
+	if st.Link {
+		a.printf("settings.json is a link to %s\n", clean(st.LinkTarget))
+		if st.LinkProblem != "" {
+			a.printf("clalt cannot use it: %s\n", clean(st.LinkProblem))
+		}
 	}
 	if !st.Installed {
 		a.printf("the feed is not installed in %s\n", clean(opts.Settings))

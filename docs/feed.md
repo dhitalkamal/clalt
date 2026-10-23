@@ -120,8 +120,8 @@ PowerShell when Git Bash is missing, and one command cannot be made reliable for
 both. `clalt run` sessions still feed clalt there.
 
 Install needs a match, asks first (`--yes` for scripts; with no terminal and no
-`--yes` it refuses) and refuses when `settings.json` is a symlink, not a regular
-file or not a JSON object. Before writing it copies the file to
+`--yes` it refuses) and refuses when `settings.json` is not a regular file (after
+following a link) or not a JSON object. Before writing it copies the file to
 `~/.config/clalt/backups/settings/settings-<UTC time>.json`. It adds one handler
 per event of the list above, after yours (your hooks keep running), and every
 command ends in the word `clalt-feed`, which is how uninstall and status find them.
@@ -133,6 +133,20 @@ atomically, after checking that the file is still what the question was about;
 if claude saved it meanwhile, install stops with "settings.json changed while
 waiting, run clalt feed install again" and writes nothing. A second install
 changes nothing.
+
+**Symlinked settings.json.** When `settings.json` is a link (a dotfiles repo, say),
+install and uninstall edit the file it points to and leave the link alone. clalt
+resolves the link first and refuses a dangling link, a link loop, a target that is
+not a regular file, one owned by another user (not checked on Windows) and one
+inside `~/.config/clalt`. Before asking it prints the real path, and when that file
+is in a git work tree it warns that the change shows up in that repo and that the
+hooks use this machine's clalt path, so they are silent no-ops where that path does
+not exist. `--yes` skips the question. The write is atomic in the target's own
+folder (temp file, then rename), keeps the target's mode, and the backup is the
+target's old bytes. The resolved target is recorded in `feed-install.json`;
+uninstall edits that same file and refuses if the link points elsewhere now.
+`clalt feed status` never fails on a link: it prints "settings.json is a link to
+<target>" with the install state (`settingsLinkTarget` in `--json`).
 
 Every installed command is guarded: with clalt moved or removed, a hook is a
 silent no-op, and the status line runs your own command directly (a copy of it is
