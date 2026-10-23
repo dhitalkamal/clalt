@@ -34,6 +34,16 @@ func envKey(name string) string {
 	return name
 }
 
+// IsAuthEnvVar reports whether name is one of the variables Env strips.
+func IsAuthEnvVar(name string) bool {
+	for _, n := range authEnvVars {
+		if envKey(n) == envKey(name) {
+			return true
+		}
+	}
+	return false
+}
+
 // Env returns base without the auth variables and with CLAUDE_CONFIG_DIR set to
 // configDir. removed holds the names that were stripped, sorted and without
 // values, so the caller can tell the user. the config dir is replaced, not

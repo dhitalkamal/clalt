@@ -32,14 +32,12 @@ func (m dashModel) View() string {
 	const gap = 1
 	rightW := w - leftW - gap
 
-	// left column heights: keepalive short, sessions middle, accounts tallest.
-	kaOuter := 4
-	remaining := bodyH - kaOuter
-	sessOuter := remaining / 3
+	// left column heights: sessions short, accounts tallest.
+	sessOuter := bodyH / 3
 	if sessOuter < 4 {
 		sessOuter = 4
 	}
-	acctOuter := remaining - sessOuter
+	acctOuter := bodyH - sessOuter
 	if acctOuter < 3 {
 		acctOuter = 3
 	}
@@ -47,7 +45,6 @@ func (m dashModel) View() string {
 	leftCol := lipgloss.JoinVertical(lipgloss.Left,
 		m.renderAccounts(leftW-2, acctOuter-2),
 		m.renderSessions(leftW-2, sessOuter-2),
-		m.renderKeepalive(leftW-2, kaOuter-2),
 	)
 	right := m.renderDetail(rightW-2, bodyH-2)
 

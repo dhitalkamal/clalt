@@ -7,29 +7,26 @@ import (
 
 func TestParseDashboardArgs(t *testing.T) {
 	cases := []struct {
-		name       string
-		args       []string
-		live, demo bool
-		err        string
+		name string
+		args []string
+		demo bool
+		err  string
 	}{
-		{"nothing", nil, false, false, ""},
-		{"live", []string{"--live"}, true, false, ""},
-		{"demo", []string{"--demo"}, false, true, ""},
-		{"both is a mistake in either order", []string{"--demo", "--live"}, false, false, "--live has no effect with --demo"},
-		{"live then demo", []string{"--live", "--demo"}, false, false, "--live has no effect with --demo"},
-		{"flags after a name", []string{"work", "--demo"}, false, true, ""},
-		{"an account name alone", []string{"work"}, false, false, ""},
-		{"a repeated flag is fine", []string{"--live", "--live"}, true, false, ""},
-		{"an unknown flag", []string{"--nope"}, false, false, "unknown flag --nope"},
-		{"an unknown flag after a good one", []string{"--live", "--nope"}, false, false, "unknown flag --nope"},
-		{"close to demo is not demo", []string{"--demos"}, false, false, "unknown flag --demos"},
-		{"one dash is not demo", []string{"-demo"}, false, false, "unknown flag -demo"},
-		{"demo without dashes is a name", []string{"demo"}, false, false, ""},
+		{"nothing", nil, false, ""},
+		{"demo", []string{"--demo"}, true, ""},
+		{"flags after a name", []string{"work", "--demo"}, true, ""},
+		{"an account name alone", []string{"work"}, false, ""},
+		{"a repeated flag is fine", []string{"--demo", "--demo"}, true, ""},
+		{"an unknown flag", []string{"--nope"}, false, "unknown flag --nope"},
+		{"an unknown flag after a good one", []string{"--demo", "--nope"}, false, "unknown flag --nope"},
+		{"close to demo is not demo", []string{"--demos"}, false, "unknown flag --demos"},
+		{"one dash is not demo", []string{"-demo"}, false, "unknown flag -demo"},
+		{"demo without dashes is a name", []string{"demo"}, false, ""},
 	}
 	for _, c := range cases {
-		live, demo, err := parseDashboardArgs(c.args)
-		if live != c.live || demo != c.demo || (err == nil) != (c.err == "") || (err != nil && err.Error() != c.err) {
-			t.Errorf("%s: parseDashboardArgs(%v) = live %v demo %v err %v, want live %v demo %v err %q", c.name, c.args, live, demo, err, c.live, c.demo, c.err)
+		demo, err := parseDashboardArgs(c.args)
+		if demo != c.demo || (err == nil) != (c.err == "") || (err != nil && err.Error() != c.err) {
+			t.Errorf("%s: parseDashboardArgs(%v) = demo %v err %v, want demo %v err %q", c.name, c.args, demo, err, c.demo, c.err)
 		}
 	}
 }
@@ -40,14 +37,13 @@ func TestDashboardMistakesExitTwoWithAUsageLine(t *testing.T) {
 		want string
 	}{
 		{[]string{"dashboard", "--nope"}, "error: unknown flag --nope"},
-		{[]string{"dashboard", "--demo", "--live"}, "error: --live has no effect with --demo"},
 	} {
 		app, out, _ := newTestApp(t)
 		if code := run(app, c.args); code != 2 {
 			t.Errorf("%v exits %d, want 2", c.args, code)
 		}
 		got := out.String()
-		if !strings.Contains(got, c.want) || !strings.Contains(got, "usage: clalt dashboard [--live | --demo]") {
+		if !strings.Contains(got, c.want) || !strings.Contains(got, "usage: clalt dashboard [--demo]") {
 			t.Errorf("%v prints the mistake and how to call it:\n%s", c.args, got)
 		}
 		if strings.Contains(got, "Accounts") {
@@ -90,25 +86,26 @@ func TestDashboardDemoWithoutATerminalPrintsOneFrame(t *testing.T) {
 }
 
 // the demo shows made up accounts only: one that is really on the machine is
-// neither shown nor changed
+// neither shown nor changed, and claude is never asked about it
 func TestDashboardDemoNeverShowsOrTouchesARealAccount(t *testing.T) {
-	app, out, dir := newTestApp(t)
-	_ = app.Live.Write(liveCred("tok-real"))
-	_ = app.cmdAdd([]string{"realaccount"})
-	before, _ := app.Store.List()
-	out.Reset()
-	if err := app.cmdDashboardDemo(false); err != nil {
+	e := newEnv(t)
+	e.signIn("realaccount", "r@example.com")
+	before, _ := e.app.Store.List()
+	asked := len(e.claude.calls("status"))
+
+	if err := e.app.cmdDashboardDemo(false); err != nil {
 		t.Fatal(err)
 	}
-	if got := out.String(); strings.Contains(got, "realaccount") || !strings.Contains(got, "robin") {
+
+	if got := e.out.String(); strings.Contains(got, "realaccount") || !strings.Contains(got, "robin") {
 		t.Errorf("the demo lists its own accounts and not the real one:\n%s", got)
 	}
-	after, _ := app.Store.List()
-	if len(after) != len(before) || len(after) != 1 || after[0].Name != "realaccount" {
-		t.Errorf("the demo changed the account list in %s: %v then %v", dir, before, after)
+	after, _ := e.app.Store.List()
+	if len(after) != len(before) || len(after) != 1 || after[0].Name != "realaccount" || after[0].Meta != before[0].Meta {
+		t.Errorf("the demo changed the account list: %v then %v", before, after)
 	}
-	if live, err := app.Live.Read(); err != nil || live.AccessToken != "tok-real" {
-		t.Errorf("the live login is untouched: %v %v", live.AccessToken, err)
+	if got := len(e.claude.calls("status")); got != asked {
+		t.Errorf("claude was asked %d more times", got-asked)
 	}
 }
 

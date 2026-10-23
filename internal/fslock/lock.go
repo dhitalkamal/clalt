@@ -1,8 +1,7 @@
 // Package fslock provides a cross-process exclusive file lock, used to
 // serialize reads and writes of clalt's on-disk state across separate clalt
-// invocations (interactive `clalt run` sessions, the background keepalive
-// job, and one-shot commands all run in separate OS processes and can race
-// on the same files).
+// invocations (interactive `clalt run` sessions and one-shot commands all run
+// in separate OS processes and can race on the same files).
 package fslock
 
 import (

@@ -18,6 +18,9 @@ type SwitchEvent struct {
 
 // ReadSwitchLog returns all recorded switch events in chronological order.
 func (s *Store) ReadSwitchLog() ([]SwitchEvent, error) {
+	if err := checkPath(s.logPath); err != nil {
+		return nil, err
+	}
 	raw, err := os.ReadFile(s.logPath)
 	if err != nil {
 		if os.IsNotExist(err) {

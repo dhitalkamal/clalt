@@ -43,5 +43,4 @@ case ":$PATH:" in
   *) echo "warning: $INSTALL_DIR is not on your PATH; add it to use 'clalt' directly";;
 esac
 
-echo "done. run 'clalt help' to get started; background token keepalive turns on"
-echo "automatically once you add an account."
+echo "done. run 'clalt help', then 'clalt login <name>' to sign an account in."

@@ -44,7 +44,7 @@ func wantRefusal(t *testing.T, code int, out, errOut, dir string) {
 func TestMigrateRefusesInsideARunSession(t *testing.T) {
 	profiles, shared := migrateHome(t)
 	twoTranscripts(t, profiles)
-	account := config.ProfileDir("work")
+	account := filepath.Join(config.ProfilesDir(), "work")
 	dirs := map[string]string{
 		"the account folder": account,
 		"below it":           filepath.Join(account, "nested"),

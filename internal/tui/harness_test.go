@@ -20,13 +20,12 @@ type fakeController struct {
 	budget    [3]string // name, daily, weekly (as raw floats formatted)
 	loggedOut string
 	removed   string
-	refreshed string
 	killed    int
 
 	failNext error
 }
 
-func (f *fakeController) Data(bool) (Data, error) { return f.data, nil }
+func (f *fakeController) Data() (Data, error) { return f.data, nil }
 func (f *fakeController) Rename(old, n string) error {
 	f.renamed = [2]string{old, n}
 	return f.failNext
@@ -35,12 +34,8 @@ func (f *fakeController) SetBudget(name string, daily, weekly float64) error {
 	f.budget = [3]string{name, ftoa(daily), ftoa(weekly)}
 	return f.failNext
 }
-func (f *fakeController) Logout(name string) error { f.loggedOut = name; return f.failNext }
-func (f *fakeController) Remove(name string) error { f.removed = name; return f.failNext }
-func (f *fakeController) Refresh(name string) error {
-	f.refreshed = name
-	return f.failNext
-}
+func (f *fakeController) Logout(name string) error  { f.loggedOut = name; return f.failNext }
+func (f *fakeController) Remove(name string) error  { f.removed = name; return f.failNext }
 func (f *fakeController) KillSession(pid int) error { f.killed = pid; return f.failNext }
 
 func ftoa(v float64) string {
@@ -59,16 +54,12 @@ func sampleData() Data {
 		daily[i] = usage.DayBucket{Day: day, Tokens: tok, Messages: int(tok / 300), Cost: float64(tok) / 1000}
 	}
 	work := AccountView{
-		Name: "work", Plan: "max", Active: true, Email: "work@acme.com",
-		ExpiresAt: now.Add(3*time.Hour + 12*time.Minute),
-		Five:      usage.WindowStat{Tokens: 340_000, Messages: 346},
-		Seven:     usage.WindowStat{Tokens: 5_200_000, Messages: 8100},
-		Daily:     daily,
-		Live: &usage.LiveUsage{
-			FiveHour: usage.LiveWindow{Utilization: 0.62, ResetsAt: now.Add(2*time.Hour + 10*time.Minute)},
-			SevenDay: usage.LiveWindow{Utilization: 0.41, ResetsAt: now.AddDate(0, 0, 5)},
-		},
-		DailyBudget: 10, WeeklyBudget: 50, NearExpiry: true,
+		Name: "work", Plan: "max", Email: "work@acme.com",
+		SignedIn: true, LoginDue: now.AddDate(0, 0, 20),
+		Five:        usage.WindowStat{Tokens: 340_000, Messages: 346},
+		Seven:       usage.WindowStat{Tokens: 5_200_000, Messages: 8100},
+		Daily:       daily,
+		DailyBudget: 10,
 		Stats: usage.Stats{
 			Billable: 135_000_000, Cost: 17_742.11, Messages: 181_000, Sessions: 229,
 			CacheHitRate: 0.97, FirstDay: now.AddDate(0, 0, -38), LastDay: now,
@@ -88,20 +79,18 @@ func sampleData() Data {
 	}
 	work.Stats.HourOfDay[1] = 95
 	personal := AccountView{
-		Name: "personal", Plan: "pro", Email: "me@home.dev", ExpiresAt: now.Add(50 * time.Hour),
+		Name: "personal", Plan: "pro", Email: "me@home.dev", SignedIn: true, LoginDue: now.Add(50 * time.Hour),
 		Five:  usage.WindowStat{Tokens: 90_000, Messages: 40},
 		Seven: usage.WindowStat{Tokens: 1_100_000, Messages: 1500},
 		Daily: daily,
 		Stats: usage.Stats{Billable: 12_000_000, Cost: 900.0, Messages: 20000, Sessions: 30, FirstDay: now.AddDate(0, 0, -10), LastDay: now},
 	}
 	casey := AccountView{Name: "casey", Plan: "max", Five: usage.WindowStat{Tokens: 700_000}, Daily: daily}
-	jordan := AccountView{Name: "jordan", Plan: "pro", Five: usage.WindowStat{Tokens: 1_900_000}, NearExpiry: true, Daily: daily}
+	jordan := AccountView{Name: "jordan", Plan: "pro", SignedIn: true, LoginDue: now.AddDate(0, 0, 12), Five: usage.WindowStat{Tokens: 1_900_000}, Daily: daily}
 	return Data{
-		Version:   "v0.1.0",
-		Accounts:  []AccountView{work, personal, casey, jordan},
-		Selected:  0,
-		Sessions:  []SessionInfo{{Account: "work", PID: 8123, Started: now.Add(-2*time.Hour - 4*time.Minute), Cwd: "/home/k/clalt"}},
-		Keepalive: KeepaliveStatus{Installed: true, Backend: "launchd", NearExpiry: 2, Accounts: 4},
+		Version:  "v0.1.0",
+		Accounts: []AccountView{work, personal, casey, jordan},
+		Sessions: []SessionInfo{{Account: "work", PID: 8123, Started: now.Add(-2*time.Hour - 4*time.Minute), Cwd: "/home/k/clalt"}},
 	}
 }
 

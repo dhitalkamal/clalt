@@ -146,13 +146,22 @@ Server definitions are never printed (env blocks can hold secrets); only names a
 - Logout keeps the recorded email, so the next login is still checked. Remove clears
   it, so a later login records a fresh identity.
 - If sign-out fails, remove stops and does not hide the account, so no login is left
-  behind in a hidden folder.
+  behind in a hidden folder. When it is not known whether a sign-out worked (the call
+  was cut short, or the check afterwards could not be made), logout and remove say so
+  and leave the record and the account as they were.
+- A first login under a new name makes the account. If it is refused or fails and nobody
+  is left signed in, the account is hidden again (never deleted: the folder stays and
+  the name reuses it). It stays visible when a login may remain (claude could not be
+  asked, an apiKeyHelper or provider override is reported, or the forced sign-out
+  failed), so that it can be signed out. An existing account is never hidden by a failed
+  login. Ctrl-C needs no handling: the next login under the name deals with what is left.
+- A refused login names the email that signed in and what it clashes with.
 - A login is due 30 days after signedInAt (claude's refresh grants are capped there).
 
 ### Auth env vars
 
 Before every claude call (login, run, status, logout) clalt removes the env vars that
-would override the folder's own login, and prints their names:
+would override the folder's own login. Only login, run and doctor print their names:
 CLAUDE_CODE_OAUTH_TOKEN, CLAUDE_CODE_OAUTH_REFRESH_TOKEN, CLAUDE_CODE_OAUTH_SCOPES,
 ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ANTHROPIC_PROFILE,
 ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
@@ -177,11 +186,12 @@ about both, and the status check above catches it at run time.
   running `claude --version` (about 10 ms) with the auth variables stripped. A claude
   that is too old, or whose version cannot be read, is an error that names the
   versions.
-- Status, login and logout refuse an empty, relative or missing account folder (claude
-  makes the folder it is given and writes .claude.json, a lock dir and backups/ in it)
-  and refuse the shared home itself. Logout asks for the status afterwards to confirm
-  the folder is signed out. If the call was cut short, or the check could not be made,
-  the error says the sign-out state is unknown.
+- Status, login, logout and the session refuse an empty, relative or missing account
+  folder (claude makes the folder it is given and writes .claude.json, a lock dir and
+  backups/ in it) and refuse the shared home itself. The session has no version gate
+  of its own: run asks for the status first, and that has one. Logout asks for the
+  status afterwards to confirm the folder is signed out. If the call was cut short, or
+  the check could not be made, the error says the sign-out state is unknown.
 - Cancelling a claude auth call sends an interrupt and kills the process only after a
   30 second grace period (exec.Cmd Cancel and WaitDelay). Windows cannot send an
   interrupt, so there nothing is sent and the grace period simply runs first. The
@@ -191,6 +201,21 @@ about both, and the status check above catches it at run time.
   helps a claude that handles the signal. Ending claude in the middle of a token
   refresh can sign the folder out, so callers must not use short timeouts on auth
   calls. Status, Logout and Version get a 2 minute timeout when the caller sets none.
+
+### What login and run check
+
+- Both need the shared home and stop with a message when it is missing. clalt never
+  makes it, since it may only be an unmounted volume: a fresh machine runs claude once,
+  or makes ~/.claude, first.
+- After the sync and before it starts claude, run looks at <account>/projects itself,
+  not at what the sync reported. It has to be a link that leads to the shared projects
+  folder (fsutil.SamePath), because claude makes a real projects folder when there is
+  none and the account's history would fork. Run refuses, and points at `clalt doctor`,
+  when the account has a projects folder of its own, or the shared one is not reachable
+  (an unmounted volume, a link aimed elsewhere, or an account made while it was
+  unmounted, which has no link at all).
+- Login does not refuse for it. Right after the sync it prints one warning line, from
+  the same check, saying run will refuse until the history is reachable, and goes on.
 
 ### state.json
 
@@ -213,13 +238,27 @@ shows as unattributed until step 3 adds per-session attribution.
 ### Doctor
 
 - claude on PATH and at least 2.1.301 (see Calling claude).
-- Per account: folder present, links in sync, MCP in sync, signed in, signed in as
-  the recorded email, login due within 3 days.
+- state.json can be read. When it cannot, that is one failed check and the rest still run.
+- Per account: folder present and not shared with another id, links in sync (projects
+  too, as run checks it), MCP in sync, signed in, signed in as the recorded email, login
+  due within 3 days. What claude wrote to stderr when asked, such as a corrupt
+  .claude.json it set aside, is shown as a warning for that account.
 - Auth env vars set in the current shell (names only), apiKeyHelper in shared
   settings.
 - Leftovers, reported and never deleted: the old vault, old profiles with uncopied
-  history (points at `clalt migrate`), an old keepalive job still installed, and
-  ~/.claude/.credentials.json written by the old switch flow.
+  history (points at `clalt migrate`), an old keepalive job still installed, the marker
+  files keepalive.auto and keepalive.disabled in ~/.config/clalt, and
+  ~/.claude/.credentials.json written by the old switch flow. On Windows the job was a
+  scheduled task that no file shows, so the message gives
+  `schtasks /Delete /TN com.clalt.keepalive /F`, as do the upgrade notes.
+
+Severities. Doctor fails only for what is broken: claude missing, unusable or too old;
+an id that cannot be a folder name; a folder shared with another id; a real projects
+folder in an account; a login as a different email than recorded; a state.json that
+cannot be read. Whatever the user fixes by doing something is a warning: not signed in,
+a missing folder, a due login, out-of-sync links or servers, an unreachable shared
+history folder, variables, settings, leftovers, a check that could not run. So doctor
+after a plain logout, or right after upgrading from v0.1.0, exits 0.
 
 ## PRs
 

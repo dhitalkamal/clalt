@@ -3,8 +3,9 @@ package tui
 import "strings"
 
 // renderAccounts draws the accounts panel: one row per account with a 5h
-// utilization percent (color-graded) and a near-expiry marker. The selected row
-// is highlighted when the panel is focused.
+// utilization estimate (color-graded) and a mark for an account that is signed
+// out or has to sign in again soon. The selected row is highlighted when the
+// panel is focused.
 func (m dashModel) renderAccounts(innerW, innerH int) string {
 	focused := m.focus == focusAccounts
 	accts := m.visibleAccounts()
@@ -22,28 +23,21 @@ func (m dashModel) renderAccounts(innerW, innerH int) string {
 
 // accountRow formats one account line to exactly innerW columns.
 func (m dashModel) accountRow(a AccountView, selected, focused bool, innerW int) string {
-	frac := liveFiveFrac(&a)
+	frac := fiveFrac(&a)
 	flag := " "
-	if a.NearExpiry {
+	if a.needsLogin() {
 		flag = lipglossFg(colErr).Render("!")
 	}
 	cur := "  "
 	if selected {
 		cur = cursorStyle.Render("> ")
 	}
-	nameW := innerW - 8 // cur(2) + name + space + pct(4) + flag(1) - space(1)
+	nameW := innerW - 9 // cur(2) + name + space + estimate(5) + flag(1) - space(1)
 	if nameW < 3 {
 		nameW = 3
 	}
-	name := a.Name
-	if a.Active {
-		name = name + " *"
-	}
-	nameCell := padRight(trunc(name, nameW), nameW)
-	if a.Active {
-		nameCell = activeStyle.Render(nameCell)
-	}
-	row := cur + nameCell + " " + lipglossFg(gradedColor(frac)).Render(padLeft(pct(frac), 4)) + flag
+	nameCell := padRight(trunc(a.Name, nameW), nameW)
+	row := cur + nameCell + " " + lipglossFg(gradedColor(frac)).Render(padLeft(estimate(frac), 5)) + flag
 	if selected && focused {
 		// pre-pad then highlight so the selection bar spans the full panel width
 		row = rowSelStyle.Render(padRight(clampLine(row, innerW), innerW))

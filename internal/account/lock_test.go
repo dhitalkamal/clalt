@@ -9,19 +9,16 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/dhitalkamal/clalt/internal/keychain"
 )
 
 // parallel `clalt run` sessions each hold their own Store on one state.json.
 func TestParallelStoresLoseNoUpdates(t *testing.T) {
 	dir := t.TempDir()
-	kc := keychain.NewFake()
 	path := filepath.Join(dir, "state.json")
 	const n = 32
-	setup := New(kc, path, "")
+	setup := New(path, "")
 	for i := 0; i < n; i++ {
-		if err := setup.Save(fmt.Sprintf("a%02d", i), mkCred("t", 1), Meta{}); err != nil {
+		if _, err := setup.Create(fmt.Sprintf("a%02d", i), noFolders); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -32,7 +29,7 @@ func TestParallelStoresLoseNoUpdates(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			s := New(kc, path, "")
+			s := New(path, "")
 			<-start
 			if err := s.SetBudget(fmt.Sprintf("a%02d", i), float64(i+1), -1); err != nil {
 				t.Errorf("SetBudget: %v", err)
@@ -42,7 +39,7 @@ func TestParallelStoresLoseNoUpdates(t *testing.T) {
 	close(start)
 	wg.Wait()
 
-	list, err := New(kc, path, "").List()
+	list, err := New(path, "").List()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,12 +53,11 @@ func TestParallelStoresLoseNoUpdates(t *testing.T) {
 // a reader must see the old file or the new one, never a half-written one.
 func TestReadersNeverSeeATornStateFile(t *testing.T) {
 	dir := t.TempDir()
-	kc := keychain.NewFake()
 	path := filepath.Join(dir, "state.json")
 	const n = 40
-	setup := New(kc, path, "")
+	setup := New(path, "")
 	for i := 0; i < n; i++ {
-		if err := setup.Save(fmt.Sprintf("a%02d", i), mkCred("t", 1), Meta{}); err != nil {
+		if _, err := setup.Create(fmt.Sprintf("a%02d", i), noFolders); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -72,7 +68,7 @@ func TestReadersNeverSeeATornStateFile(t *testing.T) {
 		readers.Add(1)
 		go func() {
 			defer readers.Done()
-			s := New(kc, path, "")
+			s := New(path, "")
 			for {
 				select {
 				case <-stop:
@@ -100,10 +96,8 @@ func TestReadersNeverSeeATornStateFile(t *testing.T) {
 }
 
 func TestStateFileIsPrivateAndLeavesNoTempFiles(t *testing.T) {
-	s, _ := newStore(t)
-	if err := s.Save("a", mkCred("t", 1), Meta{}); err != nil {
-		t.Fatal(err)
-	}
+	s := newStore(t)
+	mustCreate(t, s, "a")
 	if err := s.SetBudget("a", 5, 5); err != nil {
 		t.Fatal(err)
 	}
@@ -128,10 +122,8 @@ func TestStateFileIsPrivateAndLeavesNoTempFiles(t *testing.T) {
 }
 
 func TestEveryWriteGoesThroughTheLock(t *testing.T) {
-	s, _ := newStore(t)
-	if err := s.Save("a", mkCred("t", 1), Meta{}); err != nil {
-		t.Fatal(err)
-	}
+	s := newStore(t)
+	mustCreate(t, s, "a")
 	if _, err := os.Stat(s.statePath + ".lock"); err != nil {
 		t.Errorf("no lock file next to state.json: %v", err)
 	}

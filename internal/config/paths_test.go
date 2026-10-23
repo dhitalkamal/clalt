@@ -5,31 +5,44 @@ import (
 	"testing"
 )
 
-func TestClaudeCredentialsPathDefault(t *testing.T) {
-	t.Setenv("CLAUDE_CONFIG_DIR", "")
-	t.Setenv("HOME", "/home/tester")
-	got := ClaudeCredentialsPath()
-	want := "/home/tester/.claude/.credentials.json"
-	if got != want {
-		t.Errorf("ClaudeCredentialsPath() = %q, want %q", got, want)
-	}
-}
-
-func TestClaudeCredentialsPathOverride(t *testing.T) {
-	t.Setenv("CLAUDE_CONFIG_DIR", "/custom/cfg")
-	got := ClaudeCredentialsPath()
-	want := "/custom/cfg/.credentials.json"
-	if got != want {
-		t.Errorf("ClaudeCredentialsPath() = %q, want %q", got, want)
-	}
-}
-
 func TestClaudeProjectsDir(t *testing.T) {
 	t.Setenv("CLAUDE_CONFIG_DIR", "/custom/cfg")
 	got := ClaudeProjectsDir()
 	want := "/custom/cfg/projects"
 	if got != want {
 		t.Errorf("ClaudeProjectsDir() = %q, want %q", got, want)
+	}
+}
+
+// the transcripts are in the shared home, whichever folder the shell points at:
+// inside a `clalt run` session CLAUDE_CONFIG_DIR is an account folder, whose
+// projects is only a link to them
+func TestClaudeProjectsDirIsAlwaysTheSharedHomes(t *testing.T) {
+	home, _ := sharedEnv(t)
+	shared := filepath.Join(home, ".claude", "projects")
+
+	if got := ClaudeProjectsDir(); got != shared {
+		t.Errorf("by default: %q, want %q", got, shared)
+	}
+	t.Setenv("CLAUDE_CONFIG_DIR", accountDir("robin"))
+	if got := ClaudeProjectsDir(); got != shared {
+		t.Errorf("inside an account folder: %q, want %q", got, shared)
+	}
+	custom := filepath.Join(filepath.Dir(home), "elsewhere")
+	t.Setenv("CLAUDE_CONFIG_DIR", custom)
+	if got, want := ClaudeProjectsDir(), filepath.Join(custom, "projects"); got != want {
+		t.Errorf("with a custom home: %q, want %q", got, want)
+	}
+}
+
+// no home, no folder: never a relative path that would read the working dir
+func TestClaudeProjectsDirIsEmptyWithoutAHome(t *testing.T) {
+	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+
+	if got := ClaudeProjectsDir(); got != "" {
+		t.Errorf("ClaudeProjectsDir() = %q, want none", got)
 	}
 }
 

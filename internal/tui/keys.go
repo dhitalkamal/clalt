@@ -70,8 +70,6 @@ func (m dashModel) keysAccounts(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "n":
 		return m.trigger("login", "", 0)
-	case "a":
-		return m.trigger("add", "", 0)
 	case "e":
 		if a != nil {
 			return m.trigger("budget", a.Name, 0)
@@ -83,10 +81,6 @@ func (m dashModel) keysAccounts(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "l":
 		if a != nil {
 			return m.trigger("logout", a.Name, 0)
-		}
-	case "f":
-		if a != nil {
-			return m.trigger("refresh", a.Name, 0)
 		}
 	case "d", "x":
 		if a != nil {

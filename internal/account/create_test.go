@@ -13,12 +13,10 @@ import (
 
 var fixedNow = time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
 
-// newMetaStore has no keychain at all: the metadata methods must never touch
-// one, so any call on it would panic the test.
 func newMetaStore(t *testing.T) *Store {
 	t.Helper()
 	dir := t.TempDir()
-	s := New(nil, filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
+	s := New(filepath.Join(dir, "state.json"), filepath.Join(dir, "switches.jsonl"))
 	s.now = func() time.Time { return fixedNow }
 	return s
 }
@@ -71,7 +69,7 @@ func TestCreateUsesTheLabelAsTheId(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if acc.Name != "robin" || acc.Label() != "robin" || acc.Meta.Label != "robin" || !acc.Meta.AddedAt.Equal(fixedNow) || acc.Active {
+	if acc.Name != "robin" || acc.Label() != "robin" || acc.Meta.Label != "robin" || !acc.Meta.AddedAt.Equal(fixedNow) {
 		t.Errorf("account = %+v", acc)
 	}
 	if got := stored(t, s, "robin"); !reflect.DeepEqual(got, acc) {
@@ -241,16 +239,43 @@ func TestCreateGivesUpWhenNoIdIsFree(t *testing.T) {
 func TestCreateLeavesTheRestOfTheStateAlone(t *testing.T) {
 	s := newMetaStore(t)
 	addLegacy(t, s, "work", Meta{Email: "w@example.com", DailyBudget: 25})
-	if err := s.SetActive("work"); err != nil {
+	st, err := s.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Active = "work"
+	if err := s.save(st); err != nil {
 		t.Fatal(err)
 	}
 
 	mustCreate(t, s, "fresh")
 
-	if active, _ := s.Active(); active != "work" {
-		t.Errorf("active pointer = %q, want work", active)
+	if st, _ := s.load(); st.Active != "work" {
+		t.Errorf("active pointer = %q, want work", st.Active)
 	}
 	if got := stored(t, s, "work"); got.Meta.Email != "w@example.com" || got.Meta.DailyBudget != 25 {
 		t.Errorf("work changed: %+v", got)
+	}
+}
+
+// a removed account keeps its folder, so its id stays taken even after it is
+// relabeled, and a new account under the label it had gets the next number
+func TestCreateNumbersTheIdWhenAHiddenAccountHoldsIt(t *testing.T) {
+	s := newMetaStore(t)
+	first := mustCreate(t, s, "robin")
+	if err := s.Hide(first.Name); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Relabel(first.Name, "old"); err != nil {
+		t.Fatal(err)
+	}
+
+	second := mustCreate(t, s, "robin")
+
+	if second.Name != "robin-2" {
+		t.Errorf("id = %q, want robin-2", second.Name)
+	}
+	if got := stored(t, s, "robin"); got.Label() != "old" || !got.Meta.Hidden {
+		t.Errorf("the removed account was overwritten: %+v", got)
 	}
 }

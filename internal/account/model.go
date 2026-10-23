@@ -1,16 +1,9 @@
-// Package account manages named Claude credential slots: secrets live in
-// clalt's local encrypted vault under the "clalt" service namespace, non-secret
-// metadata and the active pointer live in state.json, and switching swaps the
-// active slot into Claude Code's live store.
+// Package account keeps what clalt knows about each account: its label, who
+// signed in and when, and its spend caps, in state.json. there are no secrets
+// here: claude keeps each account's login in the account's own folder.
 package account
 
 import "time"
-
-// KeychainService is the vault namespace for per-account credential secrets.
-// The name is historical: this used to be the macOS Keychain service string
-// back when secrets lived in the OS Keychain; it is now just the key prefix
-// used inside the local encrypted vault (keychain.EncFileStore).
-const KeychainService = "clalt"
 
 // Meta is the non-secret info shown in listings and the dashboard.
 type Meta struct {
@@ -31,11 +24,12 @@ type Meta struct {
 	Hidden     bool      `json:"hidden,omitempty"`
 }
 
-// Account is a slot plus whether it is currently active.
+// Account is one account of the state file. the state also keeps the active
+// pointer v0.1.0 wrote, so that the old binary can still read the file, but
+// nothing reads it here.
 type Account struct {
-	Name   string // the account id: the state.json key and the folder under accounts/
-	Meta   Meta
-	Active bool
+	Name string // the account id: the state.json key and the folder under accounts/
+	Meta Meta
 }
 
 // Label is what the user sees and types: Meta.Label, else the id.

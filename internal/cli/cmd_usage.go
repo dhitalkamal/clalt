@@ -7,9 +7,14 @@ import (
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
 
+const usageUsage = "clalt usage [name] [--json]"
+
 func (a *App) cmdUsage(args []string) error {
-	live, filter := parseUsageArgs(args)
-	reports, err := a.buildReports(live, filter)
+	label, err := parseUsageArgs(args)
+	if err != nil {
+		return err
+	}
+	reports, err := a.buildReports(label)
 	if err != nil {
 		return err
 	}
@@ -20,65 +25,52 @@ func (a *App) cmdUsage(args []string) error {
 		a.printf("no accounts to report on\n")
 		return nil
 	}
-	if live {
-		a.printf("note: --live queries Anthropic's usage endpoint with your token (ToS gray area; see README).\n\n")
-	}
 	for i, r := range reports {
 		if i > 0 {
 			a.printf("\n")
 		}
 		a.renderReport(r)
 	}
-	a.printf("\nlocal stats are per-machine and attributed by switch history; use --live for authoritative windows.\n")
+	a.printf("\nlocal stats are per-machine, read from claude's transcripts and attributed by the old switch log.\n")
+	a.printf("usage newer than that log is not split per account yet.\n")
 	return nil
 }
 
-// parseUsageArgs pulls the --live flag and an optional account name from args.
-func parseUsageArgs(args []string) (live bool, filter string) {
+// parseUsageArgs picks the optional account label out of args. --json, which run
+// took out already, is the only flag, and a second name is a mistake like any
+// other.
+func parseUsageArgs(args []string) (label string, err error) {
 	for _, arg := range args {
 		switch {
-		case arg == "--live":
-			live = true
 		case strings.HasPrefix(arg, "-"):
-			// ignore unknown flags
+			return "", usageError{"unknown flag " + arg, usageUsage}
+		case label != "":
+			return "", usageError{"unexpected argument " + arg, usageUsage}
 		default:
-			filter = arg
+			label = arg
 		}
 	}
-	return live, filter
+	return label, nil
 }
 
 func (a *App) renderReport(r accountReport) {
-	marker := ""
-	if r.Active {
-		marker = " (active)"
-	}
-	a.printf("== %s%s ==\n", r.Name, marker)
+	a.printf("== %s ==\n", r.Name)
 	if r.Email != "" || r.Plan != "" {
 		a.printf("  %s  %s\n", dash(r.Plan), dash(r.Email))
 	}
-	a.printf("  token:    %s\n", humanUntil(r.ExpiresAt))
 	a.printf("  5h local: %s  %s\n", bar(windowFraction(r.FiveHour.Tokens)), tokensLabel(r.FiveHour.Tokens, r.FiveHour.Messages))
 	a.printf("  7d local: %s  %s\n", bar(windowFraction(r.SevenDay.Tokens)), tokensLabel(r.SevenDay.Tokens, r.SevenDay.Messages))
 	a.printf("  total:    %s tokens, $%.2f est\n", humanTokens(r.Tokens), r.Cost)
-
-	if r.Live != nil {
-		a.printf("  live 5h:  %s  %.0f%% used, resets %s\n", bar(r.Live.FiveHour.Utilization), r.Live.FiveHour.Utilization*100, humanUntil(r.Live.FiveHour.ResetsAt))
-		a.printf("  live 7d:  %s  %.0f%% used, resets %s\n", bar(r.Live.SevenDay.Utilization), r.Live.SevenDay.Utilization*100, humanUntil(r.Live.SevenDay.ResetsAt))
-	}
-	if r.LiveNote != "" {
-		a.printf("  live:     %s\n", r.LiveNote)
-	}
 	if len(r.Models) > 0 {
 		a.printf("  by model:\n")
 		for _, m := range r.Models {
-			a.printf("    %-22s %10s tokens  $%.2f\n", dash(m.Model), humanTokens(m.Tokens), m.Cost)
+			a.printf("    %-22s %10s tokens  $%.2f\n", dash(clean(m.Model)), humanTokens(m.Tokens), m.Cost)
 		}
 	}
 	if len(r.Projects) > 0 {
 		a.printf("  top projects:\n")
 		for _, p := range r.Projects {
-			a.printf("    %-30s %10s tokens\n", truncate(p.Project, 30), humanTokens(p.Tokens))
+			a.printf("    %-30s %10s tokens\n", truncate(clean(p.Project), 30), humanTokens(p.Tokens))
 		}
 	}
 	if hasTrend(r.Trend) {

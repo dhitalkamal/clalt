@@ -1,39 +1,34 @@
 # clalt
 
-Claude alt-account manager. Manage multiple Claude accounts for Claude Code from
-one CLI: authenticate accounts, launch keychain-free sessions for any of them
-(in parallel), and see a per-account usage dashboard. macOS, Linux, and Windows.
+Claude alt-account manager. Run several Claude accounts for Claude Code side by
+side from one CLI: sign each account in, start sessions for any of them (in
+parallel), and see a per-account usage dashboard. macOS and Linux; Windows is
+best effort.
 
 Unofficial community tool, not affiliated with Anthropic.
 
 ## How it works
 
-clalt is keychain-free. It stores any number of named credential slots in its own
-local encrypted vault (`~/.config/clalt/vault`, AES-256-GCM) and never touches the
-macOS Keychain. Non-secret metadata (email, plan, timestamps) and the active
-pointer live in `~/.config/clalt/state.json`.
+Each account is a folder, `~/.config/clalt/accounts/<id>`, that clalt hands to
+claude as `CLAUDE_CONFIG_DIR`. claude keys that account's login to the path of
+the folder, so the folder never moves. Where the login is kept depends on the
+system: on macOS it is an entry in the Keychain, named after the folder's path,
+and only on Linux and Windows is it a file (`.credentials.json`) in the folder.
+clalt stores no tokens and reads none: it asks claude who is signed in
+(`claude auth status`), and signs accounts in and out through claude's own
+`auth login` and `auth logout`. What clalt itself remembers lives in
+`~/.config/clalt/state.json`: each account's label, the email that signed in,
+plan, organization and when, last use, and spend caps.
 
-You use an account by launching a session for it with `clalt run <name>`. clalt
-resolves that account's token from the vault (refreshing it first if needed) and
-hands it to the child `claude` process through the `CLAUDE_CODE_OAUTH_TOKEN`
-environment variable. Claude Code reads that variable ahead of the Keychain and
-the credentials file, so:
-
-- clalt never reads or writes the macOS Keychain, so it never triggers the
-  recurring login-password prompt.
-- Different accounts run in parallel: each `clalt run` gets its own token in its
-  own child environment, plus its own `CLAUDE_CONFIG_DIR` for settings/skills.
-
-Because the token is injected into the process environment at launch, a single
-session that outlives its access token (roughly one hour) may need a relaunch to
-pick up a fresh token; an environment variable cannot be updated inside a running
-process. The background keepalive keeps the vault token fresh so the next launch
-always starts clean.
+The folder is linked to `~/.claude`, so every account sees the same settings,
+skills, plugins, commands, agents, CLAUDE.md and, importantly, the same
+conversation history. Only the login (and a few pieces of per-account state)
+stay separate.
 
 ## Install
 
-Requires Go 1.22+. Builds on macOS, Linux, and Windows. clalt no longer uses the
-macOS Keychain, so no code-signing setup is needed on any platform.
+Requires Go 1.26.10 or newer to build, and claude 2.1.301 or newer to run.
+Builds on macOS, Linux, and Windows.
 
 ```
 make install            # builds and copies to ~/bin (override INSTALL_DIR=...)
@@ -60,296 +55,117 @@ make cross          # writes dist/clalt-{linux-amd64,linux-arm64,windows-amd64.e
 
 ## Platform support
 
-The account model, keychain-free `run`, usage, and the dashboard work on macOS,
-Linux, and Windows. A couple of things differ by OS:
-
-- How `run` hands the credential to claude: on macOS via
-  `CLAUDE_CODE_OAUTH_TOKEN` (keychain-free, parallel); on Linux and Windows via an
-  isolated per-profile `.credentials.json` scoped by `CLAUDE_CONFIG_DIR` (also
-  parallel). Either way clalt never touches an OS keychain.
-- Background keepalive: automatic. The first time you have an account, clalt
-  registers a background job with the native scheduler for your OS (launchd on
-  macOS, a systemd user timer on Linux, Task Scheduler on Windows) so tokens are
-  refreshed ahead of expiry. See "Background keepalive" below.
+clalt calls the `claude` binary, so it works wherever claude does. Windows is
+best effort: linking the shared claude home needs symlinks, which Windows only
+allows in Developer Mode. A link that cannot be made is reported by name and
+the rest still work.
 
 ## Commands
 
 ```
-clalt list                 list accounts (active one marked with *)
-clalt whoami               show the active account
-clalt add <name>           capture the current Claude Code login as <name>
-clalt login <name>         authenticate a new account via OAuth and store it
-                           (--magic-link <url> to sign into someone else's
-                           account first, see below)
-clalt run <name> [-- ...]  run claude as <name>, keychain-free, in an isolated
-                           profile (parallel: different accounts at once)
-clalt budget [name ...]    show or set per-account spend caps (--daily/--weekly)
-clalt sessions             list live parallel run sessions
-clalt remove <name>        delete a slot (--force skips the confirm prompt)
-clalt rename <old> <new>   rename a slot
-clalt logout <name>        forget a slot's stored credential
-clalt refresh <name>       refresh a slot's token now (--all for every account)
-clalt keepalive            manage the background token-refresh job
-clalt doctor [--fix]       diagnose account tokens and vault state
-clalt export <file>        encrypted backup of all accounts
-clalt import <file>        restore accounts from a backup
-clalt usage [name] [--live]  usage stats (local by default)
-clalt dashboard [--live]     interactive usage dashboard (TUI)
-clalt dashboard --demo       preview the new dashboard on demo data
+clalt login <name>         sign an account in through claude's own login. a new
+                           name makes the account, a removed one comes back
+clalt run <name> [-- ...]  run claude as <name>, in its own folder, with the
+                           history shared with ~/.claude (accounts run in parallel)
+clalt logout <name>        sign the account out, keep its history
+clalt remove <name>        sign out and hide the account, history stays
+                           (--force skips the confirmation)
+clalt rename <old> <new>   change the label only, the folder never moves
+clalt list                 accounts with their live sign-in state
+clalt whoami               which account this shell is in
+clalt doctor               check claude, the accounts and leftovers of v0.1.0
+                           (only reports, never changes anything)
 clalt migrate [--dry-run]  copy history from per-account profile folders into
                            the shared projects folder
+clalt sessions             list live parallel run sessions
+clalt budget [name]        show or set per-account spend caps
+                           (--daily N, --weekly N, --clear)
+clalt usage [name]         local usage stats
+clalt dashboard            interactive usage dashboard (TUI)
+clalt dashboard --demo     preview the new dashboard on demo data
+clalt version              print build version (--json for machine-readable)
 ```
 
-Add `--json` to most commands for machine-readable output.
+Add `--json` to most commands for machine-readable output. Accounts are named
+by their label everywhere on the command line, ignoring case.
 
-### Typical flow
+## Quick start
 
 ```
-clalt login personal       # browser OAuth, stored in clalt's vault
+clalt login personal       # opens claude's sign-in in your browser
 clalt login work
-clalt run personal         # launch claude as personal, keychain-free
+clalt run personal         # start claude as personal
 clalt run work             # ... in another terminal, at the same time
+clalt list                 # who is signed in, and until when
 ```
 
-`login` uses the manual-code OAuth flow: it opens your browser, you approve, then
-paste the code shown on the callback page back into the terminal. You do not need
-to be logged into Claude Code at all, and you never run `clalt switch` (there is
-no such command) - every session runs through `clalt run`.
+Everything after the account name goes to claude, with or without a `--` in
+front: `clalt run work -- --resume` and `clalt run work --model opus` both work.
+clalt exits with claude's own exit code.
 
-`clalt add <name>` is still available to capture an existing Claude Code login
-from `~/.claude/.credentials.json` into the vault, but it is optional; `login`
-covers the normal path.
+## Documentation
 
-### Logging into an account someone else owns
+The details are in `docs/`, one file per subject:
 
-If you're adding an account that belongs to someone else, they can send you a
-claude.ai magic link (their email sign-in link) instead of handing you a
-password. Pass it straight to `login` and it opens first, in the same browser,
-so that browser is signed into their account before the OAuth consent screen
-comes up:
-
-```
-clalt login theiraccount --magic-link "https://claude.ai/...magic-link-url..."
-```
-
-clalt only accepts `https://claude.ai/...` or `https://*.anthropic.com/...`
-links and refuses anything else - the link is a bearer credential for their
-account, so treat it like a password: request it over a channel you trust, and
-don't reuse or store it once you've logged in.
-
-## Running accounts in parallel
-
-`clalt run <name>` launches `claude` for one account without ever swapping a
-global login, so you can use different accounts at the same time:
-
-```bash
-# terminal 1
-clalt run work
-# terminal 2, simultaneously
-clalt run personal
-```
-
-- macOS: clalt injects `CLAUDE_CODE_OAUTH_TOKEN` for the account, so that child
-  claude authenticates as that account regardless of any other login. Nothing
-  goes through the Keychain.
-- Linux and Windows: clalt stages the account's stored credential into
-  `~/.config/clalt/profiles/<name>/.credentials.json` and points
-  `CLAUDE_CONFIG_DIR` there. The profile rotates its own token; clalt syncs it
-  back on exit.
-
-On macOS, `clalt run` also supervises the session (see Caveats below for why):
-it refreshes the account's token ahead of expiry and transparently restarts
-claude with the fresh one, using `--resume` so the conversation carries over.
-Pass `--no-supervise` to disable this and get a single unsupervised launch
-instead.
-
-Pass extra args to claude after `--` (e.g. `clalt run work -- --resume`).
-`--refresh` re-resolves the token and re-copies your shared settings.
-
-By default a profile inherits your full Claude config so a `run` session behaves
-like your normal setup: every top-level directory under `~/.claude` (`skills`,
-`plugins`, `commands`, `agents`, and any others) is symlinked, every top-level
-settings file (`settings.json`, `settings.local.json`, `CLAUDE.md`, ...) is
-copied, and your user-scope MCP servers from `~/.claude.json` are projected into
-the profile's own `.claude.json`. Your `projects/` transcripts and per-session
-state are never shared, so accounts stay separate. Sharing never overwrites a file
-a profile already has (use `--refresh` to push updated settings) and never
-clobbers a profile's own MCP server of the same name.
-
-Pass `--isolated` for a clean-room profile that inherits none of your main config.
-(The old `--link` flag is now the default and is accepted as a no-op.)
-
-This relies on Claude Code's `CLAUDE_CODE_OAUTH_TOKEN` and `CLAUDE_CONFIG_DIR`,
-both undocumented power-user variables that Anthropic could change.
-
-macOS note: when `CLAUDE_CODE_OAUTH_TOKEN` is set, Claude Code may remove its own
-Keychain login item on exit. That does not affect clalt (it does not use the
-Keychain), but if you also run plain `claude` outside clalt on the same machine,
-it may ask you to log in again. Logging back in, or just always launching through
-`clalt run`, avoids that.
-
-## Copying profile history into the shared folder
-
-A profile folder (`~/.config/clalt/profiles/<name>`) can hold its own
-conversation history in `projects/`. The shared history is `~/.claude/projects`,
-or `$CLAUDE_CONFIG_DIR/projects` when that variable is set to a folder outside
-clalt's own. `clalt migrate` copies each profile's history into it, so those
-conversations can be resumed from the shared folder:
-
-```
-clalt migrate --dry-run    # show what would happen, write nothing
-clalt migrate              # copy
-```
-
-It prints one line per profile and a total (`--json` gives the same as a
-report). Run it from a normal shell, not inside a `clalt run` session: there
-`CLAUDE_CONFIG_DIR` points at an account folder, and clalt refuses. It is safe to
-run again, and a second run copies nothing:
-
-- It only copies. The files in the profile folders stay where they are, and
-  nothing is changed or deleted there.
-- Nothing in the shared folder is ever overwritten. A file that is already
-  there with the same content counts as "already there". One that is there with
-  different content is a conflict: it is listed by path with the reason, and the
-  profile's version stays only in the profile folder.
-- A `projects` folder that is a link is never followed. A link to the shared
-  folder is reported as "already shared", a link anywhere else is reported and
-  not copied, and so is a profile folder that is itself a link. Links inside a
-  history folder are skipped and listed.
-- A dry run reads and compares but writes nothing, and its report is what a real
-  run would do, including when two profiles hold the same path. It does not
-  check free space or write permission.
-- Copied files keep their modification time (Claude Code sorts its resume list
-  by it) and are readable only by you.
-- A file only appears under its real name once it is complete. If a run is
-  killed part way, the file being copied can leave a hidden `.clalt-migrate-*`
-  file in its folder in the shared folder. It is safe to delete, and a new run
-  finishes the copy. On a filesystem without hard links, such as FAT, the file is
-  written in place instead, and then a kill part way can leave a partial file
-  under its real name. The report counts the files written that way.
-
-If a file cannot be copied the rest still are, the failures are listed, and the
-exit code is 1. File names in the text output are escaped, so a name cannot
-forge a line or move the cursor.
-
-## Background keepalive
-
-Claude rotates refresh tokens, and an unused account's token can lapse. clalt
-keeps every account's vault token refreshed ahead of expiry with a small
-background job that runs `clalt keepalive --once` on a schedule. Because `run`
-reads the vault token at launch, this keeps back-to-back sessions starting fresh.
-
-This is automatic: the first time you have an account (after `login`, `add`,
-`run`, or `import`), clalt registers the job with your OS scheduler (launchd,
-systemd user timer, or Task Scheduler) and prints a one-line note. You do not need
-to run `keepalive install`.
-
-Manage it:
-
-```
-clalt keepalive status              show whether the job is installed + token expiry
-clalt keepalive install --dry-run   print exactly what would be scheduled, run nothing
-clalt keepalive install             (re)install explicitly, e.g. with custom flags
-clalt keepalive uninstall           remove it AND stop auto-enabling it
-clalt keepalive --once              one refresh pass right now (no scheduler)
-clalt keepalive                     foreground loop (ctrl-c stops)
-```
-
-`keepalive uninstall` records the opt-out, so clalt will not silently re-install
-the job afterward; `keepalive install` clears that opt-out. To suppress
-auto-enable everywhere without uninstalling, set `CLALT_NO_AUTO_KEEPALIVE=1`.
-Tune the cadence with `--interval` (default 30m) and the early-refresh window
-with `--buffer` (default 45m).
-
-## Usage dashboard
-
-`clalt dashboard` opens a full-screen interactive dashboard; `clalt usage` prints
-the same data as static text (and is the fallback when stdout is not a terminal).
-Both build stats from Claude Code's local transcripts
-(`~/.claude/projects/**/*.jsonl`).
-
-The dashboard has four tabs:
-
-- overview: all accounts with color-graded 5h/7d utilization meters (green ->
-  yellow -> red), reset countdowns (live) or token counts (local), and expiry
-- tokens: today and lifetime totals, cache-hit rate, cost, top models,
-  input/output/cache composition, hour-of-day histogram, and daily token and
-  activity charts
-- usage: per-account window detail and top projects
-- sessions: live `clalt run` sessions
-
-Controls: `left`/`right` (or `h`/`l`) switch tabs, `up`/`down` select account,
-`enter` or `r` run the selected account (keychain-free), `d` delete it, `/` filter,
-`:` command palette, `?` toggle the keybinding overlay, `q` quit. Actions are
-performed after the dashboard closes.
-
-Token accounting: the headline "tokens" figure is input + output only. Cache
-reads are excluded from that number (with a high cache-hit rate they are ~30x
-real input/output and would make totals meaningless) and are shown separately as
-the composition breakdown and cache-hit rate. Cost still includes cache.
-
-`--live` additionally queries Anthropic's usage endpoint for authoritative
-window utilization. See the caveats below before relying on it.
-
-### Preview of the new dashboard
-
-`clalt dashboard --demo` opens the new focus-panes dashboard on made-up data, so
-you can try it without touching any account. The current dashboard stays the
-default and nothing here reads or changes your accounts. Keys: `j`/`k` move,
-`tab` switches pane, `[` `]` or `1`-`5` switch view, `h`/`l` switch the history
-tab, `/` filters, `a` toggles ascii mode, `?` lists every key, `q` quits and
-`esc` never does. Enter, `s`, `e` and `x` only say what they would have done.
-`NO_COLOR` turns the colors off and `CLALT_ASCII=1` starts in ascii mode.
-Without a terminal it prints a single plain frame.
+- [docs/commands.md](docs/commands.md): what each command does, how a sign-in is
+  checked, what `run` does before it starts claude, listing and removing accounts
+- [docs/sharing.md](docs/sharing.md): what is shared with `~/.claude`, the shared
+  home, the history check and MCP servers
+- [docs/auth.md](docs/auth.md): the environment variables clalt removes before
+  every claude call
+- [docs/doctor.md](docs/doctor.md): the checks of `clalt doctor`, and when it
+  fails or only warns
+- [docs/upgrading.md](docs/upgrading.md): upgrading from v0.1.0
+- [docs/migrate.md](docs/migrate.md): `clalt migrate`, copying the history of old
+  per-account profile folders into the shared history
+- [docs/dashboard.md](docs/dashboard.md): usage, [budgets](docs/dashboard.md#budgets),
+  [sessions](docs/dashboard.md#sessions) and the dashboard, with a preview of
+  the new one
+- [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Environment overrides
 
-The OAuth settings are reverse-engineered and can change with Claude Code
-releases. Rather than force a recompile, each is overridable so you can react
-immediately:
-
 ```
-CLALT_OAUTH_CLIENT_ID    client id           (default 9d1c250a-...)
-CLALT_AUTHORIZE_URL      authorize endpoint  (default https://claude.ai/oauth/authorize)
-CLALT_TOKEN_URL          token endpoint      (default https://platform.claude.com/v1/oauth/token)
-CLALT_REDIRECT_URI       redirect uri        (default https://platform.claude.com/oauth/code/callback)
-CLALT_OAUTH_SCOPES       space-separated scopes
-CLALT_API_BASE           host for --live usage + profile (default https://api.anthropic.com)
-CLAUDE_CONFIG_DIR         Claude Code config dir (default ~/.claude)
-XDG_CONFIG_HOME           clalt state dir parent (default ~/.config)
-CLALT_NO_BROWSER         set to skip auto-opening the browser on login
-CLALT_CLAUDE_BIN         override the claude binary `run` launches (default claude)
+CLAUDE_CONFIG_DIR   the shared claude home, when it points outside clalt's own
+                    folder (default ~/.claude)
+XDG_CONFIG_HOME     clalt state dir parent (default ~/.config)
+CLALT_CLAUDE_BIN    the claude binary clalt runs (default claude, from PATH)
 ```
 
 ## Caveats (read these)
 
-- Compliance: Anthropic's Feb 2026 Legal/Compliance update says OAuth tokens from
-  Free/Pro/Max are intended exclusively for Claude Code and Claude.ai. clalt keeps
-  the token in service of Claude Code itself. `--live` calls the usage endpoint
-  from this tool with your token, which is a gray area; it is off by default and
-  opt-in per invocation.
-- Token in the environment: `clalt run` puts the access token in the child
-  claude's environment (`CLAUDE_CODE_OAUTH_TOKEN`), which is readable by other
-  processes running as the same user. It is never written to disk by clalt and
-  never logged.
-- Session length vs token life: Claude Code has no supported way to refresh
-  CLAUDE_CODE_OAUTH_TOKEN inside an already-running process, so on macOS
-  `clalt run` supervises the session instead - it refreshes the vault token
-  ahead of expiry and transparently restarts claude with the fresh one and
-  `--resume`, so a session survives past a single token's lifetime without
-  you having to relaunch by hand. Pass `--no-supervise` to disable this and
-  fall back to a single unsupervised launch (matches the old behavior: the
-  session then hits an auth error once its token expires, and you relaunch
-  through `clalt run` to start with a fresh one).
-- The live usage endpoint is aggressively rate limited (persistent 429s with no
-  Retry-After), so results are cached and polled sparingly; stale cache is shown
-  when the endpoint is limiting.
-- OAuth constants (client id, endpoints, redirect URI) are reverse-engineered from
-  the Claude Code binary and can change between releases. If login or refresh
-  breaks after a Claude Code update, override them via the environment variables
-  above (no recompile) or update the defaults in `internal/oauth/oauth.go`.
-- Email auto-labeling is best-effort; there is no confirmed public profile
-  endpoint, so accounts fall back to the name you gave.
+- clalt relies on claude's `auth login`, `auth status` and `auth logout`
+  commands and on `CLAUDE_CONFIG_DIR`. Anthropic could change them, and the
+  `auth status` json keys are parsed as documented at the time of writing
+  (unknown keys are ignored, output that is not json is an error). It needs
+  claude 2.1.301 or newer.
+- A login belongs to the folder it was made in. Do not move or rename an
+  account folder; `clalt rename` changes only the label for that reason.
+- Which files claude saves by replacing them (which breaks a link) is not
+  verified. clalt keeps such a file and reports it, so nothing is lost, but that
+  account then has its own copy until you resolve it.
+- MCP sync writes an account's `.claude.json` while another session of the same
+  account may be running. The write is atomic and only happens when something
+  changed, but a small race is accepted.
+- clalt gives each claude call that is not interactive two minutes: `auth
+  status` (with the version check it makes first), `--version` on its own, and
+  `logout`, whose two minutes cover the version check, the sign-out and the
+  status check together. At the deadline it interrupts claude, and kills it 30
+  seconds later if it is still running (Windows cannot be sent an interrupt, so
+  there the 30 seconds just run before the kill). It does not cancel sooner:
+  real claude has no interrupt handler, so cancelling a call ends it at once,
+  possibly in the middle of a token refresh, and that can sign the folder out.
+  `claude auth login` is interactive and has no timeout, and neither has a
+  session started by `clalt run`. A Ctrl-C at the terminal ends clalt but not the
+  status check or sign-out it is waiting for: on macOS and Linux those run in a
+  process group of their own, so the interrupt cannot end claude in the middle of
+  a token refresh. The sign-in and the session stay in the foreground, since
+  they read the terminal.
+- Text that claude reports (the email, plan and organization, and its error
+  lines) and file names found on disk have control characters, line separators
+  and bidirectional overrides shown as escapes (`\x1b`) before they are stored
+  or printed, so an organization name cannot put escape sequences on your
+  terminal. The zero width joiners that scripts and emoji need are kept.
 - Cost is an estimate from a static price table that will drift.
 
 ## Development
@@ -358,5 +174,7 @@ CLALT_CLAUDE_BIN         override the claude binary `run` launches (default clau
 make check      # gofmt check, go vet, tests, build
 ```
 
-Logic packages are unit-tested against an in-memory Keychain fake, so tests never
-touch your real Keychain or Claude Code login.
+Tests run against a temp HOME and temp state dirs and a fake claude (a small
+shell script that clalt is pointed at with `CLALT_CLAUDE_BIN`), so they never
+read or write your real `~/.claude`, `~/.claude.json` or `~/.config/clalt`, and
+never run the real claude.

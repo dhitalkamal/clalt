@@ -93,23 +93,19 @@ type palCmd struct {
 }
 
 // paletteCommands builds the (filtered) command list. It lists only the current
-// verbs: run/login/add/rename/budget/logout/remove/refresh. The removed
-// switch/next/auto/fallback verbs are intentionally absent.
+// verbs: run/login/rename/budget/logout/remove. The removed
+// switch/next/auto/fallback/add/refresh verbs are intentionally absent.
 func (m dashModel) paletteCommands() []palCmd {
 	var all []palCmd
 	all = append(all, palCmd{"login (new account)", "login", "", 0})
-	all = append(all, palCmd{"add (capture current login)", "add", "", 0})
 	for _, a := range m.data.Accounts {
 		all = append(all,
 			palCmd{"run " + a.Name, "run", a.Name, 0},
-			palCmd{"refresh " + a.Name, "refresh", a.Name, 0},
 			palCmd{"rename " + a.Name, "rename", a.Name, 0},
 			palCmd{"budget " + a.Name, "budget", a.Name, 0},
 			palCmd{"logout " + a.Name, "logout", a.Name, 0},
+			palCmd{"remove " + a.Name, "remove", a.Name, 0},
 		)
-		if !a.Active {
-			all = append(all, palCmd{"remove " + a.Name, "remove", a.Name, 0})
-		}
 	}
 	if m.query == "" {
 		return all

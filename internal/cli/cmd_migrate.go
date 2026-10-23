@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,12 +13,6 @@ import (
 )
 
 const migrateUsage = "clalt migrate [--dry-run]"
-
-// plainApp is an App with no accounts behind it. building the real one opens
-// the vault, which creates vault.key on a machine that has never needed it.
-func plainApp() *App {
-	return &App{Out: os.Stdout, In: os.Stdin, Err: os.Stderr}
-}
 
 func (a *App) cmdMigrate(args []string) error {
 	dryRun, err := parseMigrateArgs(args)
@@ -35,7 +30,7 @@ func (a *App) cmdMigrate(args []string) error {
 	if a.JSON {
 		err = a.emitJSON(rep)
 	} else {
-		_, err = io.WriteString(a.Out, renderMigrate(rep))
+		_, err = io.WriteString(a.out(), renderMigrate(rep))
 	}
 	if err != nil {
 		return err
@@ -73,7 +68,11 @@ func migrateDest() (string, error) {
 		return "", fmt.Errorf("CLAUDE_CONFIG_DIR points at an account folder (%s), not at the shared history. "+
 			"run 'clalt migrate' from a normal shell, not inside a 'clalt run' session", clean(dir))
 	}
-	return config.ClaudeProjectsDir(), nil
+	dest := config.ClaudeProjectsDir()
+	if dest == "" {
+		return "", errors.New(noHomeKnown)
+	}
+	return dest, nil
 }
 
 // underClaltDir is true for clalt's own folder and anything below it, however

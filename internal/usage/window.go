@@ -13,8 +13,8 @@ type WindowStat struct {
 
 // Window sums records whose timestamp falls within [now-dur, now]. ResetsAt is a
 // local approximation: Claude resets the window relative to the first message in
-// it, so we anchor to the earliest in-window record. Authoritative numbers need
-// the --live endpoint; this is the documented local estimate.
+// it, so we anchor to the earliest in-window record. Authoritative numbers come
+// from claude itself, which clalt does not ask; this is the local estimate.
 func Window(records []Record, now time.Time, dur time.Duration) WindowStat {
 	cutoff := now.Add(-dur)
 	ws := WindowStat{Duration: dur}

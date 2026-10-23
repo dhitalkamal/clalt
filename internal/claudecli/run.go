@@ -101,12 +101,16 @@ func command(ctx context.Context, env []string, args ...string) (*exec.Cmd, *can
 
 // run waits for claude and captures its output. a non-zero exit is data, not an
 // error, because callers give each code its own meaning. an error means claude
-// could not run, or ctx ended while it was running (a *CancelError).
+// could not run, or ctx ended while it was running (a *CancelError). it is for
+// the calls clalt makes on its own, which read no terminal, so they start in a
+// group of their own, see ownGroup. the sign-in and the session do not: they
+// are built by command and run by the caller, in the foreground.
 func run(ctx context.Context, env []string, args ...string) (result, error) {
 	cmd, st, err := command(ctx, env, args...)
 	if err != nil {
 		return result{}, err
 	}
+	ownGroup(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	runErr := cmd.Run()

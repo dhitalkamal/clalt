@@ -1,9 +1,15 @@
 package tui
 
-import "strings"
+import (
+	"strings"
 
-// header renders the logo + version on the left and the keepalive status (plus a
-// refresh spinner) on the right.
+	"github.com/charmbracelet/lipgloss"
+)
+
+// header renders the logo + version on the left and how many accounts are
+// signed in (plus a refresh spinner) on the right. what could not be loaded is
+// in between, cut to the room there is, since the numbers below it are then not
+// to be trusted.
 func (m dashModel) header() string {
 	left := titleStyle.Render(string(rune(0x25C6))+" clalt") + dimStyle.Render("  "+m.data.Version)
 
@@ -11,11 +17,18 @@ func (m dashModel) header() string {
 	if m.refreshing {
 		right.WriteString(dimStyle.Render(spinFrames[m.spin] + " "))
 	}
-	right.WriteString(dimStyle.Render("keepalive: "))
-	if m.data.Keepalive.Installed {
-		right.WriteString(okStyle.Render("active"))
-	} else {
-		right.WriteString(dimStyle.Render("off"))
+	signedIn := 0
+	for _, a := range m.data.Accounts {
+		if a.SignedIn {
+			signedIn++
+		}
+	}
+	right.WriteString(dimStyle.Render("signed in: " + itoa(signedIn) + "/" + itoa(len(m.data.Accounts))))
+	if warning := oneLine(m.data.Warning); warning != "" {
+		const minRoom = 12
+		if room := m.viewWidth() - 1 - lipgloss.Width(left) - lipgloss.Width(right.String()) - 4; room >= minRoom {
+			left += "  " + lipglossFg(colWarn).Render(trunc(warning, room))
+		}
 	}
 	return padBetween(left, right.String(), m.viewWidth()-1)
 }
@@ -44,10 +57,8 @@ func (m dashModel) footer() string {
 	switch m.focus {
 	case focusSessions:
 		keys = "tab focus  k kill  : cmd  ? help  q quit"
-	case focusKeepalive:
-		keys = "tab focus  : cmd  ? help  q quit"
 	default:
-		keys = "tab focus  enter/r run  e budget  R rename  f refresh  n login  d del  / : ? q"
+		keys = "tab focus  enter/r run  e budget  R rename  n login  d remove  / : ? q"
 	}
 	return clampLine(dimStyle.Render(keys), m.viewWidth()-1)
 }
@@ -65,12 +76,11 @@ func (m dashModel) helpView(innerW int) string {
 	b.WriteString(line("/", "filter accounts     : command palette"))
 	b.WriteString(line("? / q", "toggle help / quit"))
 	b.WriteString("\n" + dimStyle.Render("accounts panel") + "\n")
-	b.WriteString(line("enter / r", "run selected account, keychain-free (isolated)"))
-	b.WriteString(line("n / a", "login a new account / add the current login"))
+	b.WriteString(line("enter / r", "run the selected account"))
+	b.WriteString(line("n", "sign in an account (a new one or an existing one)"))
 	b.WriteString(line("e / R", "set budget / rename (modal input)"))
-	b.WriteString(line("f", "refresh the selected account's token now"))
-	b.WriteString(line("l", "logout (forget credential, confirm)"))
-	b.WriteString(line("d / x", "delete the selected account (confirm)"))
+	b.WriteString(line("l", "sign out (confirm), history stays"))
+	b.WriteString(line("d / x", "remove the selected account (confirm), history stays"))
 	b.WriteString("\n" + dimStyle.Render("sessions panel") + "\n")
 	b.WriteString(line("k", "kill the selected session (confirm)"))
 	b.WriteString("\n" + dimStyle.Render("press any key to close"))

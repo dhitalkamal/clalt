@@ -7,7 +7,7 @@ import (
 )
 
 func TestAnEmptyStateFileIsAnErrorNotNoAccounts(t *testing.T) {
-	s, _ := newStore(t)
+	s := newStore(t)
 	if err := os.WriteFile(s.statePath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestAnEmptyStateFileIsAnErrorNotNoAccounts(t *testing.T) {
 }
 
 func TestAMissingStateFileIsStillNoAccounts(t *testing.T) {
-	s, _ := newStore(t)
+	s := newStore(t)
 	list, err := s.List()
 	if err != nil || len(list) != 0 {
 		t.Errorf("List = %v, %v", list, err)

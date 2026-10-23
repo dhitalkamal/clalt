@@ -17,13 +17,206 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   different content is listed as a conflict with the reason, and the profile's
   version stays only in the profile folder. A dry run reports what a real run
   would do and writes nothing.
-- building blocks for thin profiles that nothing calls yet: a wrapper for
-  claude's own auth commands (status, login, logout, version, with auth
-  environment variables stripped), profile link and MCP server sync with a
-  read-only plan for doctor, account labels, ids and sign-in identity in
-  state.json, and paths for account folders and the shared claude home.
-  state.json is now saved atomically under a file lock, and an empty one is
-  reported instead of being read as no accounts.
+- `clalt login <name>` signs an account in through claude's own `claude auth
+  login`, in the account's own folder (`~/.config/clalt/accounts/<id>`), and
+  records the email, plan and organization that signed in, and when. Signing in
+  again passes the recorded email so the browser form is pre-filled. It refuses,
+  and signs the folder out again, when the email already belongs to another
+  account or differs from the recorded one, names the email that signed in, and
+  tells you to use a private browser window. A new name makes the account; a
+  removed one comes back once the sign-in works. When the first sign-in of a new
+  name is refused or fails and nothing is left signed in, the account is hidden
+  again instead of being left in the list, and trying the same name again reuses
+  it. When claude may have left a login in the folder (it could not be asked, or
+  an `apiKeyHelper` overrides it), the account stays in the list, or comes back
+  into it if it was removed, and the message says that `clalt logout <name>`
+  signs it out. When the account's history does not reach the shared history,
+  it prints one warning line right after linking the account and goes on with
+  the sign-in: `run` will refuse the account until it does.
+- `clalt run <name> [-- claude args]` starts claude in the account's folder. It
+  links the folder to the shared claude home, mirrors user-scope MCP servers,
+  removes the variables that would override the login (naming them, never their
+  values) and refuses unless claude reports a claude.ai login in that folder as
+  the recorded email, printing the command that fixes it. When something outside
+  the account overrides the login, such as an `apiKeyHelper` in the shared
+  settings, it points at `clalt doctor` instead. Just before it starts claude it
+  checks that `projects` in the account folder is a link that reaches the shared
+  history folder, and refuses, pointing at `clalt doctor`, when the account has
+  a real `projects` folder or the shared one is not reachable (an unmounted
+  volume), so that claude never makes a real `projects` folder and forks the
+  history. It stops with a message when the shared claude home does not exist,
+  and never makes it: the home may only be unmounted. A home that exists
+  without a `projects` folder gets one (mode 0700) from `login` and `run`. What
+  clalt says while it prepares the session (what it synced, the variables it
+  does not pass on, what it left alone) goes to stderr, so stdout is claude's
+  alone. While the session runs clalt waits for claude: a Ctrl-C is claude's to
+  handle, and a SIGTERM or SIGHUP sent to clalt is passed on to claude, unless
+  it was ignored when clalt started (under `nohup`, for example). clalt exits
+  with claude's own exit code.
+- sharing with `~/.claude`: folders are linked, except the ones claude keeps per
+  account. `skills` and `plugins` are linked entry by entry into a real folder of
+  the account, so what claude.ai downloads for one account (`synced`, `.trash`,
+  `plugins/known_marketplaces_claudeai.json`) stays with that account. Loose
+  files are linked only from an allow-list. A link that points elsewhere is
+  re-pointed without a moment where the name does not exist (on Windows a link
+  to a folder cannot be replaced that way: it is removed and made again, and
+  the name is missing until the next sync if that fails), an empty folder in
+  the way is replaced by the link, and a real file or a folder with content is
+  kept and reported with the reason, never copied over. An entry that cannot be
+  read, or a link to something that is missing (a volume that is not mounted),
+  is kept and never taken for gone. When the shared `skills` or `plugins` is gone
+  altogether, only the account's links into it are removed, and credential files
+  are never linked out of them. One sync runs at a time per account. A shared
+  MCP server that replaces one the account added itself is reported by name, and
+  a shared config that is gone while servers were mirrored from it stops the sync
+  with a warning instead of dropping the servers.
+- `clalt logout <name>` signs the folder out and keeps the history and the
+  recorded email. It works on a removed account too, and leaves it removed.
+  `clalt remove <name> [--force]` signs out unless claude says plainly that
+  nobody is signed in, and hides the account; `clalt login <name>` brings it
+  back in the same folder. Without `--force` it asks, and when nobody can answer
+  (the input is closed) it exits 1 and says to pass `--force`. When claude
+  cannot say whether a sign-out worked, both say the state is unknown and
+  change nothing they keep. When the sign-out worked but `state.json` could not
+  be written, they say so and that running the command again tries again.
+- `clalt list` shows each visible account with its live sign-in state (asked
+  from claude a few at a time, `unknown` with a reason when that fails), plan,
+  the date to sign in again by (30 days after the sign-in) and last use.
+  `clalt whoami` shows the account of the current shell, an old v0.1.0 profile
+  session, or that the shell is in no clalt account. Both keep `--json`, with
+  the new shape described under Changed.
+- `clalt doctor` checks claude (on PATH, at least 2.1.301), each account (folder,
+  links, MCP servers, signed in, signed in as the recorded email, login due
+  within three days, and a warning when claude said something about the
+  account, such as a corrupt `.claude.json` it set aside), the folders of
+  removed accounts that are still signed in, that `state.json` can be read,
+  auth variables set in the shell or in the shared `settings.json` and
+  `settings.local.json` (names only), and leftovers of the old
+  design: the token vault, the old profile folders (a warning for as long as one
+  exists, naming any plaintext `.credentials.json` v0.1.0 staged in it, and
+  saying whether its history is copied), the old keepalive job and its marker
+  files, and on macOS a `~/.claude/.credentials.json`, which the old switch flow
+  may have written but claude also writes when it cannot save its login in the
+  keychain, so doctor says how to tell before anything is deleted. It only
+  reports, and keeps `--json` with the new shape described under Changed. It
+  exits 1 only for what is really broken: claude missing or too old, an id that
+  cannot be a folder name, two accounts that share a folder, a real `projects`
+  folder in an account, a `state.json` that cannot be read, and a login of a
+  different email than the one recorded. Everything you fix by doing something,
+  such as signing in or mounting a volume, is a warning (a shared history
+  folder that is not reachable is one), so doctor after a plain logout, or right
+  after upgrading from v0.1.0, exits 0.
+- `clalt doctor` reports accounts whose ids differ only in case and so share one
+  folder on a file system that ignores case (macOS and Windows by default), and
+  `login` and `run` refuse them until one of the two is removed. v0.1.0 allowed
+  such names.
+- `clalt usage` reports usage that cannot be placed under an account as
+  `unattributed` instead of folding it into the account that was last active.
+  That includes everything from the first sign-in made with this version on,
+  which the old switch log knows nothing about: `state.json` keeps the time of
+  that sign-in as `thinSince`, and that usage counts against no budget.
+  `usage`, `budget` and the dashboard read the transcripts of the shared claude
+  home, also inside a `clalt run` session, and `usage` and `budget` exit 1 and
+  say why when they cannot read them, instead of reporting zero.
+
+### Changed
+
+- `clalt rename` changes the label only: the account keeps its id and folder,
+  because claude keys the login to the folder. Accounts are named by their label,
+  ignoring case, on every command line.
+- `clalt remove` signs out and hides the account instead of deleting a vault
+  slot. The folder and its history stay.
+- The JSON of `clalt list`, `whoami` and `doctor` changed, and not in a way an
+  old script survives. `list --json` gave `name`, `active`, `email`, `plan`,
+  `addedAt`, `lastUsedAt` and `expiresAt`; it gives `id`, `label`, `email`,
+  `org`, `plan`, `signedIn` (true, false or null), `reason`, `signedInAt`,
+  `loginDueAt`, `lastUsedAt` and `folder`, and `name`, `active`, `addedAt` and
+  `expiresAt` are gone. `whoami --json` gave the same object, or
+  `{"active": null}`; it gives a `kind` (`account`, `oldProfile`,
+  `removedAccount`, `unknownAccount` or `none`) and, for an account, the fields
+  of `list`. `doctor --json` is not new, but its shape is: it gave `active`,
+  `loginFilePresent`, `nearExpiry`, `orphanedSecrets`, `metadataWithoutSecret`
+  and `fixed`, and it gives `{checks, failed, warned}` now, with a `scope`,
+  `check`, `status` and `detail` for each check.
+- `clalt sessions`, `usage` and `budget` take and show labels. `sessions --json`
+  has `account` (the id) and `label`; `usage --json` has `id` and `name` (the
+  label) and no longer has `active`, `expiresAt`, `live` or `liveNote`, and the
+  row for usage that nobody can be blamed for is `unattributed`, as id and as
+  name; `budget --json` gains `id`.
+- accounts share the conversation history in `~/.claude/projects` instead of
+  keeping a separate history each, along with settings, skills, plugins,
+  commands, agents and CLAUDE.md.
+- `--json` after the account name of `clalt run`, with or without a `--`, now
+  goes to claude instead of being taken by clalt.
+- the old dashboard shows labels and the sign-in recorded in `state.json`, and
+  no longer has the token expiry and keepalive panels. Its 5h percent is shown as
+  the estimate it is (`~17%`: the tokens of the last five hours over a fixed
+  2,000,000, not a share of the plan's limit). It warns in its header when usage
+  or the sessions cannot be read, says when a reload failed, and keeps the reason
+  of a refused `run` or `login` on screen until you press enter.
+- `state.json` gains `label`, `org`, `signedInAt` and `hidden` per account, and
+  `thinSince` once. The fields v0.1.0 wrote are still written, so the v0.1.0
+  binary can read the file. The `active` pointer is kept and never changed. The
+  file is saved atomically under a file lock, and an empty one is reported as an
+  error instead of being read as no accounts.
+- claude's own commands are called through one wrapper that strips the auth
+  variables, checks the claude version once per process, refuses an empty,
+  relative or missing account folder and the shared home itself, and reads
+  `claude auth status` strictly: an answer that lacks the keys that decide it, or
+  whose exit code disagrees with it, is an error.
+- each call to claude that is not interactive gets two minutes: `auth status`
+  (with the version check it makes first), `--version` on its own, and
+  `auth logout`, whose two minutes cover the version check, the sign-out and the
+  status check together. At the deadline claude is interrupted, and killed 30
+  seconds later if it is still running (on Windows nothing is sent, the 30
+  seconds just run before the kill). A shorter timeout would cancel claude,
+  which has no interrupt handler, in the middle of a token refresh. `auth login`
+  and the session of `clalt run` have no timeout. On macOS and Linux these calls
+  start in a process group of their own, so a Ctrl-C at the terminal ends clalt
+  and lets them finish; the sign-in and the session stay in the foreground.
+- `clalt` no longer creates `vault.key` on every command, `clalt version`
+  included.
+
+### Removed
+
+- the token vault, clalt's own OAuth client and token refresh, and everything
+  built on them: `clalt add`, `clalt refresh`, `clalt export` and `clalt import`
+  (accounts hold no secrets now), `clalt keepalive` and its background job with
+  the launchd, systemd and Task Scheduler code, the restart supervisor of
+  `clalt run`, and `--live` on `usage` and `dashboard` (live limits return with
+  the statusline feed). Old vault, keepalive and marker files stay on disk until
+  you delete them; `clalt doctor` lists them.
+- `clalt login --magic-link`, `clalt run --refresh`, `--isolated`,
+  `--no-supervise` and `--link`, and `clalt doctor --fix`. The removed commands
+  and flags exit 2 with one line that says what replaces them.
+- the `golang.org/x/crypto` dependency.
+
+### Security
+
+- clalt stores and reads no tokens. Each login stays where claude keeps it,
+  keyed to the account's folder: an entry in the Keychain on macOS, and a
+  `.credentials.json` in the folder only on Linux and Windows. clalt never reads
+  a credential file or the keychain.
+- the variables that would override an account's login (`ANTHROPIC_API_KEY`,
+  `CLAUDE_CODE_OAUTH_TOKEN`, the provider switches, `ANTHROPIC_BASE_URL` and
+  `ANTHROPIC_CUSTOM_HEADERS`, and the rest of the list in docs/auth.md) are
+  removed before every claude call, and `clalt doctor` names the ones set in the
+  shell or in the shared settings, never their values.
+- an account id is checked before it is used as a folder name: one path element,
+  not empty, not `.` or `..`, no separator, no NUL byte, no Windows device name.
+  An id from an older state file that passes keeps working even when it would not
+  be accepted as a new name, and one that does not pass cannot point a folder
+  outside the accounts directory.
+- text that claude reports (email, plan, organization, error lines), what a
+  `state.json` that an older clalt wrote holds (labels, which default to the id,
+  email, plan, organization) and names found on disk or in transcripts (file
+  names, the model id and project of a transcript, the folder of a session,
+  `CLAUDE_CONFIG_DIR`) have control characters, line separators and
+  bidirectional overrides shown as escapes (`\x1b`) before they are stored or
+  printed, so an organization name cannot put terminal escape sequences on the
+  screen. The zero width joiners that scripts and emoji need are kept.
+- an email that claude does not report never matches the recorded one, and an
+  empty email is not equal to another empty one.
 
 ## [0.1.0] - 2026-10-22
 

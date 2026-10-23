@@ -2,17 +2,14 @@ package account
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
 
-	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/fslock"
 	"github.com/dhitalkamal/clalt/internal/fsutil"
-	"github.com/dhitalkamal/clalt/internal/keychain"
 )
 
 // lockTimeout bounds the wait for another clalt process that is saving
@@ -20,61 +17,28 @@ import (
 // process, and the error says so.
 const lockTimeout = 10 * time.Second
 
-// state is the on-disk metadata file (no secrets).
+// state is the on-disk metadata file (no secrets). active is a pointer that
+// older versions set when they switched accounts. nothing sets it now, but it is
+// still written back so that the v0.1.0 binary can read the file.
 type state struct {
 	Active   string          `json:"active"`
 	Accounts map[string]Meta `json:"accounts"`
+
+	// when the first sign-in of the folder design worked, see Store.ThinSince.
+	// the v0.1.0 binary ignores a key it does not know
+	ThinSince time.Time `json:"thinSince,omitempty,omitzero"`
 }
 
 // Store is the account manager.
 type Store struct {
-	kc        keychain.Store
 	statePath string
 	logPath   string
 	now       func() time.Time // injectable clock for tests
 }
 
 // New builds a Store.
-func New(kc keychain.Store, statePath, logPath string) *Store {
-	return &Store{kc: kc, statePath: statePath, logPath: logPath, now: time.Now}
-}
-
-// Save stores (or replaces) a slot's credential and upserts its metadata.
-// AddedAt is set only on first save; a later save preserves it. A brand-new
-// name is validated (this is the "creating an account" boundary: add, login,
-// import); re-saving an already-known name (refresh, sync-back) is not
-// re-validated, so an account added before ValidateName existed keeps working
-// until the user explicitly renames it.
-func (s *Store) Save(name string, c credential.Credential, meta Meta) error {
-	if name == "" {
-		return errors.New("account name is empty")
-	}
-	return s.mutate(func(st *state) error {
-		existing, ok := st.Accounts[name]
-		if !ok {
-			if verr := ValidateName(name); verr != nil {
-				return verr
-			}
-		}
-		raw, err := json.Marshal(c)
-		if err != nil {
-			return err
-		}
-		if err := s.kc.Set(KeychainService, name, raw); err != nil {
-			return fmt.Errorf("store secret: %w", err)
-		}
-		if ok && !existing.AddedAt.IsZero() {
-			meta.AddedAt = existing.AddedAt
-		} else {
-			meta.AddedAt = s.now()
-		}
-		// keep the previous lastUsedAt unless the caller set one
-		if meta.LastUsedAt.IsZero() {
-			meta.LastUsedAt = existing.LastUsedAt
-		}
-		st.Accounts[name] = meta
-		return nil
-	})
+func New(statePath, logPath string) *Store {
+	return &Store{statePath: statePath, logPath: logPath, now: time.Now}
 }
 
 // SetBudget sets a slot's daily and/or weekly spend caps (USD). A negative value
@@ -96,24 +60,15 @@ func (s *Store) SetBudget(name string, daily, weekly float64) error {
 	})
 }
 
-// Get returns a slot's credential and metadata.
-func (s *Store) Get(name string) (credential.Credential, Meta, error) {
-	raw, err := s.kc.Get(KeychainService, name)
-	if err != nil {
-		return credential.Credential{}, Meta{}, errNoAccount(name)
-	}
-	var c credential.Credential
-	if err := json.Unmarshal(raw, &c); err != nil {
-		return credential.Credential{}, Meta{}, fmt.Errorf("decode secret for %q: %w", name, err)
-	}
+// ThinSince is the time of the first sign-in that worked since accounts became
+// folders, or zero when none has. the old switch log stopped growing then, so
+// usage from that time on has no account to be charged to.
+func (s *Store) ThinSince() (time.Time, error) {
 	st, err := s.load()
-	if err != nil {
-		return credential.Credential{}, Meta{}, err
-	}
-	return c, st.Accounts[name], nil
+	return st.ThinSince, err
 }
 
-// List returns all accounts sorted by name with the active one flagged.
+// List returns all accounts sorted by id.
 func (s *Store) List() ([]Account, error) {
 	st, err := s.load()
 	if err != nil {
@@ -121,105 +76,10 @@ func (s *Store) List() ([]Account, error) {
 	}
 	out := make([]Account, 0, len(st.Accounts))
 	for name, meta := range st.Accounts {
-		out = append(out, Account{Name: name, Meta: meta, Active: name == st.Active})
+		out = append(out, Account{Name: name, Meta: meta})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, nil
-}
-
-// Active returns the active account name (empty if none).
-func (s *Store) Active() (string, error) {
-	st, err := s.load()
-	if err != nil {
-		return "", err
-	}
-	return st.Active, nil
-}
-
-// SetActive points the active marker at name (must exist).
-func (s *Store) SetActive(name string) error {
-	return s.mutate(func(st *state) error {
-		if _, ok := st.Accounts[name]; !ok {
-			return errNoAccount(name)
-		}
-		st.Active = name
-		return nil
-	})
-}
-
-// Remove deletes a slot. It refuses to remove the active account so a switch is
-// required first (prevents leaving Claude Code pointed at a deleted slot).
-func (s *Store) Remove(name string) error {
-	return s.mutate(func(st *state) error {
-		if name == st.Active {
-			return fmt.Errorf("%q is active; switch to another account before removing it", name)
-		}
-		if _, ok := st.Accounts[name]; !ok {
-			return errNoAccount(name)
-		}
-		if err := s.kc.Delete(KeychainService, name); err != nil {
-			return err
-		}
-		delete(st.Accounts, name)
-		return nil
-	})
-}
-
-// Delete removes a slot unconditionally (unlike Remove, it does not guard the
-// active account); it clears the active pointer if it pointed here. Used by
-// logout, where forgetting the active account is the explicit intent.
-func (s *Store) Delete(name string) error {
-	return s.mutate(func(st *state) error {
-		if _, ok := st.Accounts[name]; !ok {
-			return errNoAccount(name)
-		}
-		if err := s.kc.Delete(KeychainService, name); err != nil {
-			return err
-		}
-		delete(st.Accounts, name)
-		if st.Active == name {
-			st.Active = ""
-		}
-		return nil
-	})
-}
-
-// Rename moves a slot to a new name, fixing the active pointer if needed. Only
-// newName is validated: it becomes a fresh storage key / profile dir name, so
-// it must be safe, but oldName is not re-validated, which is what lets an
-// account with a pre-validation legacy name be renamed out of that state.
-func (s *Store) Rename(oldName, newName string) error {
-	if newName == "" {
-		return errors.New("new name is empty")
-	}
-	if err := ValidateName(newName); err != nil {
-		return err
-	}
-	return s.mutate(func(st *state) error {
-		meta, ok := st.Accounts[oldName]
-		if !ok {
-			return errNoAccount(oldName)
-		}
-		if _, exists := st.Accounts[newName]; exists {
-			return fmt.Errorf("account %q already exists", newName)
-		}
-		raw, err := s.kc.Get(KeychainService, oldName)
-		if err != nil {
-			return fmt.Errorf("read secret for %q: %w", oldName, err)
-		}
-		if err := s.kc.Set(KeychainService, newName, raw); err != nil {
-			return err
-		}
-		if err := s.kc.Delete(KeychainService, oldName); err != nil {
-			return err
-		}
-		delete(st.Accounts, oldName)
-		st.Accounts[newName] = meta
-		if st.Active == oldName {
-			st.Active = newName
-		}
-		return nil
-	})
 }
 
 // mutate runs one load-modify-save cycle under a file lock, so parallel clalt
@@ -227,6 +87,9 @@ func (s *Store) Rename(oldName, newName string) error {
 // changes. fn must not call another method that mutates: the lock is not
 // re-entrant. nothing is written when fn returns an error.
 func (s *Store) mutate(fn func(st *state) error) error {
+	if err := checkPath(s.statePath); err != nil {
+		return err
+	}
 	return fslock.WithLock(s.statePath+".lock", lockTimeout, func() error {
 		st, err := s.load()
 		if err != nil {
@@ -239,9 +102,22 @@ func (s *Store) mutate(fn func(st *state) error) error {
 	})
 }
 
+// checkPath refuses a path that is not absolute. with no home the paths of the
+// state and of the switch log are relative, which means the working directory,
+// and a file there is somebody else's and one written there would be lost.
+func checkPath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("clalt's state is at %q, which is not an absolute path: is HOME set?", path)
+	}
+	return nil
+}
+
 // load reads state.json, returning an empty state if the file is absent.
 func (s *Store) load() (state, error) {
 	st := state{Accounts: map[string]Meta{}}
+	if err := checkPath(s.statePath); err != nil {
+		return st, err
+	}
 	raw, err := os.ReadFile(s.statePath)
 	if err != nil {
 		if os.IsNotExist(err) {

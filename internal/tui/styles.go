@@ -26,7 +26,6 @@ var (
 var (
 	titleStyle   = lipgloss.NewStyle().Bold(true).Foreground(colBrand)
 	sectionStyle = lipgloss.NewStyle().Bold(true).Foreground(colAccent)
-	activeStyle  = lipgloss.NewStyle().Foreground(colOK)
 	cursorStyle  = lipgloss.NewStyle().Bold(true).Foreground(colAccent)
 	dimStyle     = lipgloss.NewStyle().Foreground(colDim)
 	textStyle    = lipgloss.NewStyle().Foreground(colText)

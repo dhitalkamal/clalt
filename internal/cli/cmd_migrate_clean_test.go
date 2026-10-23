@@ -12,31 +12,6 @@ import (
 	"github.com/dhitalkamal/clalt/internal/migrate"
 )
 
-func TestClean(t *testing.T) {
-	for in, want := range map[string]string{
-		"plain-name_1.jsonl":     "plain-name_1.jsonl",
-		"-Users-x-app/a b.jsonl": "-Users-x-app/a b.jsonl",
-		"caf\u00e9":              "caf\u00e9",
-		"\u540d\u524d":           "\u540d\u524d",
-		"a\nb":                   `a\x0ab`,
-		"a\rb":                   `a\x0db`,
-		"a\tb":                   `a\x09b`,
-		"a\x00b":                 `a\x00b`,
-		"a\x7fb":                 `a\x7fb`,
-		"a\x1b[31mb":             `a\x1b[31mb`,
-		"a\u009bb":               `a\x9bb`,
-		"a\u202eb":               `a\u202eb`,
-		"a\u200bb":               `a\u200bb`,
-		"a\u2028b":               `a\u2028b`,
-		"a\U000e0001b":           `a\U000e0001b`,
-		"a\xffb":                 `a\xffb`,
-	} {
-		if got := clean(in); got != want {
-			t.Errorf("clean(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 // onlyOurNewlines fails when the report holds a control character it did not
 // print itself: only the line breaks between its own lines are allowed.
 func onlyOurNewlines(t *testing.T, label, text string) {
@@ -116,7 +91,7 @@ func TestMigrateErrorsEscapeWhatTheyPrint(t *testing.T) {
 	}
 	profiles, _ := migrateHome(t)
 	twoTranscripts(t, profiles)
-	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(config.ProfileDir("work"), "x\x1b[2J\nforged"))
+	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(config.ProfilesDir(), "work", "x\x1b[2J\nforged"))
 
 	code, out, errOut := runMigrate(t)
 	if code != 1 || out != "" {

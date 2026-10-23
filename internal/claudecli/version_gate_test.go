@@ -12,7 +12,7 @@ func TestAuthCallsRefuseAClaudeThatIsTooOld(t *testing.T) {
 	f.say("status", 1, signedOutJSON)
 	dir := t.TempDir()
 
-	for call, err := range callAll(dir) {
+	for call, err := range authCalls(dir) {
 		if err == nil || !strings.Contains(err.Error(), "2.1.300") || !strings.Contains(err.Error(), MinVersion) {
 			t.Errorf("%s: err = %v, want one that names 2.1.300 and %s", call, err, MinVersion)
 		}
@@ -27,7 +27,7 @@ func TestAuthCallsRefuseAVersionTheyCannotRead(t *testing.T) {
 	f.say("version", 0, "nightly build\n")
 	f.say("status", 1, signedOutJSON)
 
-	for call, err := range callAll(t.TempDir()) {
+	for call, err := range authCalls(t.TempDir()) {
 		if err == nil || !strings.Contains(err.Error(), "nightly build") || !strings.Contains(err.Error(), MinVersion) {
 			t.Errorf("%s: err = %v, want one that quotes the output and names %s", call, err, MinVersion)
 		}

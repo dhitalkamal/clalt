@@ -12,11 +12,11 @@ type modalStep struct {
 	numeric bool
 }
 
-// inputModal is a small multi-step text-input prompt, reused for rename, budget,
-// login (new account name), and add (name for the current login).
+// inputModal is a small multi-step text-input prompt, reused for rename, budget
+// and login (the account name to sign in).
 type inputModal struct {
 	active    bool
-	kind      string // rename, budget, login, add
+	kind      string // rename, budget, login
 	name      string // target account (rename/budget)
 	steps     []modalStep
 	step      int
@@ -68,7 +68,7 @@ func (m dashModel) updateModal(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // commitModal runs the modal's action once all fields are collected. Teardown
-// actions (login/add) return an Action and quit; the rest delegate to the
+// actions (login) return an Action and quit; the rest delegate to the
 // controller in place.
 func (m dashModel) commitModal() (tea.Model, tea.Cmd) {
 	mod := m.modal
@@ -92,13 +92,6 @@ func (m dashModel) commitModal() (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.action = Action{Kind: "login", Account: mod.collected[0]}
-		return m, tea.Quit
-	case "add":
-		if mod.collected[0] == "" {
-			m.flash = "add needs a name"
-			return m, nil
-		}
-		m.action = Action{Kind: "add", Account: mod.collected[0]}
 		return m, tea.Quit
 	}
 	return m, nil

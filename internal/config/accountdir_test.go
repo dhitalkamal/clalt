@@ -45,3 +45,21 @@ func TestAccountDirForNeedsAnAbsoluteClaltDir(t *testing.T) {
 		t.Errorf("AccountDirFor = %q with no HOME, want an error", got)
 	}
 }
+
+// the id is judged on its own: a machine without a home has no folder for any
+// id, and that is not a reason to call an id unsafe.
+func TestCheckAccountIDLooksAtTheIdAlone(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
+	for _, id := range []string{"robin", "robin-2", "weird name!", "caf\u00e9"} {
+		if err := CheckAccountID(id); err != nil {
+			t.Errorf("CheckAccountID(%q): %v", id, err)
+		}
+	}
+	for _, id := range []string{"", "..", "a/b", `a\b`, "../../escape", "a\x00b", "con", "Nul.txt"} {
+		if err := CheckAccountID(id); err == nil {
+			t.Errorf("CheckAccountID(%q) accepted an id that cannot be a folder name", id)
+		}
+	}
+}

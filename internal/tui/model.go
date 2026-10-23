@@ -10,18 +10,15 @@ import (
 const (
 	focusAccounts = iota
 	focusSessions
-	focusKeepalive
 	focusCount
 )
 
-// refreshInterval is how often local data is re-scanned. Live usage still goes
-// through its own cache/TTL, so this does not hammer the endpoint.
+// refreshInterval is how often local data is re-scanned.
 const refreshInterval = 2 * time.Second
 
 type dashModel struct {
 	data Data
 	ctrl Controller
-	live bool
 
 	focus   int
 	sel     int // selected account index within the visible (filtered) list
@@ -35,12 +32,13 @@ type dashModel struct {
 	mode    string       // "", "filter", "palette"
 	query   string       // filter / palette query text
 	palSel  int          // selected row in the palette
-	modal   inputModal   // active text-input modal (rename/budget/login/add)
+	modal   inputModal   // active text-input modal (rename/budget/login)
 	confirm confirmState // active y/N confirmation (remove/logout/kill)
 
-	showHelp   bool
-	refreshing bool // a background data reload is in flight
-	spin       int  // spinner frame
+	showHelp     bool
+	refreshing   bool // a background data reload is in flight
+	reloadFailed bool // the flash is the failure of a reload, not an action's result
+	spin         int  // spinner frame
 }
 
 // tickMsg fires on the refresh interval.
@@ -59,7 +57,7 @@ func (m dashModel) Init() tea.Cmd {
 	if m.ctrl == nil {
 		return nil
 	}
-	return tea.Batch(tickCmd(), refreshCmd(m.ctrl, m.live))
+	return tea.Batch(tickCmd(), refreshCmd(m.ctrl))
 }
 
 // tickCmd schedules the next refresh tick.
@@ -67,14 +65,13 @@ func tickCmd() tea.Cmd {
 	return tea.Tick(refreshInterval, func(time.Time) tea.Msg { return tickMsg{} })
 }
 
-// refreshCmd reloads data off the main loop so a slow scan or live fetch never
-// freezes the UI.
-func refreshCmd(ctrl Controller, live bool) tea.Cmd {
+// refreshCmd reloads data off the main loop so a slow scan never freezes the UI.
+func refreshCmd(ctrl Controller) tea.Cmd {
 	if ctrl == nil {
 		return nil
 	}
 	return func() tea.Msg {
-		d, err := ctrl.Data(live)
+		d, err := ctrl.Data()
 		return dataMsg{data: d, err: err}
 	}
 }
@@ -87,16 +84,23 @@ func (m dashModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		m.refreshing = true
 		m.spin = (m.spin + 1) % len(spinFrames)
-		return m, tea.Batch(refreshCmd(m.ctrl, m.live), tickCmd())
+		return m, tea.Batch(refreshCmd(m.ctrl), tickCmd())
 	case dataMsg:
 		m.refreshing = false
-		if msg.err == nil {
+		switch {
+		case msg.err != nil:
+			// the data on screen is the last that loaded: say so, or it reads as current
+			m.flash, m.reloadFailed = oneLine("failed: reload: "+msg.err.Error()), true
+		default:
 			m.mergeData(msg.data)
+			if m.reloadFailed {
+				m.flash, m.reloadFailed = "", false
+			}
 		}
 		return m, nil
 	case actionDoneMsg:
 		m.flash = msg.flash
-		return m, refreshCmd(m.ctrl, m.live)
+		return m, refreshCmd(m.ctrl)
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}

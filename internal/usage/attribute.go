@@ -20,6 +20,14 @@ type SwitchEvent struct {
 // per the switch log. A record is owned by the most recent switch at or before
 // its timestamp; records before the first switch go to Unattributed.
 func Attribute(records []Record, events []SwitchEvent) map[string][]Record {
+	return AttributeUntil(records, events, time.Time{})
+}
+
+// AttributeUntil is Attribute for a log that stopped being written at until.
+// from then on nothing says which account a record belongs to, and it would be
+// wrong to give it to the account of the last event, so records at or after until
+// go to Unattributed. a zero until means the log is all there is.
+func AttributeUntil(records []Record, events []SwitchEvent, until time.Time) map[string][]Record {
 	sorted := make([]SwitchEvent, len(events))
 	copy(sorted, events)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Ts.Before(sorted[j].Ts) })
@@ -27,11 +35,13 @@ func Attribute(records []Record, events []SwitchEvent) map[string][]Record {
 	out := map[string][]Record{}
 	for _, r := range records {
 		account := Unattributed
-		for _, e := range sorted {
-			if e.Ts.After(r.Timestamp) {
-				break
+		if until.IsZero() || r.Timestamp.Before(until) {
+			for _, e := range sorted {
+				if e.Ts.After(r.Timestamp) {
+					break
+				}
+				account = e.Account
 			}
-			account = e.Account
 		}
 		out[account] = append(out[account], r)
 	}

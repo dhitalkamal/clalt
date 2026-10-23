@@ -22,14 +22,24 @@ var windowsDevices = map[string]bool{
 // it is looser than account.ValidateName on purpose, so a legacy id from
 // v0.1.0 that is still safe as a folder name keeps working.
 func AccountDirFor(id string) (string, error) {
-	if err := checkPathElement(id); err != nil {
-		return "", fmt.Errorf("account id %q: %w", id, err)
+	if err := CheckAccountID(id); err != nil {
+		return "", err
 	}
 	root := AccountsDir()
 	if !filepath.IsAbs(root) {
 		return "", errors.New("clalt's folder is not an absolute path (is HOME set?)")
 	}
 	return accountDir(id), nil
+}
+
+// CheckAccountID says whether id could be the name of an account folder, which
+// it looks at the id alone for: AccountDirFor adds the folder, and can fail for
+// a reason that has nothing to do with the id.
+func CheckAccountID(id string) error {
+	if err := checkPathElement(id); err != nil {
+		return fmt.Errorf("account id %q: %w", id, err)
+	}
+	return nil
 }
 
 func checkPathElement(name string) error {

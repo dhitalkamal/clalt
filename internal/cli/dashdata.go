@@ -1,12 +1,11 @@
 package cli
 
 import (
-	"runtime"
+	"strings"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/profile"
-	"github.com/dhitalkamal/clalt/internal/scheduler"
 	"github.com/dhitalkamal/clalt/internal/tui"
 	"github.com/dhitalkamal/clalt/internal/usage"
 	"github.com/dhitalkamal/clalt/internal/version"
@@ -15,74 +14,73 @@ import (
 // dailyTrendDays is how much history the daily/activity charts cover.
 const dailyTrendDays = 45
 
-// buildDashboardData assembles the full tui.Data payload: per-account windows,
-// lifetime aggregation, and daily series, with live windows when wantLive.
-func (a *App) buildDashboardData(wantLive bool) (tui.Data, error) {
+// buildDashboardData assembles the tui.Data payload: the visible accounts by
+// label, each with the sign-in the state file records (the dashboard does not
+// ask claude) and its local usage, and the live sessions.
+func (a *App) buildDashboardData() (tui.Data, error) {
+	accts, err := a.visibleAccounts()
+	if err != nil {
+		return tui.Data{}, cleanErr(err)
+	}
+	labels, err := a.labelsByID()
+	if err != nil {
+		return tui.Data{}, cleanErr(err)
+	}
+	var warnings []string
+	// usage that cannot be read is a warning on a dashboard that still lists the
+	// accounts, and is not zero
 	byAccount, err := a.recordsByAccount()
 	if err != nil {
-		return tui.Data{}, err
+		warnings = append(warnings, "usage could not be read: "+clean(err.Error()))
 	}
-	accts, err := a.Store.List()
-	if err != nil {
-		return tui.Data{}, err
-	}
-	now := time.Now()
+	now := a.clock()
 
 	data := tui.Data{Version: version.Info().Version}
-	nearExpiry := 0
-	for i, ac := range accts {
-		recs := byAccount[ac.Name]
+	for _, acc := range accts {
+		recs := byAccount[acc.Name]
 		view := tui.AccountView{
-			Name:         ac.Name,
-			Plan:         ac.Meta.Plan,
-			Email:        ac.Meta.Email,
-			Active:       ac.Active,
-			Five:         usage.Window(recs, now, 5*time.Hour),
-			Seven:        usage.Window(recs, now, 7*24*time.Hour),
-			Stats:        usage.Aggregate(recs, now),
-			Daily:        usage.DailyTrend(recs, dailyTrendDays, now),
-			DailyBudget:  ac.Meta.DailyBudget,
-			WeeklyBudget: ac.Meta.WeeklyBudget,
+			Name:        shown(acc),
+			Plan:        clean(acc.Meta.Plan),
+			Email:       clean(acc.Meta.Email),
+			SignedIn:    !acc.Meta.SignedInAt.IsZero(),
+			Five:        usage.Window(recs, now, 5*time.Hour),
+			Seven:       usage.Window(recs, now, 7*24*time.Hour),
+			Stats:       cleanStats(usage.Aggregate(recs, now)),
+			Daily:       usage.DailyTrend(recs, dailyTrendDays, now),
+			DailyBudget: acc.Meta.DailyBudget,
 		}
-		if c, _, gerr := a.Store.Get(ac.Name); gerr == nil {
-			view.ExpiresAt = c.ExpiresAtTime()
-			view.NearExpiry = c.RefreshToken != "" && c.IsExpired(defKeepBuffer)
-			if view.NearExpiry {
-				nearExpiry++
-			}
-			if wantLive {
-				view.Live, _ = a.liveUsage(ac.Name, c)
-			}
-		}
-		if ac.Active {
-			data.Selected = i
+		if view.SignedIn {
+			view.LoginDue = loginDue(acc.Meta.SignedInAt)
 		}
 		data.Accounts = append(data.Accounts, view)
 	}
-	data.Keepalive = keepaliveStatus(len(accts), nearExpiry)
 
-	if sessions, serr := profile.ListSessions(config.SessionsDir()); serr == nil {
-		for _, s := range sessions {
-			data.Sessions = append(data.Sessions, tui.SessionInfo{
-				Account: s.Account, PID: s.PID, Started: s.StartedAt, Cwd: s.Cwd,
-			})
-		}
+	sessions, err := profile.ListSessions(config.SessionsDir())
+	if err != nil {
+		// an empty list that is really a folder that cannot be read is not "no sessions"
+		warnings = append(warnings, "the running sessions could not be read: "+clean(err.Error()))
 	}
+	for _, s := range sessions {
+		name, known := labels[s.Account]
+		if !known {
+			name = s.Account
+		}
+		data.Sessions = append(data.Sessions, tui.SessionInfo{
+			Account: clean(name), PID: s.PID, Started: s.StartedAt, Cwd: clean(s.Cwd),
+		})
+	}
+	data.Warning = strings.Join(warnings, "; ")
 	return data, nil
 }
 
-// keepaliveStatus reports whether the background refresh job is installed on this
-// host, plus the token-freshness summary for the keepalive panel. Backend errors
-// are treated as "not installed" so the dashboard never fails to open.
-func keepaliveStatus(accounts, nearExpiry int) tui.KeepaliveStatus {
-	st := tui.KeepaliveStatus{Accounts: accounts, NearExpiry: nearExpiry}
-	sched, err := scheduler.For(runtime.GOOS)
-	if err != nil {
-		return st
+// cleanStats cleans the model ids and project names that came out of the
+// transcripts, which anything can write to and the dashboard draws.
+func cleanStats(s usage.Stats) usage.Stats {
+	for i := range s.Models {
+		s.Models[i].Model = clean(s.Models[i].Model)
 	}
-	st.Backend = sched.Name()
-	if installed, serr := sched.Status(keepaliveLabel); serr == nil {
-		st.Installed = installed
+	for i := range s.Projects {
+		s.Projects[i].Project = clean(s.Projects[i].Project)
 	}
-	return st
+	return s
 }

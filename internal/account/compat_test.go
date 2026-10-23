@@ -38,7 +38,7 @@ const v010File = `{
 }`
 
 func TestStateWrittenByThisVersionIsReadableByV010(t *testing.T) {
-	s, _ := newStore(t)
+	s := newStore(t)
 	acc, err := s.Create("robin", noFolders)
 	if err != nil {
 		t.Fatal(err)
@@ -60,8 +60,10 @@ func TestStateWrittenByThisVersionIsReadableByV010(t *testing.T) {
 		topKeys = append(topKeys, k)
 	}
 	sort.Strings(topKeys)
-	if !reflect.DeepEqual(topKeys, []string{"accounts", "active"}) {
-		t.Errorf("top-level keys = %v, want the v0.1.0 shape", topKeys)
+	// thinSince is the one key v0.1.0 does not have, and it ignores keys it does
+	// not know: the file below still decodes into the shape it uses
+	if !reflect.DeepEqual(topKeys, []string{"accounts", "active", "thinSince"}) {
+		t.Errorf("top-level keys = %v, want the v0.1.0 keys and thinSince", topKeys)
 	}
 	var old v010State
 	if err := json.Unmarshal(raw, &old); err != nil {
@@ -74,7 +76,7 @@ func TestStateWrittenByThisVersionIsReadableByV010(t *testing.T) {
 }
 
 func TestStateWrittenByV010LoadsAndSurvivesNewWrites(t *testing.T) {
-	s, _ := newStore(t)
+	s := newStore(t)
 	if err := os.WriteFile(s.statePath, []byte(v010File), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +86,7 @@ func TestStateWrittenByV010LoadsAndSurvivesNewWrites(t *testing.T) {
 		t.Fatalf("List: %v, %v", list, err)
 	}
 	a := list[0]
-	if a.Name != "work" || a.Label() != "work" || !a.Active || a.Meta.DailyBudget != 25 || a.Meta.Email != "w@example.com" {
+	if a.Name != "work" || a.Label() != "work" || a.Meta.DailyBudget != 25 || a.Meta.Email != "w@example.com" {
 		t.Errorf("account = %+v", a)
 	}
 

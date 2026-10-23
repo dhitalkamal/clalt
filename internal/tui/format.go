@@ -3,7 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
-	"time"
+	"unicode"
 )
 
 // humanTokens renders a token count compactly (1.2M, 340.0K, 42).
@@ -49,31 +49,6 @@ func money(v float64) string {
 	return "$" + withCommas(s[:dot]) + s[dot:]
 }
 
-// humanUntil renders time until t as "in 4h12m" / "expired 3m ago" / "unknown".
-func humanUntil(t time.Time) string {
-	if t.IsZero() {
-		return "unknown"
-	}
-	d := time.Until(t)
-	if d < 0 {
-		return "expired " + compactDur(-d) + " ago"
-	}
-	return "in " + compactDur(d)
-}
-
-func compactDur(d time.Duration) string {
-	d = d.Round(time.Minute)
-	h := int(d.Hours())
-	m := int(d.Minutes()) % 60
-	if h >= 24 {
-		return fmt.Sprintf("%dd %dh", h/24, h%24)
-	}
-	if h > 0 {
-		return fmt.Sprintf("%dh%dm", h, m)
-	}
-	return fmt.Sprintf("%dm", m)
-}
-
 // trunc shortens s to at most n runes, marking a cut with a trailing tilde.
 func trunc(s string, n int) string {
 	if n < 1 {
@@ -84,6 +59,12 @@ func trunc(s string, n int) string {
 		return s
 	}
 	return string(r[:n-1]) + "~"
+}
+
+// oneLine makes text fit on one line of the screen: any run of white space, and
+// any control character, becomes one space.
+func oneLine(s string) string {
+	return strings.Join(strings.FieldsFunc(s, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }), " ")
 }
 
 // dashPlan renders a plan label, or a dash when unset.

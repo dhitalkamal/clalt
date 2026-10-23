@@ -8,15 +8,24 @@ import (
 	"testing"
 )
 
-// callAll runs every auth call against dir and returns their errors by name.
-func callAll(dir string) map[string]error {
+// authCalls makes every auth call against dir and returns their errors by name.
+func authCalls(dir string) map[string]error {
 	ctx := context.Background()
 	_, statusErr := Status(ctx, dir)
 	_, loginErr := Login(ctx, dir, "")
 	return map[string]error{"Status": statusErr, "Login": loginErr, "Logout": Logout(ctx, dir)}
 }
 
-func TestAuthCallsRefuseAFolderThatCannotBeUsed(t *testing.T) {
+// callAll adds a session to the auth calls: every call that points claude at
+// dir. the session is the one that runs claude for hours in that folder, and the
+// only one that is not held back by the version of claude.
+func callAll(dir string) map[string]error {
+	errs := authCalls(dir)
+	_, errs["Session"] = Session(context.Background(), dir, nil)
+	return errs
+}
+
+func TestCallsRefuseAFolderThatCannotBeUsed(t *testing.T) {
 	f := newFake(t)
 	f.say("status", 1, signedOutJSON)
 	f.say("logout", 0, "")
@@ -43,7 +52,7 @@ func TestAuthCallsRefuseAFolderThatCannotBeUsed(t *testing.T) {
 	}
 }
 
-func TestAuthCallsRefuseARelativeFolderThatExists(t *testing.T) {
+func TestCallsRefuseARelativeFolderThatExists(t *testing.T) {
 	f := newFake(t)
 	f.say("status", 1, signedOutJSON)
 	f.say("logout", 0, "")
@@ -59,7 +68,7 @@ func TestAuthCallsRefuseARelativeFolderThatExists(t *testing.T) {
 	}
 }
 
-func TestAuthCallsRefuseTheSharedHome(t *testing.T) {
+func TestCallsRefuseTheSharedHome(t *testing.T) {
 	f := newFake(t)
 	f.say("status", 1, signedOutJSON)
 	home := t.TempDir()
@@ -93,7 +102,7 @@ func TestAuthCallsRefuseTheSharedHome(t *testing.T) {
 	}
 }
 
-func TestAuthCallsAcceptAnAccountFolder(t *testing.T) {
+func TestCallsAcceptAnAccountFolder(t *testing.T) {
 	f := newFake(t)
 	f.say("status", 1, signedOutJSON)
 	xdg := filepath.Join(t.TempDir(), "xdg")
@@ -107,5 +116,8 @@ func TestAuthCallsAcceptAnAccountFolder(t *testing.T) {
 
 	if _, err := Status(context.Background(), dir); err != nil {
 		t.Errorf("Status refused an account folder: %v", err)
+	}
+	if _, err := Session(context.Background(), dir, nil); err != nil {
+		t.Errorf("Session refused an account folder: %v", err)
 	}
 }

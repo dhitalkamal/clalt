@@ -95,22 +95,32 @@ func (s *Store) ResolveLabel(label string) (acc Account, found bool, err error) 
 		return Account{}, false, nil
 	case 1:
 		id := matches[0]
-		return Account{Name: id, Meta: st.Accounts[id], Active: id == st.Active}, true, nil
+		return Account{Name: id, Meta: st.Accounts[id]}, true, nil
 	}
 	return Account{}, false, fmt.Errorf("label %q matches several accounts (ids %s)", label, strings.Join(matches, ", "))
 }
 
 // SetIdentity records who signed in. it replaces the whole identity, so an org from an
-// earlier login does not outlive a login without one.
+// earlier login does not outlive a login without one. the first one that works also
+// starts ThinSince.
 func (s *Store) SetIdentity(id string, in Identity) error {
 	if in.Email == "" {
 		return errors.New("identity has no email")
 	}
-	return s.update(id, func(m *Meta) {
+	return s.mutate(func(st *state) error {
+		m, ok := st.Accounts[id]
+		if !ok {
+			return errNoAccount(id)
+		}
 		m.Email, m.Org, m.Plan, m.SignedInAt = in.Email, in.Org, in.Plan, in.SignedInAt
 		if m.SignedInAt.IsZero() {
 			m.SignedInAt = s.now()
 		}
+		st.Accounts[id] = m
+		if st.ThinSince.IsZero() {
+			st.ThinSince = m.SignedInAt
+		}
+		return nil
 	})
 }
 

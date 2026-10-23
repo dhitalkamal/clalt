@@ -8,9 +8,8 @@ import (
 
 // nameRe is the full allowed charset for an account name: ASCII letters,
 // digits, dot, underscore, hyphen, 1-64 chars. Names get joined directly into
-// filesystem paths (config.ProfileDir, the vault) and url.PathEscape'd for the
-// vault filename, so anything outside this set (path separators, colons,
-// nulls, ..) must never reach a name in the first place.
+// filesystem paths (the account folder), so anything outside this set (path
+// separators, colons, nulls, ..) must never reach a name in the first place.
 var nameRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 
 // windowsReservedNames are device names Windows treats specially regardless
@@ -26,11 +25,10 @@ var windowsReservedNames = map[string]bool{
 }
 
 // ValidateName rejects account names that are not safe to use as a bare
-// filesystem path segment: names come straight from CLI args and from backup
-// bundle keys (an import bundle is untrusted input), and are joined verbatim
-// into config.ProfileDir and the credential vault. Without this check a name
-// like "../../../../tmp/x" lets `clalt run` stage a victim's config and
-// credentials into an attacker-chosen directory.
+// filesystem path segment: names come straight from CLI args and are joined
+// verbatim into the account folder path. Without this check a name like
+// "../../../../tmp/x" would point an account folder at an attacker-chosen
+// directory.
 func ValidateName(name string) error {
 	if !nameRe.MatchString(name) {
 		return fmt.Errorf("account name %q: only letters, digits, '.', '_', '-' are allowed, 1-64 chars", name)

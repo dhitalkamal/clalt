@@ -48,9 +48,6 @@ func TestAnAccountThatDoesNotExistIsATypedError(t *testing.T) {
 		"Relabel":     s.Relabel("ghost", "fresh"),
 		"Touch":       s.Touch("ghost"),
 		"SetBudget":   s.SetBudget("ghost", 1, 1),
-		"SetActive":   s.SetActive("ghost"),
-		"Delete":      s.Delete("ghost"),
-		"Rename":      s.Rename("ghost", "fresh"),
 	}
 	for name, err := range calls {
 		var nf *NotFoundError

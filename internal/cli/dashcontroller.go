@@ -7,31 +7,61 @@ import (
 )
 
 // App implements tui.Controller so the dashboard can run in-place management
-// actions without the tui package importing cli. Teardown actions (run/login/add)
-// are still returned to cmdDashboard as a tui.Action after the alt-screen closes.
+// actions without the tui package importing cli. Teardown actions (run, login)
+// are still returned to cmdDashboard as a tui.Action after the alt-screen
+// closes. the dashboard knows accounts by label, and nothing here prints: the
+// dashboard owns the screen while an action runs.
+
+// every error that leaves these methods is clean: the dashboard draws it, and
+// the text comes from claude and from the file system.
 
 // Data reloads the full dashboard payload.
-func (a *App) Data(live bool) (tui.Data, error) { return a.buildDashboardData(live) }
+func (a *App) Data() (tui.Data, error) { return a.buildDashboardData() }
 
-// Rename delegates to the account store.
-func (a *App) Rename(old, newName string) error { return a.Store.Rename(old, newName) }
+// Rename changes an account's label.
+func (a *App) Rename(old, newName string) error {
+	acc, err := a.findVisible(old)
+	if err != nil {
+		return cleanErr(err)
+	}
+	return cleanedOrNil(a.relabel(acc.Name, newName))
+}
 
 // SetBudget sets an account's daily/weekly spend caps (USD).
 func (a *App) SetBudget(name string, daily, weekly float64) error {
-	return a.Store.SetBudget(name, daily, weekly)
+	acc, err := a.findVisible(name)
+	if err != nil {
+		return cleanErr(err)
+	}
+	return cleanedOrNil(a.Store.SetBudget(acc.Name, daily, weekly))
 }
 
-// Logout forgets an account's stored credential (unconditional, like `clalt logout`).
-func (a *App) Logout(name string) error { return a.Store.Delete(name) }
+// Logout signs an account out, like `clalt logout`.
+func (a *App) Logout(name string) error {
+	acc, err := a.findVisible(name)
+	if err != nil {
+		return cleanErr(err)
+	}
+	return cleanedOrNil(a.signOut(acc))
+}
 
-// Remove deletes an account slot, guarding the active account (like `clalt remove`).
-func (a *App) Remove(name string) error { return a.Store.Remove(name) }
-
-// Refresh rotates an account's token now.
-func (a *App) Refresh(name string) error {
-	_, err := a.refreshAccount(name)
-	return err
+// Remove signs an account out and hides it, like `clalt remove`.
+func (a *App) Remove(name string) error {
+	acc, err := a.findVisible(name)
+	if err != nil {
+		return cleanErr(err)
+	}
+	return cleanedOrNil(a.removeAccount(acc))
 }
 
 // KillSession terminates a live run session and prunes its record.
-func (a *App) KillSession(pid int) error { return profile.Kill(config.SessionsDir(), pid) }
+func (a *App) KillSession(pid int) error {
+	return cleanedOrNil(profile.Kill(config.SessionsDir(), pid))
+}
+
+func cleanedOrNil(err error) error {
+	if err == nil {
+		return nil
+	}
+	return cleanErr(err)
+}

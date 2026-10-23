@@ -16,7 +16,11 @@ import (
 // 2.1.303 unless version.out says otherwise. <name>.die names a signal the
 // script sends itself. a hang file makes every call except --version wait for a
 // signal instead, in the mode the file names, and <name>.hang does that for one
-// command only.
+// command only. the environment of the last call is in env, and that of the last
+// call of each command in env.<name>. the process group of the last call of each
+// command is in pgid.<name>. the hang mode settle is for a call that has to be
+// left alone: it notes an interrupt, and otherwise ends by itself after a second
+// and writes finished.
 const fakeScript = `#!/bin/sh
 dir=$(dirname "$0")
 echo "$*" >> "$dir/calls"
@@ -28,18 +32,23 @@ case "$1 $2" in
   "auth logout") name=logout ;;
   *) name=version ;;
 esac
+env | sort > "$dir/env.$name"
+ps -o pgid= -p $$ 2>/dev/null | tr -d ' ' > "$dir/pgid.$name"
 hangfile=""
 [ -f "$dir/hang" ] && [ "$name" != version ] && hangfile="$dir/hang"
 [ -f "$dir/$name.hang" ] && hangfile="$dir/$name.hang"
 if [ -n "$hangfile" ]; then
+  delay=5
   case "$(cat "$hangfile")" in
     ignore) trap '' INT ;;
     slow) trap 'echo interrupted > "$dir/interrupted"; sleep 1; echo finished > "$dir/finished"; exit 0' INT ;;
+    settle) trap 'echo interrupted > "$dir/interrupted"; exit 130' INT; delay=1 ;;
     *) trap 'echo interrupted > "$dir/interrupted"; exit 130' INT ;;
   esac
-  sleep 5 >/dev/null 2>&1 &
+  sleep "$delay" >/dev/null 2>&1 &
   echo ready > "$dir/ready"
   wait $!
+  [ "$delay" = 1 ] && echo finished > "$dir/finished"
   exit 0
 fi
 [ -f "$dir/$name.err" ] && cat "$dir/$name.err" >&2
@@ -142,6 +151,23 @@ func (f *fake) env() map[string]string {
 	b, err := os.ReadFile(filepath.Join(f.dir, "env"))
 	if err != nil {
 		f.t.Fatalf("the fake was never called: %v", err)
+	}
+	m := map[string]string{}
+	for _, line := range strings.Split(string(b), "\n") {
+		if k, v, ok := strings.Cut(line, "="); ok {
+			m[k] = v
+		}
+	}
+	return m
+}
+
+// envOf is the environment of the last call of one command (status, login,
+// logout or version), where env is that of the last call of any.
+func (f *fake) envOf(name string) map[string]string {
+	f.t.Helper()
+	b, err := os.ReadFile(filepath.Join(f.dir, "env."+name))
+	if err != nil {
+		f.t.Fatalf("no %s call was recorded: %v", name, err)
 	}
 	m := map[string]string{}
 	for _, line := range strings.Split(string(b), "\n") {

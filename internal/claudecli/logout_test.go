@@ -26,6 +26,30 @@ func TestLogoutChecksThatTheFolderIsSignedOutAfterwards(t *testing.T) {
 	f.assertCleanEnv(dir)
 }
 
+// the status check that ends a sign-out is the last call, so assertCleanEnv above
+// sees that one. the sign-out call has its own record.
+func TestTheSignOutCallItselfRunsWithoutTheAuthVariables(t *testing.T) {
+	f := newFake(t)
+	f.say("logout", 0, "Signed out\n")
+	f.say("status", 1, signedOutJSON)
+	setAuthEnv(t)
+	dir := t.TempDir()
+
+	if err := Logout(context.Background(), dir); err != nil {
+		t.Fatalf("Logout: %v", err)
+	}
+
+	env := f.envOf("logout")
+	for _, n := range authEnvVars {
+		if _, ok := env[n]; ok {
+			t.Errorf("%s reached claude's logout call", n)
+		}
+	}
+	if env["CLAUDE_CONFIG_DIR"] != dir {
+		t.Errorf("claude's logout call ran with CLAUDE_CONFIG_DIR=%q, want %q", env["CLAUDE_CONFIG_DIR"], dir)
+	}
+}
+
 func TestLogoutFailsWhenTheFolderIsStillSignedIn(t *testing.T) {
 	f := newFake(t)
 	f.say("logout", 0, "")

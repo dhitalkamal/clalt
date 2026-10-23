@@ -2,7 +2,6 @@ package tui
 
 import (
 	"strings"
-	"time"
 
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
@@ -33,13 +32,8 @@ func (m dashModel) detailBody(a *AccountView, innerW int) string {
 	s := a.Stats
 	var b strings.Builder
 
-	if a.Live != nil {
-		b.WriteString(liveWindowRow("5h", a.Live.FiveHour, barW) + "\n")
-		b.WriteString(liveWindowRow("7d", a.Live.SevenDay, barW) + "\n")
-	} else {
-		b.WriteString(localWindowRow("5h", a.Five, barW) + "\n")
-		b.WriteString(localWindowRow("7d", a.Seven, barW) + "\n")
-	}
+	b.WriteString(localWindowRow("5h", a.Five, barW) + "\n")
+	b.WriteString(localWindowRow("7d", a.Seven, barW) + "\n")
 
 	b.WriteString(detailLabel("today") + costStyle.Render(money(s.Today.Cost)) + "  " +
 		barStyle.Render(humanTokens(s.Today.Billable)) + dimStyle.Render(" tokens") + "\n")
@@ -62,18 +56,11 @@ func (m dashModel) detailBody(a *AccountView, innerW int) string {
 		budget = dimStyle.Render("budget " + money(a.DailyBudget) + "/day")
 	}
 	b.WriteString(detailLabel("email") + textStyle.Render(email) + "   " + budget + "\n")
-	b.WriteString(detailLabel("token") + tokenFreshness(a))
+	b.WriteString(detailLabel("login") + signInState(a))
 	return b.String()
 }
 
 func detailLabel(s string) string { return dimStyle.Render(padRight(s, 8)) }
-
-// liveWindowRow renders an authoritative window: graded meter, percent, reset.
-func liveWindowRow(label string, w usage.LiveWindow, barW int) string {
-	return detailLabel(label) + gradedMeter(w.Utilization, barW) + " " +
-		lipglossFg(gradedColor(w.Utilization)).Render(padLeft(pct(w.Utilization), 4)) +
-		dimStyle.Render("  resets "+compactUntil(w.ResetsAt))
-}
 
 // localWindowRow renders a local window as a proxy meter plus a token count,
 // since there is no local hard cap.
@@ -156,23 +143,18 @@ func modelWord(id string) string {
 	return f[0]
 }
 
-// tokenFreshness renders the token expiry, colored by urgency.
-func tokenFreshness(a *AccountView) string {
-	txt := humanUntil(a.ExpiresAt)
-	if a.NearExpiry {
-		return lipglossFg(colWarn).Render(txt)
+// signInState renders the sign-in from the state file, colored by urgency.
+func signInState(a *AccountView) string {
+	if !a.SignedIn {
+		return lipglossFg(colWarn).Render("signed out")
 	}
-	return okStyle.Render(txt)
-}
-
-// compactUntil renders time until t compactly, or a dash when unknown/past.
-func compactUntil(t time.Time) string {
-	if t.IsZero() {
-		return "-"
+	state := okStyle.Render("signed in")
+	if a.LoginDue.IsZero() {
+		return state
 	}
-	d := time.Until(t)
-	if d <= 0 {
-		return "now"
+	due := dimStyle.Render("  sign in again by " + a.LoginDue.Local().Format("2006-01-02"))
+	if a.needsLogin() {
+		due = lipglossFg(colWarn).Render("  sign in again by " + a.LoginDue.Local().Format("2006-01-02"))
 	}
-	return compactDur(d)
+	return state + due
 }

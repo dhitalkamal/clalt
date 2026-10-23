@@ -1,23 +1,67 @@
 package tui
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
 
 func TestRenderPanels(t *testing.T) {
 	out := Render(sampleData(), 120, 40)
-	for _, want := range []string{"clalt", "Accounts", "Sessions", "Keepalive", "work", "personal"} {
+	for _, want := range []string{"clalt", "Accounts", "Sessions", "work", "personal"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("frame missing %q", want)
 		}
+	}
+	for _, gone := range []string{"Keepalive", "keepalive", "expire", "resets"} {
+		if strings.Contains(out, gone) {
+			t.Errorf("frame still mentions %q", gone)
+		}
+	}
+	// usage "tokens" are fine, the login token is gone
+	if regexp.MustCompile(`\btoken\b`).MatchString(out) {
+		t.Error("frame still has a token row")
+	}
+}
+
+func TestAccountsThatNeedALoginAreFlagged(t *testing.T) {
+	m := dashModel{data: sampleData(), width: 120, height: 40, focus: focusAccounts}
+	rows := map[string]string{}
+	for _, line := range strings.Split(m.renderAccounts(30, 8), "\n") {
+		for _, name := range []string{"work", "personal", "casey", "jordan"} {
+			if strings.Contains(line, name) {
+				rows[name] = line
+			}
+		}
+	}
+	// signed out (casey) and due within three days (personal) get a mark; the others do not
+	for name, wantFlag := range map[string]bool{"work": false, "personal": true, "casey": true, "jordan": false} {
+		row, ok := rows[name]
+		if !ok {
+			t.Fatalf("no row for %s", name)
+		}
+		if got := strings.Contains(row, "!"); got != wantFlag {
+			t.Errorf("%s: flagged = %v, want %v: %q", name, got, wantFlag, row)
+		}
+	}
+}
+
+func TestDetailShowsTheSignInState(t *testing.T) {
+	d := sampleData()
+	work := Render(d, 120, 40)
+	if !strings.Contains(work, "signed in") || !strings.Contains(work, "sign in again by "+d.Accounts[0].LoginDue.Local().Format("2006-01-02")) {
+		t.Errorf("a signed in account shows when to sign in again:\n%s", work)
+	}
+	m := dashModel{data: d, sel: 2, width: 120, height: 40, focus: focusAccounts} // casey is signed out
+	if out := m.View(); !strings.Contains(out, "signed out") || strings.Contains(out, "sign in again by") {
+		t.Errorf("a signed out account says so:\n%s", out)
 	}
 }
 
 func TestRenderDetailContent(t *testing.T) {
 	out := Render(sampleData(), 120, 40)
 	// detail pane for the selected account (work): windows, today, budget, email
-	for _, want := range []string{"5h", "7d", "resets", "today", "budget", "work@acme.com", "opus"} {
+	for _, want := range []string{"5h", "7d", "today", "budget", "work@acme.com", "opus"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("detail pane missing %q", want)
 		}
@@ -37,13 +81,13 @@ func TestFocusCycle(t *testing.T) {
 	if m.focus != focusSessions {
 		t.Fatalf("tab -> focus %d, want sessions", m.focus)
 	}
-	m = pump(m, "tab", "tab")
+	m = pump(m, "tab")
 	if m.focus != focusAccounts {
-		t.Fatalf("tab*3 should wrap to accounts, got %d", m.focus)
+		t.Fatalf("tab*2 should wrap to accounts, got %d", m.focus)
 	}
 	m = pump(m, "shift+tab")
-	if m.focus != focusKeepalive {
-		t.Fatalf("shift+tab from accounts -> %d, want keepalive", m.focus)
+	if m.focus != focusSessions {
+		t.Fatalf("shift+tab from accounts -> %d, want sessions", m.focus)
 	}
 }
 
@@ -107,33 +151,12 @@ func TestDeleteConfirm(t *testing.T) {
 	}
 }
 
-func TestDeleteActiveGuarded(t *testing.T) {
-	f := &fakeController{}
-	m := newTestModel(f) // work is active
-	m = pump(m, "d")
-	if m.confirm.active {
-		t.Error("should not confirm-delete the active account")
-	}
-	if f.removed != "" {
-		t.Error("active account must not be removed")
-	}
-}
-
 func TestLogoutConfirm(t *testing.T) {
 	f := &fakeController{}
 	m := newTestModel(f)
 	m = pump(m, "l", "y")
 	if f.loggedOut != "work" {
 		t.Errorf("logout recorded %q, want work", f.loggedOut)
-	}
-}
-
-func TestRefreshInPlace(t *testing.T) {
-	f := &fakeController{}
-	m := newTestModel(f)
-	m = pump(m, "f")
-	if f.refreshed != "work" {
-		t.Errorf("refresh recorded %q, want work", f.refreshed)
 	}
 }
 
@@ -172,12 +195,12 @@ func TestPaletteExcludesRemovedVerbs(t *testing.T) {
 	for _, c := range cmds {
 		joined += c.label + "\n"
 	}
-	for _, want := range []string{"run", "login", "rename", "budget", "logout", "remove", "refresh"} {
+	for _, want := range []string{"run", "login", "rename", "budget", "logout", "remove"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("palette missing verb %q", want)
 		}
 	}
-	for _, banned := range []string{"switch", "rotate", "next", "auto", "fallback"} {
+	for _, banned := range []string{"switch", "rotate", "next", "auto", "fallback", "refresh", "add"} {
 		if strings.Contains(joined, banned) {
 			t.Errorf("palette must not list removed verb %q", banned)
 		}
