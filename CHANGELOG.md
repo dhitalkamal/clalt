@@ -14,6 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `Agent|Task`) hooks, for `clalt run` and `clalt feed install`. Run
   `clalt feed install` again to add them to an existing install. Prompts and
   replies are never stored.
+- `clalt office [--port N] [--no-open]` opens a live 3D office of your agents in
+  the browser: a cabin per session in a wing per account with the 5h and 7d
+  limit bars, subagents at desks by kind, idle agents on a break in the cafe or
+  play area. It is local only (127.0.0.1, a random token per run, strict
+  content security policy, no network), watch only, and shows no prompts, paths
+  or emails. See docs/office.md. The binary grows by about 9 MB for the page,
+  the models and net/http.
 
 ### Removed
 

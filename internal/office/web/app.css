@@ -1,0 +1,45 @@
+:root { --amber: #f2b53c; --red: #ec5f55; --green: #5fd38d; --ink: #2b2433; --panel: rgba(255, 255, 255, 0.72); }
+html, body { margin: 0; height: 100%; background: #e6eff3; overflow: hidden; color: var(--ink);
+  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.zone, .space { position: absolute; left: 0; top: 0; width: 132px; padding: 6px 8px 7px; border-radius: 8px;
+  background: var(--panel); backdrop-filter: blur(6px); box-shadow: 0 2px 12px rgba(60,50,40,.16); border: 1px solid rgba(255,255,255,.8); }
+.space { width: auto; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; opacity: .92; }
+.space .n { opacity: .6; margin-left: 6px; }
+#card .crown { font-size: 10px; background: #f2c14b; color: #3b2a00; border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: middle; }
+#card .task { max-width: 220px; display: inline-block; }
+button.on { background: rgba(242,181,60,.5); border-color: var(--amber); }
+.zname { font-weight: 650; letter-spacing: .04em; text-transform: uppercase; font-size: 11px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar { position: relative; height: 12px; margin-top: 3px; border-radius: 6px; background: rgba(40,30,50,.12); overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
+.bar i.green { background: var(--green); } .bar i.amber { background: var(--amber); } .bar i.red { background: var(--red); }
+.bar .lbl, .bar em { position: absolute; top: 0; font: 600 9px/12px system-ui; z-index: 1; font-style: normal; color: #1b1420; }
+.bar .lbl { left: 5px; } .bar em { right: 5px; color: #2b2433; font-weight: 700; }
+#status { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); padding: 7px 16px; border-radius: 999px;
+  background: var(--panel); backdrop-filter: blur(6px); font-size: 14px; box-shadow: 0 2px 12px rgba(60,50,40,.16); border: 1px solid rgba(255,255,255,.8); white-space: nowrap; }
+#status b { font-weight: 700; } #status .warn { color: #c47f00; } #status .sep { opacity: .4; margin: 0 4px; }
+#notice { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-radius: 8px;
+  background: #fff3d6; border: 1px solid var(--amber); font-size: 13px; z-index: 6; max-width: 90%; }
+#controls { position: fixed; left: 14px; bottom: 14px; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 28px);
+  padding: 8px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(6px); }
+button { font: inherit; color: var(--ink); background: rgba(255,255,255,.65); border: 1px solid rgba(60,50,40,.18);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { background: #fff; }
+#card { position: fixed; z-index: 5; pointer-events: none; min-width: 190px; padding: 9px 12px; border-radius: 10px;
+  background: rgba(255,255,255,.9); box-shadow: 0 6px 22px rgba(60,50,40,.25); color: var(--ink); }
+#card .h { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+#card dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+#card dt { opacity: .55; } #card dd { margin: 0; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #888; }
+.dot.busy { background: var(--green); } .dot.needs-you { background: var(--amber); } .dot.idle { background: #8ea0b8; }
+#empty { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; }
+#empty div { padding: 18px 26px; border-radius: 14px; background: var(--panel); text-align: center; }
+#empty p { margin: 0 0 6px; font-size: 15px; }
+#empty small { opacity: .7; }
+#loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #e6eff3; z-index: 9; color: #2b2433; }
+#loadtrack { width: 220px; height: 5px; background: rgba(40,30,50,.15); border-radius: 3px; overflow: hidden; }
+#loadbar { height: 100%; width: 0; background: var(--amber); }
+.hint { pointer-events: auto; position: fixed; right: 14px; bottom: 14px; opacity: .7; font-size: 12px; color: #4a4050; }
+.hint a { color: inherit; margin-left: 8px; }
+[hidden] { display: none !important; }

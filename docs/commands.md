@@ -176,3 +176,9 @@ session to another account at its next pause. All three are in
 `clalt dashboard` are described in [dashboard.md](dashboard.md), with
 [budgets](dashboard.md#budgets) and [sessions](dashboard.md#sessions) each in a
 section of their own. They take and show labels like the other commands.
+
+## Office
+
+`clalt office [--port N] [--no-open]` opens a live 3D office of your agents in
+the browser, on this machine only and watch only. It is described in
+[office.md](office.md).

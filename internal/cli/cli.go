@@ -94,6 +94,8 @@ func run(app *App, args []string) int {
 		err = app.cmdUsage(cmdArgs)
 	case "dashboard":
 		err = app.cmdDashboard(cmdArgs)
+	case "office":
+		err = app.cmdOffice(cmdArgs)
 	case "migrate":
 		err = app.cmdMigrate(cmdArgs)
 	case "rules":
@@ -186,6 +188,9 @@ usage:
   clalt usage [name]          local usage stats
   clalt dashboard             full-screen dashboard of accounts, sessions and usage
   clalt dashboard --demo      the dashboard on made-up data, touches no account
+  clalt office [--port N] [--no-open]
+                              live 3D office of your agents in the browser (local
+                              only, watch only)
   clalt version               print build version (--json for machine-readable)
 
 global:

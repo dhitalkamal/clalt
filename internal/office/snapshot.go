@@ -1,0 +1,146 @@
+package office
+
+import (
+	"sort"
+	"time"
+)
+
+// Version is the contract version of the snapshot.
+const Version = 1
+
+// maxSubagentsPerSession bounds what one session can put in the snapshot.
+const maxSubagentsPerSession = 50
+
+// Snapshot is what GET /api/snapshot returns.
+type Snapshot struct {
+	V        int          `json:"v"`
+	Accounts []AccountOut `json:"accounts"`
+	Sessions []SessionOut `json:"sessions"`
+}
+
+// AccountOut is an account with its limits, by label only.
+type AccountOut struct {
+	ID     string    `json:"id"`
+	Label  string    `json:"label"`
+	Limits LimitsOut `json:"limits"`
+}
+
+// LimitsOut holds the two windows, null when unknown, and when they were read.
+type LimitsOut struct {
+	FiveHour *WindowOut `json:"fiveHour"`
+	SevenDay *WindowOut `json:"sevenDay"`
+	ReadAt   *time.Time `json:"readAt"`
+}
+
+// WindowOut is one rate limit window.
+type WindowOut struct {
+	UsedPct  float64   `json:"usedPct"`
+	ResetsAt time.Time `json:"resetsAt"`
+}
+
+// SessionOut is one running session. Project is the folder name only.
+type SessionOut struct {
+	Handle         string     `json:"handle"`
+	Account        string     `json:"account"`
+	Project        string     `json:"project"`
+	Model          string     `json:"model"`
+	State          string     `json:"state"`
+	NeedsYouReason string     `json:"needsYouReason"`
+	StartedAt      time.Time  `json:"startedAt"`
+	Subagents      []Subagent `json:"subagents"`
+}
+
+// Build reads the sources once and returns the snapshot. every string in it is
+// cleaned, and lists are never nil so they encode as [].
+func Build(src Sources) (Snapshot, error) {
+	now := time.Now
+	if src.Now != nil {
+		now = src.Now
+	}
+	snap := Snapshot{V: Version, Accounts: []AccountOut{}, Sessions: []SessionOut{}}
+	accts, err := src.Accounts.Accounts()
+	if err != nil {
+		return Snapshot{}, err
+	}
+	for _, a := range accts {
+		out := AccountOut{ID: noEmail(clean(a.ID, maxName)), Label: noEmail(clean(a.Label, maxName))}
+		if l, ok := src.Limits.Limits(a.ID); ok {
+			out.Limits = limitsOut(l, now())
+		}
+		snap.Accounts = append(snap.Accounts, out)
+	}
+	sort.SliceStable(snap.Accounts, func(i, j int) bool {
+		a, b := snap.Accounts[i], snap.Accounts[j]
+		if a.Label != b.Label {
+			return a.Label < b.Label
+		}
+		return a.ID < b.ID
+	})
+	list, err := src.Sessions.Sessions()
+	if err != nil {
+		return Snapshot{}, err
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		if !list[i].StartedAt.Equal(list[j].StartedAt) {
+			return list[i].StartedAt.Before(list[j].StartedAt)
+		}
+		return list[i].Handle < list[j].Handle
+	})
+	for _, s := range list {
+		snap.Sessions = append(snap.Sessions, sessionOut(s, src.Subagents))
+	}
+	return snap, nil
+}
+
+// limitsOut drops a window that has reset since it was read: its figure
+// describes a window that is over.
+func limitsOut(l Limits, now time.Time) LimitsOut {
+	out := LimitsOut{FiveHour: windowOut(l.FiveHour, now), SevenDay: windowOut(l.SevenDay, now)}
+	if !l.ReadAt.IsZero() {
+		at := l.ReadAt
+		out.ReadAt = &at
+	}
+	return out
+}
+
+func windowOut(w *Window, now time.Time) *WindowOut {
+	if w == nil || !w.ResetsAt.After(now) {
+		return nil
+	}
+	return &WindowOut{UsedPct: w.UsedPct, ResetsAt: w.ResetsAt}
+}
+
+func sessionOut(s Session, subs SubagentSource) SessionOut {
+	out := SessionOut{
+		Handle: clean(s.Handle, maxName), Account: noEmail(clean(s.Account, maxName)), Project: clean(folderName(s.Cwd), maxName),
+		Model: clean(s.Model, maxName), State: clean(s.State, 20), StartedAt: s.StartedAt, Subagents: []Subagent{},
+	}
+	if out.Account == "" {
+		out.Account = "unknown"
+	}
+	if out.Project == "" {
+		out.Project = "unknown"
+	}
+	// the reason is the notification type of the hook, and only means something while the session waits
+	if s.State == "needs-you" {
+		out.NeedsYouReason = clean(s.Reason, 40)
+	}
+	if subs != nil {
+		list := subs.Subagents(s.Handle)
+		if len(list) > maxSubagentsPerSession {
+			list = list[:maxSubagentsPerSession]
+		}
+		for _, sub := range list {
+			sub.ID, sub.Type, sub.Label, sub.State = clean(sub.ID, maxName), clean(sub.Type, maxName), clean(sub.Label, maxLabel), clean(sub.State, 20)
+			out.Subagents = append(out.Subagents, sub)
+		}
+		sort.SliceStable(out.Subagents, func(i, j int) bool {
+			a, b := out.Subagents[i], out.Subagents[j]
+			if !a.StartedAt.Equal(b.StartedAt) {
+				return a.StartedAt.Before(b.StartedAt)
+			}
+			return a.ID < b.ID
+		})
+	}
+	return out
+}

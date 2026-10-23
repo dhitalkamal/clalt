@@ -94,6 +94,7 @@ clalt budget [name]        show or set per-account spend caps
 clalt usage [name]         local usage stats
 clalt dashboard            full-screen dashboard of accounts, sessions and usage
 clalt dashboard --demo     the dashboard on made-up data, touches no account
+clalt office               live 3D office of your agents in the browser (local, watch only)
 clalt version              print build version (--json for machine-readable)
 ```
 
@@ -135,6 +136,8 @@ The details are in `docs/`, one file per subject:
   per-account profile folders into the shared history
 - [docs/dashboard.md](docs/dashboard.md): usage, [budgets](docs/dashboard.md#budgets),
   [sessions](docs/dashboard.md#sessions) and the dashboard, with its keys
+- [docs/office.md](docs/office.md): `clalt office`, the live 3D office of your
+  agents, its controls and what it shows
 - [docs/extras.md](docs/extras.md): `clalt resume`, `clalt launch`, `clalt jump`
   and the needs-you alerts
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release

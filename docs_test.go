@@ -18,7 +18,7 @@ const softLimit = 300
 // the files of the reference. the readme links to each of them.
 var reference = []string{
 	"docs/commands.md", "docs/sharing.md", "docs/auth.md", "docs/doctor.md",
-	"docs/upgrading.md", "docs/migrate.md", "docs/dashboard.md",
+	"docs/upgrading.md", "docs/migrate.md", "docs/dashboard.md", "docs/office.md",
 }
 
 func markdownFiles(t *testing.T) []string {

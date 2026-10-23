@@ -3,6 +3,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"os"
 	"time"
@@ -35,6 +36,11 @@ type App struct {
 	// terminal says whether the input of a session is a terminal. tests set it,
 	// nil means look at In, see inputIsTerminal.
 	terminal func() bool
+
+	// officeCtx ends clalt office, nil means Ctrl-C. officeOpen opens the
+	// browser, nil means the real one. tests set both.
+	officeCtx  context.Context
+	officeOpen func(url string) error
 
 	// foreground says whether clalt is in the foreground group of a terminal.
 	// tests set it, nil means ask the controlling terminal.
