@@ -26,6 +26,7 @@ func linksCheck(label, folder string) checkResult {
 	}
 	var fix []string
 	var kept []profile.Step
+	var adopts []string
 	var projects *profile.Step
 	for i, st := range steps {
 		switch {
@@ -35,6 +36,8 @@ func linksCheck(label, folder string) checkResult {
 			if st.Action != profile.Keep && !makes {
 				fix = append(fix, st.Name)
 			}
+		case st.Action == profile.Adopt:
+			adopts = append(adopts, st.Name)
 		case st.Action != profile.Keep:
 			fix = append(fix, st.Name)
 		default:
@@ -49,6 +52,9 @@ func linksCheck(label, folder string) checkResult {
 	}
 	if len(fix) > 0 {
 		parts = append(parts, fmt.Sprintf("%s to fix, 'clalt run %s' does it (%s)", count(len(fix), "link"), label, strings.Join(fix, ", ")))
+	}
+	if len(adopts) > 0 {
+		parts = append(parts, fmt.Sprintf("claude saved over the link, 'clalt run %s' will adopt the newer copy and back the older one up (%s)", label, strings.Join(adopts, ", ")))
 	}
 	if len(kept) > 0 {
 		parts = append(parts, "left as they are: "+keptList(kept))

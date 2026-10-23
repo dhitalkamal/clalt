@@ -41,6 +41,10 @@ func planFolder(dir, sharedDir, prefix string, v sharedView) ([]Step, error) {
 		}
 		steps = append(steps, Step{Name: prefix + name, Action: Keep, Source: src, Why: why})
 	}
+	steps, err := adoptMissing(steps, dir, sharedDir, prefix, v)
+	if err != nil {
+		return nil, err
+	}
 	stale, err := staleLinks(dir, sharedDir, prefix, v.known())
 	if err != nil {
 		return nil, err
@@ -136,6 +140,9 @@ func planEntry(dir, prefix, name, source string) (st Step, needed bool, err erro
 		return Step{}, false, err
 	}
 	if fi.Mode()&fs.ModeSymlink == 0 {
+		if st, ok := adoptStep(dir, prefix, name, source, fi); ok {
+			return st, true, nil
+		}
 		return inTheWay(prefix+name, source, path, fi), true, nil
 	}
 	target, err := linkTarget(path)

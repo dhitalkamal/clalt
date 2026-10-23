@@ -99,6 +99,13 @@ func (a *App) reportSync(rep profile.Report, mcp profile.MCPChange, mcpErr error
 	if len(mcp.Overwrote) > 0 {
 		fmt.Fprintf(a.Err, "replaced the account's own mcp server with the shared one: %s\n", clean(strings.Join(mcp.Overwrote, ", ")))
 	}
+	for _, ad := range rep.Adopted {
+		if ad.Backup == "" {
+			fmt.Fprintf(a.Err, "adopted %s (the shared copy was missing, the account's copy is now the shared one)\n", clean(ad.Name))
+			continue
+		}
+		fmt.Fprintf(a.Err, "adopted %s (newer copy kept, older backed up to %s)\n", clean(ad.Name), clean(ad.Backup))
+	}
 	if len(rep.Kept) > 0 {
 		fmt.Fprintf(a.Err, "not linked, left as it is: %s (see 'clalt doctor')\n", clean(keptList(rep.Kept)))
 	}

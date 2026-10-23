@@ -25,6 +25,9 @@ const (
 	Repoint
 	Remove
 	Keep
+	// Adopt replaces a real file that claude saved over a link with the link,
+	// after keeping the newer of the two copies at the shared path.
+	Adopt
 )
 
 // String gives the lowercase name of the action, for messages.
@@ -38,6 +41,8 @@ func (a Action) String() string {
 		return "remove"
 	case Keep:
 		return "keep"
+	case Adopt:
+		return "adopt"
 	}
 	return "unknown"
 }

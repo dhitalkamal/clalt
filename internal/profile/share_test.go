@@ -62,7 +62,7 @@ func TestShareableNeverLinkBeatsAllowList(t *testing.T) {
 func TestSplitDirsKeepTheNamesClaudeAiWritesPerAccount(t *testing.T) {
 	want := map[string][]string{
 		"skills":  {".trash", "synced"},
-		"plugins": {".trash", "known_marketplaces_claudeai.json", "synced"},
+		"plugins": {".last_inuse_sweep", ".trash", "known_marketplaces_claudeai.json", "plugin-directory-cache-v2.json", "synced"},
 	}
 	if len(splitDirs) != len(want) {
 		t.Errorf("split folders = %v, want %v", splitDirs, want)

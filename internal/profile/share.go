@@ -23,8 +23,19 @@ var neverLink = map[string]bool{".credentials.json": true, ".claude.json": true}
 // the account gets a real folder instead, with every other entry of the shared
 // folder linked into it. the names listed here stay per account.
 var splitDirs = map[string]map[string]bool{
-	"skills":  {"synced": true, ".trash": true},
-	"plugins": {"synced": true, "known_marketplaces_claudeai.json": true, ".trash": true},
+	"skills": {"synced": true, ".trash": true},
+	"plugins": {
+		"synced": true, "known_marketplaces_claudeai.json": true, ".trash": true,
+		// a regenerable cache and a timestamp that claude rewrites at every start
+		"plugin-directory-cache-v2.json": true, ".last_inuse_sweep": true,
+	},
+}
+
+// adoptable are the files of plugins/ that claude may save by renaming a new
+// file over the link. when that happened the account holds a real file, and the
+// sync adopts it instead of leaving the account to drift away from the others.
+var adoptable = map[string]bool{
+	"installed_plugins.json": true, "known_marketplaces.json": true, "plugin-catalog-cache.json": true,
 }
 
 // shareable reports whether an entry of the shared home may be linked into a

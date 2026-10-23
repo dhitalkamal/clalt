@@ -19,6 +19,7 @@ type Report struct {
 	Linked    []string
 	Repointed []Step
 	Removed   []string
+	Adopted   []Adoption
 	Kept      []Step
 	Errors    []ItemError
 }
@@ -90,6 +91,18 @@ func Sync(profileDir, sharedHome string) (Report, error) {
 			continue
 		}
 		if folder, _, nested := strings.Cut(st.Name, "/"); nested && blocked[folder] {
+			continue
+		}
+		if st.Action == Adopt {
+			ad, done, err := adopt(profileDir, st)
+			switch {
+			case err != nil:
+				rep.Errors = append(rep.Errors, ItemError{Name: st.Name, Err: err})
+			case done && ad.Name != "":
+				rep.Adopted = append(rep.Adopted, ad)
+			case done:
+				rep.Linked = append(rep.Linked, st.Name)
+			}
 			continue
 		}
 		done, err := apply(profileDir, st)

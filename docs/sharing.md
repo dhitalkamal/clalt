@@ -28,9 +28,28 @@ mounted included. That one is for `run` to report (see "The history check").
   shared one is linked into it, except `synced` and `.trash` (and
   `plugins/known_marketplaces_claudeai.json`), which stay per account because
   claude.ai sessions download that account's own skills, plugins and
-  marketplaces there. A link to the whole folder from an earlier layout is
+  marketplaces there. `plugins/plugin-directory-cache-v2.json` and
+  `plugins/.last_inuse_sweep` are per account too: one is a regenerable cache and
+  the other a timestamp that claude rewrites at every start. A link to the whole folder from an earlier layout is
   replaced by a real folder with links inside; only the link goes, so nothing is
   lost.
+- claude saves some plugins files (`installed_plugins.json`,
+  `known_marketplaces.json`, `plugin-catalog-cache.json`) by renaming a new file
+  over the link, which leaves the account with a real file. The sync adopts it:
+  the newer copy (by modification time, the shared one on a tie) ends up at the
+  shared path and the older one is backed up to
+  `~/.config/clalt/backups/plugins/<account id>/<name>.<unix time>`, never inside
+  the shared home or the account folder. Then the account gets its link back, and
+  a shared copy that was missing just takes the account's. `run` says `adopted
+  <name> (newer copy kept, older backed up to <path>)`. A folder, a link, a file
+  over 32 MB or anything that is not a regular file is not adopted and stays
+  "left as it is", and so is a shared file that is itself a link, or an account
+  that does not sit in a clalt `accounts` folder. Adopts of different accounts
+  take one lock (`<clalt dir>/locks/plugins-adopt.lock`), and an adopt is
+  dropped if claude changed the file (size or mtime) while it ran. A save that
+  keeps both unchanged in the last moment before the rename is the one window
+  left, and the older copy is in the backups then. `clalt doctor` reports a pending adopt as a warning that
+  `clalt run` will adopt it, and changes nothing.
 - Loose files are linked only from an allow-list: `settings.json`,
   `settings.local.json`, `CLAUDE.md`, `keybindings.json`, `history.jsonl`.
   claude keeps per-account state in other loose files, so those stay per

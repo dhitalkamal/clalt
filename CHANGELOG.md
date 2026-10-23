@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- A plugins file that claude saved by renaming over its link
+  (`installed_plugins.json`, `known_marketplaces.json`,
+  `plugin-catalog-cache.json`) no longer leaves the account on its own copy:
+  the sync keeps the newer copy at the shared path, backs the older one up to
+  `~/.config/clalt/backups/plugins/<id>/` and links the account again.
+  `plugins/plugin-directory-cache-v2.json` and `plugins/.last_inuse_sweep` are
+  per account and no longer warned about. `clalt doctor` shows a pending adopt.
 - `clalt doctor` asks claude whether the default claude home is signed in
   before judging `~/.claude/.credentials.json`: a live login is ok and must
   stay, a signed-out home makes it a leftover. It no longer asks you to run
