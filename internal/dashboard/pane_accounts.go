@@ -68,7 +68,7 @@ func accountRow(g glyphs, a Account, now time.Time, selected, wide bool, w int) 
 	}
 	pct := a.Limits.Five.Percent
 	cell := span{pctTone(pct), fmt.Sprintf("%3d%%", pct)}
-	if !a.Limits.known() {
+	if !a.Limits.known() || a.Limits.Five.Unknown {
 		cell = dim("  --")
 	}
 	right := rich{cell, gap(1), rowFlag(a, now)}
@@ -95,7 +95,7 @@ func worstWindow(a Account) int { return max(a.Limits.Five.Percent, a.Limits.Sev
 func roomHint(accts []Account) string {
 	best, signedIn := -1, 0
 	for i, a := range accts {
-		if !a.SignedIn || !a.Limits.known() {
+		if !a.SignedIn || !a.Limits.known() || a.Limits.Five.Unknown || a.Limits.Seven.Unknown {
 			continue
 		}
 		signedIn++

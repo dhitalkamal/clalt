@@ -51,6 +51,8 @@ type Host interface {
 type Window struct {
 	Percent  int
 	ResetsAt time.Time
+	// Unknown is a window the feed has no reading of, which is not 0%
+	Unknown bool
 }
 
 // Limits are the two windows of an account and when they were read.
@@ -96,6 +98,8 @@ type Session struct {
 	Reason          string
 	Model           string
 	Cwd             string
+	Branch          string   // empty when cwd is not in a git checkout
+	ContextPct      *float64 // share of the context window used, nil when not reported
 	StartedAt       time.Time
 	UpdatedAt       time.Time
 }

@@ -145,6 +145,10 @@ func limitBlock(c viewCtx, a Account) []rich {
 	barW := clampInt(c.w-11-reserve, 6, 32)
 	var out []rich
 	for _, p := range wins {
+		if p.x.Unknown {
+			out = append(out, rich{dim(p.label), gap(2), dim("not reported")})
+			continue
+		}
 		out = append(out, cat(rich{dim(p.label), gap(2)}, usageBar(c.g, float64(p.x.Percent), barW),
 			rich{gap(1), span{pctTone(p.x.Percent), fmt.Sprintf("%3d%%", p.x.Percent)}, dim(text(p.x, p.weekly, c.now))}))
 		if pace := paceShort(p.x, p.weekly, c.now); pace != "" {

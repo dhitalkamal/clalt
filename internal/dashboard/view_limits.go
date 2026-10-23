@@ -14,6 +14,9 @@ func limitsContent(c viewCtx, a Account) content {
 	var b []rich
 	if chart := chartRows(c.g, lim.Readings, lim.Days, c.w, clampInt(c.h-8, 3, 6)); chart != nil {
 		now := rich{dim("now "), span{pctTone(lim.Five.Percent), fmt.Sprintf("%d%%", lim.Five.Percent)}}
+		if lim.Five.Unknown {
+			now = rich{dim("now --")}
+		}
 		title := rich{dim("5h window, last " + plural(len(lim.Days), "day"))}
 		b = append(b, alignRight(title, now, chart[0].width()))
 		b = append(b, chart...)

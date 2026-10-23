@@ -138,3 +138,11 @@ account can be there more than once.
   [feed.md](feed.md). The command takes no arguments.
 - The dashboard's Sessions view is fed by the session registry that comes with
   the statusline feed, and stops a session with `x`.
+  `x` asks again before signalling anything: the record must be live and on that
+  account, and the pid a claude that started after the session, as a child of its
+  `clalt run`. Otherwise nothing is stopped and the dialog says why. claude then
+  gets SIGTERM, and `clalt run` cleans up when it exits. Windows does not stop
+  sessions from the dashboard yet.
+- The dashboard has no reading history, so the Limits chart says "No readings
+  yet". A window the feed lacks shows as "not reported", and a reading whose
+  reset time has passed shows as reset, with the reading's age.

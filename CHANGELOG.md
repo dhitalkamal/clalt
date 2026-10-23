@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The dashboard shows running sessions (state, model, context, folder, branch),
+  the 5-hour and 7-day limits with the age of the reading, and Kiro Crew
+  gateways, from the session registry, the feed and the crew records. A limit
+  the feed has not reported shows as unknown, never 0%. `x` stops a session
+  only after checking again that the pid is a claude started by that session's
+  clalt run (not on Windows).
 - Needs-you notifications now fire from the session hooks: a permission prompt
   or question shows a desktop notification once per wait. `clalt notify idle
   on` also notifies when a session is idle and waiting for a prompt.

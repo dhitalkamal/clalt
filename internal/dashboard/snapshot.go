@@ -65,6 +65,7 @@ type Window struct {
 	ResetsAt  time.Time
 	Projected int       // percent used at ResetsAt if the pace holds, 100 or more means it runs out first
 	RunsOutAt time.Time // when it reaches 100 at this pace, zero unless that is before ResetsAt
+	Unknown   bool      // the source has no reading of this window, which is not 0%
 }
 
 // Budget holds spend caps in dollars, zero meaning no cap.
@@ -140,6 +141,7 @@ type Session struct {
 type Profile struct {
 	Folder         string
 	ClaudeVersion  string
-	SharedSettings bool // settings, skills and MCP shared with ~/.claude
-	FeedInstalled  bool // the limits feed hook is installed
+	SharedSettings bool   // settings, skills and MCP shared with ~/.claude
+	FeedInstalled  bool   // the limits feed hook is installed
+	Gateway        string // address of the Kiro Crew gateway when one is running, else empty
 }

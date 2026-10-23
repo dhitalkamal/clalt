@@ -14,6 +14,8 @@ import (
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/dashboard"
 	"github.com/dhitalkamal/clalt/internal/dashboard/live"
+	"github.com/dhitalkamal/clalt/internal/feed"
+	"github.com/dhitalkamal/clalt/internal/registry"
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
 
@@ -144,7 +146,13 @@ func dashboardLogPath() string { return filepath.Join(config.ClaltDir(), "logs",
 // liveAdapter is the dashboard's source and actions on this machine.
 func (a *App) liveAdapter() *live.Adapter {
 	home, _ := os.UserHomeDir()
-	return live.New(live.Config{Store: a.Store, Host: &dashboardHost{app: a}, Now: a.clock, Home: home})
+	fd := feed.Store{Dir: config.FeedDir()}
+	return live.New(live.Config{
+		Store: a.Store, Host: &dashboardHost{app: a}, Now: a.clock, Home: home,
+		Feed:     live.FeedFiles{Store: fd, Now: a.clock},
+		Sessions: &live.RegistrySessions{Reg: registry.Registry{Dir: config.SessionsDir()}, Feed: fd, Now: a.clock},
+		Gateways: live.CrewGateways{},
+	})
 }
 
 // cleanedOrNil cleans an error that the dashboard will draw

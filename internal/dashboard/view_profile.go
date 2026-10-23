@@ -63,6 +63,12 @@ func profileContent(c viewCtx, a Account) content {
 		{"Usage feed", feed},
 		{"Last used", used},
 	}
+	if p.Gateway != "" {
+		items = append(items, struct {
+			label string
+			value rich
+		}{"Gateway", rich{txt("running on " + p.Gateway)}})
+	}
 	var b []rich
 	for _, it := range items {
 		b = append(b, hang(rich{dim(it.label)}, profileLabelW, it.value, c.w)...)

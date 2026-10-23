@@ -46,7 +46,7 @@ func cleanSnapshot(snap Snapshot) Snapshot {
 		a.Label, a.Email, a.Org, a.Plan = clean(a.Label), clean(a.Email), clean(a.Org), clean(a.Plan)
 		a.Problem, a.LastIn = clean(a.Problem), clean(a.LastIn)
 		a.Limits.Days = cleanAll(a.Limits.Days)
-		a.Profile.Folder, a.Profile.ClaudeVersion = clean(a.Profile.Folder), clean(a.Profile.ClaudeVersion)
+		a.Profile.Folder, a.Profile.ClaudeVersion, a.Profile.Gateway = clean(a.Profile.Folder), clean(a.Profile.ClaudeVersion), clean(a.Profile.Gateway)
 		a.Sessions = cleanSessions(a.Sessions)
 		a.History = cleanHistory(a.History)
 		out.Accounts[i] = a

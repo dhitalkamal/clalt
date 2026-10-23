@@ -34,6 +34,9 @@ func mapLimits(l Limits, ok bool, readings []Reading, now time.Time) dashboard.L
 }
 
 func mapWindow(w Window, observed time.Time, length time.Duration, now time.Time) dashboard.Window {
+	if w.Unknown {
+		return dashboard.Window{Unknown: true}
+	}
 	if !w.ResetsAt.IsZero() && !w.ResetsAt.After(now) {
 		return dashboard.Window{}
 	}
