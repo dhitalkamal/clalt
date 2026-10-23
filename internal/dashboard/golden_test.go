@@ -50,6 +50,7 @@ func frameSpecs() []frameSpec {
 		{"stop-question-100x30", 100, 30, []string{"2", "x"}},
 		{"budget-entry-100x30", 100, 30, []string{"e"}},
 		{"sign-out-confirm-100x30", 100, 30, []string{"d"}},
+		{"delete-box-100x30", 100, 30, []string{"D"}},
 		{"rename-prompt-100x30", 100, 30, []string{"r"}},
 		{"rename-error-100x30", 100, 30, append(rename("morgan"), "enter")},
 	}
@@ -77,6 +78,7 @@ var frameTitles = map[string]string{
 	"stop-question-100x30":          "stop question, 100x30",
 	"budget-entry-100x30":           "budget entry, 100x30",
 	"sign-out-confirm-100x30":       "sign out question, 100x30",
+	"delete-box-100x30":             "delete box, 100x30",
 	"rename-prompt-100x30":          "rename prompt, 100x30",
 	"rename-error-100x30":           "rename prompt after a mistake, 100x30",
 }

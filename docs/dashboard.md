@@ -51,6 +51,7 @@ s                sign in
 e                set the budget
 r                rename the account (accounts pane)
 d                sign out the account (accounts pane)
+D                delete the account and its folder (accounts pane)
 x                stop the selected session
 /                filter the accounts
 a                switch ascii mode
@@ -64,7 +65,13 @@ ctrl+c           quit from anywhere
 account, with the dashboard out of the way: the same checks, the same messages,
 and when one refuses, the reason stays on screen until you press enter. When
 claude ends, the dashboard comes back and reloads. `d` signs the account out and
-keeps its history, like `clalt logout`; `r` changes the label only; `e` asks for
+keeps its history, like `clalt logout`; `D` deletes the account for good, like `clalt remove --delete`: a box names the
+account, its email and the folder that goes, and the account label has to be
+typed exactly before enter deletes it (esc cancels, a wrong label keeps the box
+open). It refuses an account with a running session or a folder shared with
+another account, and deletes nothing if the sign-out fails; the reason shows on
+the footer line. Conversation history under `~/.claude` stays. `r` changes the
+label only; `e` asks for
 the daily and then the weekly cap, empty for none. `NO_COLOR` turns the colors
 off and `CLALT_ASCII=1` starts in ascii mode.
 

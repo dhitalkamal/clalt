@@ -425,19 +425,19 @@ frame: help overlay, 100x30
  clalt                                                        5 accounts, 3 running, updated 4s ago
  +- Accounts -------------+ +- robin -------------------------------------------------------------+
  | > robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
- |   morgan    22% !      | |                                                                     |
- |   casey     +- Keys ------------------------------------------------------------+              |
- |   jordan    |                                                                   |              |
- |   harriet   |  up/down, k/j     move in the focused pane                        |              |
- |             |  tab              switch pane                                     | n 1h52m)     |
- |   jordan ha |  [ ] or 1-5       switch view                                     |              |
- |   room left |  h/l, left/right  switch history tab                              | 5 (1d 15h)   |
- |             |  enter            run claude as the account, or open the project  |              |
+ |   morgan    +- Keys ------------------------------------------------------------+              |
+ |   casey     |                                                                   |              |
+ |   jordan    |  up/down, k/j     move in the focused pane                        |              |
+ |   harriet   |  tab              switch pane                                     |              |
+ |             |  [ ] or 1-5       switch view                                     | n 1h52m)     |
+ |   jordan ha |  h/l, left/right  switch history tab                              |              |
+ |   room left |  enter            run claude as the account, or open the project  | 5 (1d 15h)   |
  |             |                   when the History Projects table is focused      |              |
  |             |  s                sign in                                         |              |
  |             |  e                edit the budget                                 |              |
  |             |  r                rename the account (accounts pane)              |              |
  |             |  d                sign out the account (accounts pane)            |              |
+ |             |  D                delete the account (accounts pane)              |              |
  |             |  x                stop the selected session                       |              |
  |             |  /                filter accounts                                 |              |
  |             |  a                toggle ascii mode                               |              |
@@ -617,6 +617,39 @@ frame: sign out question, 100x30
  |                        | |                                                                     |
  +------------------------+ +---------------------------------------------------------------------+
   y signs out robin and hides it. Chat history is kept. Any other key cancels.
+
+frame: delete box, 100x30
+
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | robin@example.com   Example   team plan                             |
+ |   jordan     5%        | | Signed in. Re-login due in 23 days. Last used 4m ago.               |
+ |   harriet  signed out  | |                                                                     |
+ |                        | | 5h  #######=---------------------  26%  resets 01:45 (in 1h52m)     |
+ |   jordan has the most  | |     at this pace it runs out around 01:10                           |
+ |   room left            | | 7d  ############-----------------  42%  resets Fri 15:45 (1d 15h)   |
+ |          +- Delete robin -----------------------------------------------------------+          |
+ |          | Account  robin (robin@example.com)                                       |          |
+ |          | Folder   ~/.config/clalt/profiles/robin                                  |          |
+ |          |                                                                          |          |
+ |          | this deletes the account; your conversation history stays                |          |
+ |          |                                                                          |          |
+ |          | Type robin to confirm:                                                   |          |
+ |          |                                                                          |          |
+ |          +- enter deletes, esc cancels ---------------------------------------------+          |
+ |                        | | Running  2 sessions: 1 working, 1 waiting for you                   |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  Enter deletes robin once its name is typed. Esc cancels.
 
 frame: rename prompt, 100x30
 

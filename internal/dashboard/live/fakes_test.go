@@ -18,21 +18,23 @@ import (
 )
 
 type fakeHost struct {
-	mu       sync.Mutex
-	signIns  map[string]SignIn // by account id
-	checkErr error
-	gate     chan struct{} // when set, checks wait for it
-	checks   atomic.Int32
-	version  string
-	verErr   error
-	links    bool
-	linksErr error
-	records  map[string][]usage.Record
-	usageErr error
-	scans    atomic.Int32
-	signOuts []string
-	signErr  error
-	launches []string
+	mu        sync.Mutex
+	signIns   map[string]SignIn // by account id
+	checkErr  error
+	gate      chan struct{} // when set, checks wait for it
+	checks    atomic.Int32
+	version   string
+	verErr    error
+	links     bool
+	linksErr  error
+	records   map[string][]usage.Record
+	usageErr  error
+	scans     atomic.Int32
+	signOuts  []string
+	signErr   error
+	deleted   []string
+	deleteErr error
+	launches  []string
 }
 
 func (h *fakeHost) CheckSignIn(acc account.Account) (SignIn, error) {
@@ -59,6 +61,13 @@ func (h *fakeHost) SignOut(acc account.Account) error {
 	defer h.mu.Unlock()
 	h.signOuts = append(h.signOuts, acc.Name)
 	return h.signErr
+}
+
+func (h *fakeHost) Delete(acc account.Account) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.deleted = append(h.deleted, acc.Name)
+	return h.deleteErr
 }
 
 func (h *fakeHost) note(what string, acc account.Account) dashboard.Launch {

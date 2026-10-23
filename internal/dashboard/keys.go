@@ -13,6 +13,8 @@ func (m model) onKey(msg tea.KeyPressMsg) (model, tea.Cmd) {
 		return m, tea.Quit
 	case m.entry.open:
 		return m.entryKey(msg)
+	case m.confirm.open && m.confirm.kind == confirmDelete:
+		return m.deleteKey(msg)
 	case m.confirm.open:
 		return m.confirmKey(k)
 	case m.help:
@@ -111,7 +113,7 @@ func (m model) normalKey(k string) (model, tea.Cmd) {
 		m = m.histStep(1)
 	case "enter":
 		return m.enterKey()
-	case "r", "d":
+	case "r", "d", "D":
 		return m.accountKey(k)
 	case "s", "e", "x":
 		return m.onAction(k)
@@ -124,6 +126,8 @@ func (m model) onPaste(s string) model {
 	switch {
 	case m.entry.open:
 		return m.typeEntry(s)
+	case m.confirm.open && m.confirm.kind == confirmDelete:
+		return m.typeDelete(s)
 	case m.filtering:
 		return m.typeFilter(s)
 	}

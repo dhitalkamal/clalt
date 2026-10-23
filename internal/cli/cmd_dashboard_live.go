@@ -76,6 +76,16 @@ func (h *dashboardHost) SignOut(acc account.Account) error {
 	return cleanedOrNil(h.app.signOut(acc))
 }
 
+// Delete is `clalt remove --delete --force` with nothing printed: the
+// dashboard asked already, and owns the screen.
+func (h *dashboardHost) Delete(acc account.Account) error {
+	folder, err := h.app.checkDelete(acc)
+	if err != nil {
+		return cleanedOrNil(err)
+	}
+	return cleanedOrNil(h.app.performDelete(acc, folder))
+}
+
 // Run is the code of `clalt run <label>`.
 func (h *dashboardHost) Run(acc account.Account) dashboard.Launch {
 	return &dashLaunch{app: h.app, verb: "run", label: acc.Label(), call: h.app.cmdRun}

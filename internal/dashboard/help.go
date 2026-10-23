@@ -16,6 +16,7 @@ var helpRows = [][2]string{
 	{"e", "edit the budget"},
 	{"r", "rename the account (accounts pane)"},
 	{"d", "sign out the account (accounts pane)"},
+	{"D", "delete the account (accounts pane)"},
 	{"x", "stop the selected session"},
 	{"/", "filter accounts"},
 	{"a", "toggle ascii mode"},

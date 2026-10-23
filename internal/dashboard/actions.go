@@ -101,7 +101,7 @@ func (m model) onAction(k string) (model, tea.Cmd) {
 	return m.askStop(a)
 }
 
-// accountKey is rename and sign out. they act on the accounts list, so the
+// accountKey is rename, sign out and delete. they act on the accounts list, so the
 // right pane only says where they work.
 func (m model) accountKey(k string) (model, tea.Cmd) {
 	if m.busy {
@@ -113,14 +113,19 @@ func (m model) accountKey(k string) (model, tea.Cmd) {
 	}
 	if m.focus != paneAccounts {
 		what := "rename it"
-		if k == "d" {
+		switch k {
+		case "d":
 			what = "sign it out"
+		case "D":
+			what = "delete it"
 		}
 		return m.say("Press tab to pick an account, then "+k+" to "+what+".", false)
 	}
 	switch {
 	case k == "r":
 		return m.askRename(a), nil
+	case k == "D":
+		return m.askDelete(a), nil
 	case !a.SignedIn:
 		return m.say(a.Label+" is already signed out.", false)
 	}

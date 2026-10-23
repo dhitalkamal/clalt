@@ -41,6 +41,10 @@ type Host interface {
 	Usage() (map[string][]usage.Record, error)
 	// SignOut signs the account out of claude and records it.
 	SignOut(acc account.Account) error
+	// Delete signs the account out, deletes its folder and drops its record,
+	// with the refusals of `clalt remove --delete`. nothing is asked: the
+	// dashboard did that.
+	Delete(acc account.Account) error
 	// Run and Login are the code of `clalt run` and `clalt login` for the
 	// account, to run with the terminal released.
 	Run(acc account.Account) dashboard.Launch

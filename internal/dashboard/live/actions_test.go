@@ -182,3 +182,42 @@ func TestRenameAndBudgetRefuseAHiddenAccount(t *testing.T) {
 		t.Errorf("meta = %+v", acc.Meta)
 	}
 }
+
+func TestDeleteCallsTheHostWithTheAccount(t *testing.T) {
+	r := newRig(t)
+	id := r.signedIn("work", "w@example.com")
+	a := r.adapter()
+	r.load(a)
+
+	if err := a.Delete(bg, id); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.host.deleted) != 1 || r.host.deleted[0] != id {
+		t.Errorf("host deletes = %v", r.host.deleted)
+	}
+}
+
+func TestADeleteTheHostRefusesIsReturnedAsItIs(t *testing.T) {
+	r := newRig(t)
+	id := r.signedIn("work", "w@example.com")
+	a := r.adapter()
+	r.load(a)
+	r.host.deleteErr = errors.New("work has a running session")
+
+	err := a.Delete(bg, id)
+
+	if err == nil || !strings.Contains(err.Error(), "running session") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestDeleteOfAnUnknownAccountNeverReachesTheHost(t *testing.T) {
+	r := newRig(t)
+	a := r.adapter()
+	if err := a.Delete(bg, "nobody"); err == nil {
+		t.Error("an unknown id was accepted")
+	}
+	if len(r.host.deleted) != 0 {
+		t.Errorf("host deletes = %v", r.host.deleted)
+	}
+}

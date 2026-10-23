@@ -11,6 +11,7 @@ type confirmKind int
 const (
 	confirmStop confirmKind = iota
 	confirmSignOut
+	confirmDelete
 )
 
 // confirm is a question answered with y before a session is stopped or an
@@ -23,6 +24,9 @@ type confirm struct {
 	sessionID string
 	state     SessionState
 	folder    string
+	email     string // delete: shown in the box
+	text      string // delete: what has been typed so far
+	note      string // delete: why the last answer was refused
 }
 
 func (m model) askStop(a Account) (model, tea.Cmd) {
@@ -57,6 +61,9 @@ func (m model) confirmKey(k string) (model, tea.Cmd) {
 }
 
 func (m model) confirmLine() rich {
+	if m.confirm.kind == confirmDelete {
+		return rich{gap(2), bold("Enter"), dim(" deletes "), bold(m.confirm.label), dim(" once its name is typed. Esc cancels.")}.clip(m.w)
+	}
 	if m.confirm.kind == confirmSignOut {
 		return m.signOutLine()
 	}

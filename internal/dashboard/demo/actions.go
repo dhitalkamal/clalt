@@ -44,6 +44,10 @@ func (actions) SignOut(_ context.Context, id string) error {
 	return dashboard.Notice("Demo: would sign out " + id + " (history kept).")
 }
 
+func (actions) Delete(_ context.Context, id string) error {
+	return dashboard.Notice("Demo: would delete " + id + " and its folder (history stays).")
+}
+
 func (actions) StopSession(_ context.Context, id, sessionID string) error {
 	return dashboard.Notice("Demo: would stop that session.")
 }

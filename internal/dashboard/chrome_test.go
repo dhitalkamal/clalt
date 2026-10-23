@@ -10,7 +10,8 @@ func TestHintsLineMatchesTheApprovedFooters(t *testing.T) {
 		w    int
 		want string
 	}{
-		{130, "  enter run   s sign in   e budget   r rename   d sign out   tab pane   [ ] or 1-5 view   / find   a ascii   ? keys   q quit"},
+		{150, "  enter run   s sign in   e budget   r rename   d sign out   D delete   tab pane   [ ] or 1-5 view   / find   a ascii   ? keys   q quit"},
+		{130, "  enter run  s sign in  e budget  r rename  d sign out  D delete  tab pane  [ ] or 1-5 view  / find  a ascii  ? keys  q quit"},
 		{114, "  enter run  s sign in  e budget  r rename  d sign out  tab pane  [ ] or 1-5 view  / find  a ascii  ? keys  q quit"},
 		{113, "  enter run  s sign in  e budget  r rename  d sign out  tab pane  [ ] or 1-5 view  / find  ? keys  q quit"},
 		{100, "  enter run  s sign in  e budget  r rename  tab pane  [ ] or 1-5 view  / find  ? keys  q quit"},
@@ -25,7 +26,7 @@ func TestHintsLineMatchesTheApprovedFooters(t *testing.T) {
 }
 
 func TestHintsLineDropsTheLeastUsefulFirstAndNeverOverflows(t *testing.T) {
-	order := []string{"a ascii", "d sign out", "r rename", "/ find", "e budget", "s sign in", "enter run", "[ ] or 1-5 view", "tab pane", "q quit", "? keys"}
+	order := []string{"D delete", "a ascii", "d sign out", "r rename", "/ find", "e budget", "s sign in", "enter run", "[ ] or 1-5 view", "tab pane", "q quit", "? keys"}
 	prev := len(order)
 	for w := 100; w >= 12; w-- {
 		got := plainText(hintsLine(normalHints, w))

@@ -22,6 +22,11 @@ func (m model) render() string {
 		back.th.p = m.th.p.dimmed()
 		return strings.Join(overlay(back.frame(g), m.th.helpBox(m.w, m.h, m.helpAt), m.w, m.h), "\n")
 	}
+	if m.confirm.open && m.confirm.kind == confirmDelete {
+		back := m
+		back.th.p = m.th.p.dimmed()
+		return strings.Join(overlay(back.frame(g), m.th.deleteBox(m.confirm, m.w, m.h), m.w, m.h), "\n")
+	}
 	return strings.Join(m.frame(g), "\n")
 }
 

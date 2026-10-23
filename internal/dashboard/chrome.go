@@ -7,7 +7,7 @@ type hint struct {
 }
 
 var normalHints = []hint{
-	{"enter", "run", 7}, {"s", "sign in", 6}, {"e", "budget", 5}, {"r", "rename", 3}, {"d", "sign out", 2},
+	{"enter", "run", 7}, {"s", "sign in", 6}, {"e", "budget", 5}, {"r", "rename", 3}, {"d", "sign out", 2}, {"D", "delete", 0},
 	{"tab", "pane", 9}, {"[ ] or 1-5", "view", 8}, {"/", "find", 4}, {"a", "ascii", 1}, {"?", "keys", 11}, {"q", "quit", 10},
 }
 

@@ -113,6 +113,11 @@ func (f *fakeActions) SignOut(ctx context.Context, id string) error {
 	return f.err
 }
 
+func (f *fakeActions) Delete(ctx context.Context, id string) error {
+	f.record(ctx, "delete %s", id)
+	return f.err
+}
+
 func (f *fakeActions) StopSession(ctx context.Context, id, sessionID string) error {
 	f.record(ctx, "stop %s %s", id, sessionID)
 	return f.err

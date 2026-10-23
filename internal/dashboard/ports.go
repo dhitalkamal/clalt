@@ -22,6 +22,9 @@ type Source interface {
 // running, so an implementation must be safe for concurrent use with Load and
 // with itself. ctx ends when the dashboard quits.
 //
+// Delete removes the account for good, its folder included. the dashboard has
+// asked the user to type the label first.
+//
 // Run and SignIn hand back a Launch for the dashboard to run with the
 // terminal released, through tea.Exec, and then resume. returning no launch
 // and no error is reported to the user. the other methods return an error
@@ -32,6 +35,7 @@ type Actions interface {
 	Rename(ctx context.Context, id, label string) error
 	SetBudget(ctx context.Context, id string, daily, weekly float64) error
 	SignOut(ctx context.Context, id string) error
+	Delete(ctx context.Context, id string) error
 	StopSession(ctx context.Context, id, sessionID string) error
 }
 

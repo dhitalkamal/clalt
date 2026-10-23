@@ -117,6 +117,24 @@ func (a *Adapter) SignOut(_ context.Context, id string) error {
 	return nil
 }
 
+// Delete deletes the account and its folder through the host, which refuses a
+// live session, a shared folder and a failed sign-out. the cached state of
+// the account goes with it.
+func (a *Adapter) Delete(_ context.Context, id string) error {
+	acc, err := a.find(id)
+	if err != nil {
+		return err
+	}
+	if err := a.cfg.Host.Delete(acc); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	delete(a.entries, acc.Name)
+	a.mu.Unlock()
+	a.ledger.invalidate()
+	return nil
+}
+
 // StopSession stops a running session through the registry.
 func (a *Adapter) StopSession(ctx context.Context, id, sessionID string) error {
 	return a.cfg.Sessions.Stop(ctx, id, sessionID)

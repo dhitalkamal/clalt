@@ -11,40 +11,70 @@ import (
 	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
-// deleteAccount is remove --delete: sign the account out, delete its folder and
-// drop its record. nothing is deleted unless the sign-out is known to have
-// worked, and the folder must be a real folder directly under clalt's accounts
-// dir, so a bad record can never point it at ~/.claude or anywhere else.
+// deleteAccount is remove --delete: check the account can go, ask unless
+// forced, then carry the delete out.
 func (a *App) deleteAccount(acc account.Account, force bool) error {
-	if err := a.refuseSharedFolder(acc); err != nil {
-		return err
-	}
-	if err := a.refuseHiddenSharer(acc); err != nil {
-		return err
-	}
-	if err := refuseLiveSession(acc); err != nil {
-		return err
-	}
-	if noFolderFor(acc) {
-		return a.deleteNoFolder(acc, force)
-	}
-	folder, err := folderFor(acc)
+	folder, err := a.checkDelete(acc)
 	if err != nil {
 		return err
 	}
-	if err := checkDeletable(folder); err != nil {
-		return fmt.Errorf("will not delete %s: %w. nothing was changed", shown(acc), err)
-	}
 	if !force {
-		email := acc.Meta.Email
-		if email == "" {
-			email = "no email recorded"
+		q := fmt.Sprintf("delete %s for good? it has no folder, only its record goes", shown(acc))
+		if folder != "" {
+			email := acc.Meta.Email
+			if email == "" {
+				email = "no email recorded"
+			}
+			q = fmt.Sprintf("delete %s (%s) for good? it is signed out, its record goes, and this folder is deleted: %s",
+				shown(acc), email, folder)
 		}
-		q := fmt.Sprintf("delete %s (%s) for good? it is signed out, its record goes, and this folder is deleted: %s",
-			shown(acc), email, folder)
 		if ok, err := a.askDelete(acc, q); !ok {
 			return err
 		}
+	}
+	if err := a.performDelete(acc, folder); err != nil {
+		return err
+	}
+	if folder == "" {
+		a.printf("deleted %s\n", shown(acc))
+	} else {
+		a.printf("deleted %s and its folder %s\n", shown(acc), folder)
+	}
+	return nil
+}
+
+// checkDelete is every refusal of a delete, before anything is asked or
+// changed. folder is empty for an id that never had one. the dashboard calls
+// it too, so both follow the same rules.
+func (a *App) checkDelete(acc account.Account) (folder string, err error) {
+	if err := a.refuseSharedFolder(acc); err != nil {
+		return "", err
+	}
+	if err := a.refuseHiddenSharer(acc); err != nil {
+		return "", err
+	}
+	if err := refuseLiveSession(acc); err != nil {
+		return "", err
+	}
+	if noFolderFor(acc) {
+		return "", nil
+	}
+	folder, err = folderFor(acc)
+	if err != nil {
+		return "", err
+	}
+	if err := checkDeletable(folder); err != nil {
+		return "", fmt.Errorf("will not delete %s: %w. nothing was changed", shown(acc), err)
+	}
+	return folder, nil
+}
+
+// performDelete signs the account out, deletes its folder and drops its
+// record, printing nothing. nothing is deleted unless the sign-out is known
+// to have worked, and checkDelete must have passed first.
+func (a *App) performDelete(acc account.Account, folder string) error {
+	if folder == "" {
+		return a.deleteNoFolder(acc)
 	}
 	if err := a.signOutForDelete(acc, folder); err != nil {
 		return err
@@ -57,23 +87,12 @@ func (a *App) deleteAccount(acc account.Account, force bool) error {
 		return fmt.Errorf("the folder of %s is deleted, but clalt could not drop its record: %w. 'clalt remove %s --delete' tries again",
 			shown(acc), err, shown(acc))
 	}
-	a.printf("deleted %s and its folder %s\n", shown(acc), folder)
 	return nil
 }
 
 // deleteNoFolder drops the record of an id that never had a folder.
-func (a *App) deleteNoFolder(acc account.Account, force bool) error {
-	if !force {
-		q := fmt.Sprintf("delete %s for good? it has no folder, only its record goes", shown(acc))
-		if ok, err := a.askDelete(acc, q); !ok {
-			return err
-		}
-	}
-	if err := a.Store.Delete(acc.Name); err != nil {
-		return err
-	}
-	a.printf("deleted %s\n", shown(acc))
-	return nil
+func (a *App) deleteNoFolder(acc account.Account) error {
+	return a.Store.Delete(acc.Name)
 }
 
 // askDelete asks the question. ok false with a nil error means the answer was no.

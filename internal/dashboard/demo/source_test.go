@@ -58,6 +58,7 @@ func TestEveryDemoActionJustSaysWhatItWouldDo(t *testing.T) {
 		{act.SetBudget(ctx, "casey", 8, 40), "Demo: would set casey's budget to $8.00 a day and $40.00 a week."},
 		{act.SetBudget(ctx, "morgan", 0, 0), "Demo: would clear morgan's budget."},
 		{act.SignOut(ctx, "jordan"), "Demo: would sign out jordan (history kept)."},
+		{act.Delete(ctx, "jordan"), "Demo: would delete jordan and its folder (history stays)."},
 		{act.StopSession(ctx, "robin", "k-live-1"), "Demo: would stop that session."},
 	}
 	for _, c := range cases {
