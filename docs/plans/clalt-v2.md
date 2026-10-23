@@ -3,6 +3,8 @@
 Approved 2026-10-19. Builds on PR #6 (dashboard v2 on demo data, merged). Replaces
 the PR 2 and PR 3 sections of docs/plans/dashboard-v2.md.
 
+Note: step 6 (Kiro Crew gateways) was dropped on 2026-10-23 and removed from clalt.
+
 ## Goal
 
 Run and manage many claude sessions at once across several accounts, see them and

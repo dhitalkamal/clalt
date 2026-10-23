@@ -18,7 +18,6 @@ type Config struct {
 	Host     Host
 	Feed     Feed     // nil: NoFeed
 	Sessions Sessions // nil: NoSessions
-	Gateways Gateways // nil: NoGateways
 	Now      func() time.Time
 	Home     string // the user's home, shown as ~ in folders
 	// DefaultHome is the id of the account that plain claude (~/.claude) is
@@ -40,9 +39,6 @@ func (c Config) withDefaults() Config {
 	}
 	if c.Sessions == nil {
 		c.Sessions = NoSessions{}
-	}
-	if c.Gateways == nil {
-		c.Gateways = NoGateways{}
 	}
 	if c.Now == nil {
 		c.Now = time.Now

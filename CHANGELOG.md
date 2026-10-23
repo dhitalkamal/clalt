@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- `clalt crew` and the Kiro Crew gateway support, including the dashboard
+  gateway row, the doctor check and `CLALT_KIROCREW_BIN`. `clalt crew` now
+  says it was removed and exits 2.
+
 ### Fixed
 
 - `clalt feed status` no longer fails when `~/.claude/settings.json` is a

@@ -89,8 +89,6 @@ clalt resume [words]       list conversations of every account, or continue one
 clalt launch <name>        run claude as <name> in a new kitty tab or tmux window
 clalt jump <session>       bring the terminal of a running session to the front
 clalt notify [on|off]      desktop alerts when a session needs you
-clalt crew start <name>    run a Kiro Crew gateway for the account (also stop,
-                           status, logs; see docs/crew.md)
 clalt budget [name]        show or set per-account spend caps
                            (--daily N, --weekly N, --clear)
 clalt usage [name]         local usage stats
@@ -139,7 +137,6 @@ The details are in `docs/`, one file per subject:
   [sessions](docs/dashboard.md#sessions) and the dashboard, with its keys
 - [docs/extras.md](docs/extras.md): `clalt resume`, `clalt launch`, `clalt jump`
   and the needs-you alerts
-- [docs/crew.md](docs/crew.md): `clalt crew`, one Kiro Crew gateway per account
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Environment overrides
@@ -149,7 +146,6 @@ CLAUDE_CONFIG_DIR   the shared claude home, when it points outside clalt's own
                     folder (default ~/.claude)
 XDG_CONFIG_HOME     clalt state dir parent (default ~/.config)
 CLALT_CLAUDE_BIN    the claude binary clalt runs (default claude, from PATH)
-CLALT_KIROCREW_BIN  the kirocrew binary clalt crew runs (default kirocrew)
 ```
 
 ## Caveats (read these)

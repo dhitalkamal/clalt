@@ -243,13 +243,12 @@ func TestWithoutARegistrySessionsAreSaidToBeMissing(t *testing.T) {
 	}
 }
 
-func TestAFailingRegistryOrGatewayIsAWarning(t *testing.T) {
+func TestAFailingRegistryIsAWarning(t *testing.T) {
 	r := newRig(t)
 	r.signedIn("work", "w@example.com")
 	r.cfg.Sessions = &fakeSessions{err: errors.New("registry locked")}
-	r.cfg.Gateways = failGateways{}
 	all := strings.Join(r.load(r.adapter()).Warnings, "|")
-	for _, want := range []string{"registry locked", "port busy"} {
+	for _, want := range []string{"registry locked"} {
 		if !strings.Contains(all, want) {
 			t.Errorf("warnings %q lack %q", all, want)
 		}

@@ -60,19 +60,10 @@ func (a *Adapter) Load(ctx context.Context) (dashboard.Snapshot, error) {
 
 	byAccount, w := a.sessionsByAccount(ctx, now, led)
 	warns = append(warns, w...)
-	gateways := map[string]string{}
-	if gws, err := a.cfg.Gateways.Running(ctx); err != nil {
-		warns = append(warns, "crew gateways could not be read: "+err.Error())
-	} else {
-		for _, g := range gws {
-			gateways[g.AccountID] = g.Addr
-		}
-	}
 
 	snap := dashboard.Snapshot{Warnings: warns}
 	for _, acc := range accts {
 		built, warn := a.buildAccount(ctx, acc, signs[acc.Name], ver, led, byAccount[acc.Name], now)
-		built.Profile.Gateway = gateways[acc.Name]
 		snap.Accounts = append(snap.Accounts, built)
 		if warn != "" {
 			snap.Warnings = append(snap.Warnings, warn)

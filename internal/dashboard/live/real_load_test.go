@@ -1,30 +1,11 @@
 package live
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/feed"
 )
-
-type listGateways []Gateway
-
-func (g listGateways) Running(context.Context) ([]Gateway, error) { return g, nil }
-
-func TestARunningGatewayShowsOnItsAccountsProfile(t *testing.T) {
-	r := newRig(t)
-	id := r.signedIn("work", "w@example.com")
-	r.signedIn("home", "h@example.com")
-	r.cfg.Gateways = listGateways{{AccountID: id, Addr: "127.0.0.1:8080"}}
-	snap := r.load(r.adapter())
-	if got := byLabel(snap, "work").Profile.Gateway; got != "127.0.0.1:8080" {
-		t.Errorf("gateway = %q", got)
-	}
-	if got := byLabel(snap, "home").Profile.Gateway; got != "" {
-		t.Errorf("another account shows a gateway: %q", got)
-	}
-}
 
 func TestRegistryAndFeedFilesReachTheSnapshot(t *testing.T) {
 	r := newRig(t)

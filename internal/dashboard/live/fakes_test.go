@@ -2,7 +2,6 @@ package live
 
 import (
 	"context"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -117,10 +116,6 @@ func (f *fakeSessions) Stop(_ context.Context, id, handle string) error {
 	f.stopped = append(f.stopped, id+"/"+handle)
 	return nil
 }
-
-type failGateways struct{}
-
-func (failGateways) Running(context.Context) ([]Gateway, error) { return nil, errors.New("port busy") }
 
 // rig is an adapter on a real store in a temp dir
 type rig struct {

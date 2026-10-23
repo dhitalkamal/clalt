@@ -1,4 +1,4 @@
-// Package fakeutil holds what the test fakes of claude and kirocrew share. the
+// Package fakeutil holds what the test fakes of claude share. the
 // fakes are small programs the tests build once and run in place of the real
 // ones, so no test needs a shell script and the same fakes run on every
 // platform.

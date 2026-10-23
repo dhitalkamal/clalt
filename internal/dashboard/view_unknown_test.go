@@ -48,14 +48,3 @@ func TestAnAccountWithAnUnknownWindowIsNotRankedForRoom(t *testing.T) {
 		t.Errorf("hint = %q", got)
 	}
 }
-
-func TestTheProfileNamesARunningGateway(t *testing.T) {
-	a := testAccount()
-	if out := strings.Join(linesOf(profileContent(ctxFor(wideBody), a)), "\n"); strings.Contains(out, "Gateway") {
-		t.Errorf("no gateway, but the profile says:\n%s", out)
-	}
-	a.Profile.Gateway = "127.0.0.1:8080"
-	if out := strings.Join(linesOf(profileContent(ctxFor(wideBody), a)), "\n"); !strings.Contains(out, "Gateway") || !strings.Contains(out, "127.0.0.1:8080") {
-		t.Errorf("profile:\n%s", out)
-	}
-}

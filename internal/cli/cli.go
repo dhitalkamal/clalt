@@ -106,8 +106,6 @@ func run(app *App, args []string) int {
 		err = app.cmdStatusline(cmdArgs)
 	case "feed":
 		err = app.cmdFeed(cmdArgs)
-	case "crew":
-		err = app.cmdCrew(cmdArgs)
 	case "help", "-h", "--help":
 		app.usage()
 	default:
@@ -184,10 +182,6 @@ usage:
                               it is signed in as one of the accounts (--yes skips
                               the question); forget-default undoes the usage
                               clalt attributed to it
-  clalt crew start <name>     run a Kiro Crew gateway for the account (localhost only)
-  clalt crew stop <name>      stop the gateway clalt started for the account
-  clalt crew status [name]    the gateways clalt started: port, state, uptime
-  clalt crew logs <name>      what the gateway printed (-n lines, default 100)
   clalt budget [name]         show or set per-account spend caps (--daily/--weekly/--clear)
   clalt usage [name]          local usage stats
   clalt dashboard             full-screen dashboard of accounts, sessions and usage

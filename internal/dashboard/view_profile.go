@@ -69,12 +69,6 @@ func profileContent(c viewCtx, a Account) content {
 			value rich
 		}{"Default", rich{txt("also the default claude (~/.claude)")}})
 	}
-	if p.Gateway != "" {
-		items = append(items, struct {
-			label string
-			value rich
-		}{"Gateway", rich{txt("running on " + p.Gateway)}})
-	}
 	var b []rich
 	for _, it := range items {
 		b = append(b, hang(rich{dim(it.label)}, profileLabelW, it.value, c.w)...)

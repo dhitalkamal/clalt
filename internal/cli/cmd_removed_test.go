@@ -16,6 +16,7 @@ func TestRemovedCommandsExitTwoWithOneLine(t *testing.T) {
 		{[]string{"keepalive", "status"}, "clalt doctor"},
 		{[]string{"export", "backup.clalt"}, "no secrets"},
 		{[]string{"import", "backup.clalt"}, "no secrets"},
+		{[]string{"crew", "start", "work"}, "no longer managed"},
 	}
 	for _, c := range cases {
 		t.Run(strings.Join(c.args, " "), func(t *testing.T) {

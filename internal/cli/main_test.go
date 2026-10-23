@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dir)
 		os.Exit(1)
 	}
-	if err := buildFakes(dir, "fakeclaude", "fakekirocrew"); err != nil {
+	if err := buildFakes(dir, "fakeclaude"); err != nil {
 		fail(err)
 	}
 	guard, err := installFake("fakeclaude", dir, "claude-guard")

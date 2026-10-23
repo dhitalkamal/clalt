@@ -1,7 +1,7 @@
 // Package live is the dashboard's source and actions on real data: the
 // accounts in state.json, what claude says about their sign-ins, and the usage
 // in the transcripts. what lives in other packages of clalt (cli, the session
-// registry and feed of step 3a, Kiro Crew) comes in through the interfaces in
+// registry and feed of step 3a) comes in through the interfaces in
 // this file, with defaults that return nothing.
 package live
 
@@ -117,22 +117,10 @@ type Sessions interface {
 	Stop(ctx context.Context, accountID, handle string) error
 }
 
-// Gateway is a Kiro Crew gateway of an account (step 6).
-type Gateway struct {
-	AccountID string
-	Addr      string
-}
-
-// Gateways lists the running Kiro Crew gateways.
-type Gateways interface {
-	Running(ctx context.Context) ([]Gateway, error)
-}
-
-// NoFeed, NoSessions and NoGateways are the defaults: nothing is known yet.
+// NoFeed and NoSessions are the defaults: nothing is known yet.
 type (
 	NoFeed     struct{}
 	NoSessions struct{}
-	NoGateways struct{}
 )
 
 // Limits has no readings.
@@ -151,6 +139,3 @@ func (NoSessions) Running(context.Context) ([]Session, error) { return nil, nil 
 func (NoSessions) Stop(context.Context, string, string) error {
 	return dashboard.Notice("Stopping sessions is not available yet.")
 }
-
-// Running lists nothing.
-func (NoGateways) Running(context.Context) ([]Gateway, error) { return nil, nil }

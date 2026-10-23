@@ -152,8 +152,7 @@ type Session struct {
 type Profile struct {
 	Folder         string
 	ClaudeVersion  string
-	SharedSettings bool   // settings, skills and MCP shared with ~/.claude
-	FeedInstalled  bool   // the limits feed hook is installed
-	DefaultHome    bool   // the account is also what plain claude (~/.claude) is signed in as
-	Gateway        string // address of the Kiro Crew gateway when one is running, else empty
+	SharedSettings bool // settings, skills and MCP shared with ~/.claude
+	FeedInstalled  bool // the limits feed hook is installed
+	DefaultHome    bool // the account is also what plain claude (~/.claude) is signed in as
 }

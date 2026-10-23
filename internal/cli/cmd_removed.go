@@ -13,6 +13,7 @@ var goneCommands = map[string]string{
 	"refresh":   "clalt refresh is gone: claude refreshes its own login, use 'clalt login <name>' if an account is signed out",
 	"keepalive": "clalt keepalive is gone and no longer needed: 'clalt doctor' shows an old job that is still installed",
 	"export":    "clalt export is gone: accounts hold no secrets now, so there is nothing to back up",
+	"crew":      "clalt crew was removed; Kiro Crew gateways are no longer managed by clalt",
 	"import":    "clalt import is gone: accounts hold no secrets now, so there is nothing to restore",
 }
 
