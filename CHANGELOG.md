@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `clalt move` and auto-switch now work on running sessions: `clalt run` keeps
+  claude under the session wrapper, which reads the session registry and feed,
+  and at a pause (idle after a reply, or a stop that failed with `rate_limit`)
+  moves the session with `claude --resume` under the other account. `clalt run`
+  with no name ranks accounts by the limits the feed saw. Auto-switch stays off
+  until `clalt rules <name> --auto-switch`.
 - `clalt jump` and the already-open check of `clalt resume` read the session
   registry. `clalt resume <id>` without `--account` uses the account that last
   ran the conversation (from `session-accounts.jsonl`), else the account the

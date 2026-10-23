@@ -238,13 +238,13 @@ func TestMoveMistakesAreUsageErrors(t *testing.T) {
 	}
 }
 
-// until step 3a's registry is wired in there are no sessions to find
-func TestMoveSaysThereIsNoSessionRegistryYet(t *testing.T) {
+// with no session running the real registry has nothing to match
+func TestMoveWithNoRunningSessionSaysNoSessionMatches(t *testing.T) {
 	e := twoAccounts(t)
 
 	code := e.run("move", theHandle, "personal")
 
-	if code != 1 || !strings.Contains(e.errOut.String(), "session registry") {
+	if code != 1 || !strings.Contains(e.errOut.String(), "no running session matches") {
 		t.Errorf("exit %d: %s", code, e.errOut.String())
 	}
 }

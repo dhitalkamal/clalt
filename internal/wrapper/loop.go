@@ -29,6 +29,10 @@ type Deps struct {
 	Notice func(string)
 	Now    func() time.Time
 	Config Config
+	// PassInterrupt passes an interrupt on to claude too. at a terminal it
+	// reaches claude by itself, so it is for a clalt that none is sent to: a
+	// headless run, a script, a supervisor.
+	PassInterrupt bool
 }
 
 type loop struct {
@@ -99,7 +103,7 @@ func (l *loop) start(folder string, args []string, ch Change) error {
 // SIGTERM and SIGHUP are for clalt alone, and claude would be left running with
 // nobody to answer to.
 func (l *loop) relay(sig os.Signal) {
-	if sig != os.Interrupt {
+	if sig != os.Interrupt || l.d.PassInterrupt {
 		_ = l.proc.Signal(sig)
 	}
 }

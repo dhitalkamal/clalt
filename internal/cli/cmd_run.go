@@ -146,6 +146,10 @@ func projectsProblem(rep profile.Report, folder string) string {
 // `clalt sessions` while it lasts. clalt stays until claude is gone, whatever
 // signal it gets in the meantime, see relaySignals.
 func (a *App) runClaude(acc account.Account, folder string, args []string) error {
+	// where claude can be asked to end, the wrapper keeps the session and can move it
+	if osCanMove {
+		return a.runWrapped(acc, folder, args)
+	}
 	cmd, err := claudecli.Session(context.Background(), folder, a.withFeedSettings(args))
 	if err != nil {
 		return err

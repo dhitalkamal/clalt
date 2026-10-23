@@ -123,13 +123,13 @@ func pruneFeed(store feed.Store, reg registry.Registry, now time.Time) {
 // gives the same clalt session a new id, and a moved conversation shows up
 // under another account with the same one.
 func noteClaudeSession(reg registry.Registry, rec registry.Record, id string, now time.Time) error {
-	if id == "" || id == rec.ClaudeSessionID {
+	if id == "" || (id == rec.ClaudeSessionID && rec.Account == rec.AttributedAccount) {
 		return nil
 	}
 	// the log first: it is what usage is attributed by, and the registry is
 	// only a cache of the latest id
 	err := usage.AppendSessionAccount(config.SessionAccountsPath(), usage.SessionAccount{Ts: now, SessionID: id, Account: rec.Account})
-	if _, _, uerr := reg.Update(rec.Handle, func(r *registry.Record) { r.ClaudeSessionID = id }); uerr != nil && err == nil {
+	if _, _, uerr := reg.Update(rec.Handle, func(r *registry.Record) { r.ClaudeSessionID, r.AttributedAccount = id, rec.Account }); uerr != nil && err == nil {
 		err = uerr
 	}
 	return err

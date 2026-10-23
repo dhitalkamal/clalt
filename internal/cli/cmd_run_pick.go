@@ -10,10 +10,10 @@ import (
 	"github.com/dhitalkamal/clalt/internal/pick"
 )
 
-// feedLimits looks up the limits the feed last saw for an account. the feed is
-// step 3a's and is not wired in yet, so until it is nothing is known and the
-// accounts rank by label. a variable so that a test can make it answer.
-var feedLimits = func(accountID string) (pick.Limits, bool) { return pick.Limits{}, false }
+// feedLimits looks up the limits the feed last saw for an account. an account
+// the feed knows nothing of ranks after the ones it does, by label. a variable so
+// that a test can make it answer.
+var feedLimits = func(accountID string) (pick.Limits, bool) { return realFeed().Limits(accountID) }
 
 // pickAccount chooses the account that `clalt run` uses when it is given none,
 // and says on stderr which it picked and why. it is the allowed account with the

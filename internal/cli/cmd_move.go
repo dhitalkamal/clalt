@@ -12,14 +12,11 @@ import (
 
 const moveUsage = "clalt move <session> <account>"
 
-// the session registry and the feed are step 3a's and are not wired in yet. until
-// they are there are no sessions to find, and a move says so. variables so that a
-// test can put fakes in their place.
+// the session registry and the feed, as the wrapper sees them. variables so that
+// a test can put fakes in their place.
 var (
-	openRegistry = func() (wrapper.Registry, error) {
-		return nil, errors.New("this build cannot see running sessions yet: there is no session registry")
-	}
-	openFeed = func() wrapper.Feed { return nil }
+	openRegistry = func() (wrapper.Registry, error) { return sessionRegistry(), nil }
+	openFeed     = func() wrapper.Feed { return realFeed() }
 	// moveSupported is false where claude cannot be asked to end cleanly.
 	moveSupported = osCanMove
 )

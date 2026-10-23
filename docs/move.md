@@ -98,8 +98,10 @@ What a move costs:
 - Windows cannot send the signal, so `move` refuses there.
 
 Everything the wrapper needs from the registry and the feed comes from the
-session feed (step 3a). Until that is merged and wired in, `clalt move` says it
-cannot see running sessions.
+session registry and the session feed. `clalt run` starts claude through the
+wrapper (everywhere but Windows), so a session it runs can be moved. A session
+whose claude has not reported its session id yet, or whose hooks are off (a
+`--settings` of your own), has no pause to act at, and a request waits.
 
 ## Auto-switch
 
