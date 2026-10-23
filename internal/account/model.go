@@ -21,11 +21,29 @@ type Meta struct {
 	// spend caps in USD (0 = unset); used for budget bars and alerts.
 	DailyBudget  float64 `json:"dailyBudget,omitempty"`
 	WeeklyBudget float64 `json:"weeklyBudget,omitempty"`
+
+	// added with thin profiles. the fields above are still written so the
+	// v0.1.0 binary can read the file. an unset label means the id is the label.
+	Label string `json:"label,omitempty"`
+	Org   string `json:"org,omitempty"`
+	// omitempty alone never drops a zero time.Time, omitzero does
+	SignedInAt time.Time `json:"signedInAt,omitempty,omitzero"`
+	Hidden     bool      `json:"hidden,omitempty"`
 }
 
 // Account is a slot plus whether it is currently active.
 type Account struct {
-	Name   string
+	Name   string // the account id: the state.json key and the folder under accounts/
 	Meta   Meta
 	Active bool
+}
+
+// Label is what the user sees and types: Meta.Label, else the id.
+func (a Account) Label() string { return labelOf(a.Name, a.Meta) }
+
+func labelOf(id string, m Meta) string {
+	if m.Label != "" {
+		return m.Label
+	}
+	return id
 }

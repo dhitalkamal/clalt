@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- building blocks for thin profiles that nothing calls yet: a wrapper for
+  claude's own auth commands (status, login, logout, version, with auth
+  environment variables stripped), profile link and MCP server sync with a
+  read-only plan for doctor, account labels, ids and sign-in identity in
+  state.json, and paths for account folders and the shared claude home.
+  state.json is now saved atomically under a file lock, and an empty one is
+  reported instead of being read as no accounts.
+
+## [0.1.0] - 2026-10-22
+
+### Added
+
 - multi-account vault: named credential slots stored in a local encrypted
   vault (AES-256-GCM), replacing the macOS Keychain entirely.
 - keychain-free `clalt run`: launches claude for a named account without

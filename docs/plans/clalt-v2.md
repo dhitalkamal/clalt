@@ -33,7 +33,7 @@ accounts.
 - What the folder owns: its claude login (a Keychain entry keyed by the folder path) and
   .claude.json (identity and per-account state). Everything else links to ~/.claude:
   projects, settings, CLAUDE.md, skills, agents, commands, plugins. The exact list is
-  fixed at the step 2 kickoff.
+  fixed at the step 2 kickoff, see docs/plans/thin-profiles.md.
 - The id is stable, the label is display only, and the folder never moves.
 - `clalt login <name>` creates the folder and runs `claude auth login` with it.
 - Migration: transcripts in the old ~/.config/clalt/profiles/<name>/projects are copied,

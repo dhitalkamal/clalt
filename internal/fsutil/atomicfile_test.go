@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 )
 
@@ -155,5 +156,95 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 	case msg := <-errCh:
 		t.Fatal(msg)
 	default:
+	}
+}
+
+// failRename swaps the rename used by WriteFileAtomic for one that fails with
+// an access error for its first failures calls, then works.
+func failRename(t *testing.T, failures int, retry bool) *int {
+	t.Helper()
+	calls := 0
+	oldRename, oldRetry := rename, retryRename
+	rename = func(from, to string) error {
+		calls++
+		if calls <= failures {
+			return &os.LinkError{Op: "rename", Old: from, New: to, Err: syscall.EACCES}
+		}
+		return os.Rename(from, to)
+	}
+	retryRename = retry
+	t.Cleanup(func() { rename, retryRename = oldRename, oldRetry })
+	return &calls
+}
+
+func TestWriteFileAtomicRetriesAnAccessDeniedRename(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	calls := failRename(t, 3, true)
+
+	if err := WriteFileAtomic(path, []byte("new"), 0o600); err != nil {
+		t.Fatalf("WriteFileAtomic: %v", err)
+	}
+
+	if *calls != 4 {
+		t.Errorf("rename was tried %d times, want 4", *calls)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "new" {
+		t.Errorf("content = %q", got)
+	}
+}
+
+func TestWriteFileAtomicGivesUpAfterBoundedRetries(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	if err := os.WriteFile(path, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	calls := failRename(t, 1000, true)
+
+	err := WriteFileAtomic(path, []byte("new"), 0o600)
+
+	if err == nil {
+		t.Fatal("expected an error when every rename is denied")
+	}
+	if *calls != renameAttempts {
+		t.Errorf("rename was tried %d times, want %d", *calls, renameAttempts)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "old" {
+		t.Errorf("the old content was lost: %q", got)
+	}
+	entries, _ := os.ReadDir(dir)
+	if len(entries) != 1 {
+		t.Errorf("a temp file was left behind: %v", entries)
+	}
+}
+
+func TestWriteFileAtomicDoesNotRetryWhereTheOSDoesNotNeedIt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	calls := failRename(t, 1000, false)
+
+	if err := WriteFileAtomic(path, []byte("new"), 0o600); err == nil {
+		t.Fatal("expected an error")
+	}
+	if *calls != 1 {
+		t.Errorf("rename was tried %d times, want 1", *calls)
+	}
+}
+
+func TestWriteFileAtomicDoesNotRetryOtherErrors(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	calls := 0
+	oldRename, oldRetry := rename, retryRename
+	rename = func(from, to string) error {
+		calls++
+		return &os.LinkError{Op: "rename", Old: from, New: to, Err: syscall.ENOSPC}
+	}
+	retryRename = true
+	t.Cleanup(func() { rename, retryRename = oldRename, oldRetry })
+
+	if err := WriteFileAtomic(path, []byte("new"), 0o600); err == nil {
+		t.Fatal("expected an error")
+	}
+	if calls != 1 {
+		t.Errorf("rename was tried %d times, want 1", calls)
 	}
 }

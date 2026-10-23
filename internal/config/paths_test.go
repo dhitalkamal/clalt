@@ -54,3 +54,13 @@ func TestClaltDirFallsBackToHome(t *testing.T) {
 		t.Errorf("ClaltDir() = %q, want /home/tester/.config/clalt", got)
 	}
 }
+
+func TestAccountDirsHangOffClaltDir(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "/xdg")
+	if got := AccountsDir(); got != filepath.Join("/xdg/clalt", "accounts") {
+		t.Errorf("AccountsDir() = %q", got)
+	}
+	if got := accountDir("robin-2"); got != filepath.Join("/xdg/clalt", "accounts", "robin-2") {
+		t.Errorf("accountDir() = %q", got)
+	}
+}

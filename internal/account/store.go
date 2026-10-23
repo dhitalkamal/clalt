@@ -10,8 +10,15 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/credential"
+	"github.com/dhitalkamal/clalt/internal/fslock"
+	"github.com/dhitalkamal/clalt/internal/fsutil"
 	"github.com/dhitalkamal/clalt/internal/keychain"
 )
+
+// lockTimeout bounds the wait for another clalt process that is saving
+// state.json. a save takes milliseconds, so waiting this long means a stuck
+// process, and the error says so.
+const lockTimeout = 10 * time.Second
 
 // state is the on-disk metadata file (no secrets).
 type state struct {
@@ -42,62 +49,58 @@ func (s *Store) Save(name string, c credential.Credential, meta Meta) error {
 	if name == "" {
 		return errors.New("account name is empty")
 	}
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	existing, ok := st.Accounts[name]
-	if !ok {
-		if verr := ValidateName(name); verr != nil {
-			return verr
+	return s.mutate(func(st *state) error {
+		existing, ok := st.Accounts[name]
+		if !ok {
+			if verr := ValidateName(name); verr != nil {
+				return verr
+			}
 		}
-	}
-	raw, err := json.Marshal(c)
-	if err != nil {
-		return err
-	}
-	if err := s.kc.Set(KeychainService, name, raw); err != nil {
-		return fmt.Errorf("store secret: %w", err)
-	}
-	if ok && !existing.AddedAt.IsZero() {
-		meta.AddedAt = existing.AddedAt
-	} else {
-		meta.AddedAt = s.now()
-	}
-	// keep the previous lastUsedAt unless the caller set one
-	if meta.LastUsedAt.IsZero() {
-		meta.LastUsedAt = existing.LastUsedAt
-	}
-	st.Accounts[name] = meta
-	return s.save(st)
+		raw, err := json.Marshal(c)
+		if err != nil {
+			return err
+		}
+		if err := s.kc.Set(KeychainService, name, raw); err != nil {
+			return fmt.Errorf("store secret: %w", err)
+		}
+		if ok && !existing.AddedAt.IsZero() {
+			meta.AddedAt = existing.AddedAt
+		} else {
+			meta.AddedAt = s.now()
+		}
+		// keep the previous lastUsedAt unless the caller set one
+		if meta.LastUsedAt.IsZero() {
+			meta.LastUsedAt = existing.LastUsedAt
+		}
+		st.Accounts[name] = meta
+		return nil
+	})
 }
 
 // SetBudget sets a slot's daily and/or weekly spend caps (USD). A negative value
 // leaves that cap unchanged; zero clears it.
 func (s *Store) SetBudget(name string, daily, weekly float64) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	meta, ok := st.Accounts[name]
-	if !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if daily >= 0 {
-		meta.DailyBudget = daily
-	}
-	if weekly >= 0 {
-		meta.WeeklyBudget = weekly
-	}
-	st.Accounts[name] = meta
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		meta, ok := st.Accounts[name]
+		if !ok {
+			return errNoAccount(name)
+		}
+		if daily >= 0 {
+			meta.DailyBudget = daily
+		}
+		if weekly >= 0 {
+			meta.WeeklyBudget = weekly
+		}
+		st.Accounts[name] = meta
+		return nil
+	})
 }
 
 // Get returns a slot's credential and metadata.
 func (s *Store) Get(name string) (credential.Credential, Meta, error) {
 	raw, err := s.kc.Get(KeychainService, name)
 	if err != nil {
-		return credential.Credential{}, Meta{}, fmt.Errorf("account %q not found", name)
+		return credential.Credential{}, Meta{}, errNoAccount(name)
 	}
 	var c credential.Credential
 	if err := json.Unmarshal(raw, &c); err != nil {
@@ -135,56 +138,50 @@ func (s *Store) Active() (string, error) {
 
 // SetActive points the active marker at name (must exist).
 func (s *Store) SetActive(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	st.Active = name
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		if _, ok := st.Accounts[name]; !ok {
+			return errNoAccount(name)
+		}
+		st.Active = name
+		return nil
+	})
 }
 
 // Remove deletes a slot. It refuses to remove the active account so a switch is
 // required first (prevents leaving Claude Code pointed at a deleted slot).
 func (s *Store) Remove(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	if name == st.Active {
-		return fmt.Errorf("%q is active; switch to another account before removing it", name)
-	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if err := s.kc.Delete(KeychainService, name); err != nil {
-		return err
-	}
-	delete(st.Accounts, name)
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		if name == st.Active {
+			return fmt.Errorf("%q is active; switch to another account before removing it", name)
+		}
+		if _, ok := st.Accounts[name]; !ok {
+			return errNoAccount(name)
+		}
+		if err := s.kc.Delete(KeychainService, name); err != nil {
+			return err
+		}
+		delete(st.Accounts, name)
+		return nil
+	})
 }
 
 // Delete removes a slot unconditionally (unlike Remove, it does not guard the
 // active account); it clears the active pointer if it pointed here. Used by
 // logout, where forgetting the active account is the explicit intent.
 func (s *Store) Delete(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if err := s.kc.Delete(KeychainService, name); err != nil {
-		return err
-	}
-	delete(st.Accounts, name)
-	if st.Active == name {
-		st.Active = ""
-	}
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		if _, ok := st.Accounts[name]; !ok {
+			return errNoAccount(name)
+		}
+		if err := s.kc.Delete(KeychainService, name); err != nil {
+			return err
+		}
+		delete(st.Accounts, name)
+		if st.Active == name {
+			st.Active = ""
+		}
+		return nil
+	})
 }
 
 // Rename moves a slot to a new name, fixing the active pointer if needed. Only
@@ -198,33 +195,48 @@ func (s *Store) Rename(oldName, newName string) error {
 	if err := ValidateName(newName); err != nil {
 		return err
 	}
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	meta, ok := st.Accounts[oldName]
-	if !ok {
-		return fmt.Errorf("account %q not found", oldName)
-	}
-	if _, exists := st.Accounts[newName]; exists {
-		return fmt.Errorf("account %q already exists", newName)
-	}
-	raw, err := s.kc.Get(KeychainService, oldName)
-	if err != nil {
-		return fmt.Errorf("read secret for %q: %w", oldName, err)
-	}
-	if err := s.kc.Set(KeychainService, newName, raw); err != nil {
-		return err
-	}
-	if err := s.kc.Delete(KeychainService, oldName); err != nil {
-		return err
-	}
-	delete(st.Accounts, oldName)
-	st.Accounts[newName] = meta
-	if st.Active == oldName {
-		st.Active = newName
-	}
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		meta, ok := st.Accounts[oldName]
+		if !ok {
+			return errNoAccount(oldName)
+		}
+		if _, exists := st.Accounts[newName]; exists {
+			return fmt.Errorf("account %q already exists", newName)
+		}
+		raw, err := s.kc.Get(KeychainService, oldName)
+		if err != nil {
+			return fmt.Errorf("read secret for %q: %w", oldName, err)
+		}
+		if err := s.kc.Set(KeychainService, newName, raw); err != nil {
+			return err
+		}
+		if err := s.kc.Delete(KeychainService, oldName); err != nil {
+			return err
+		}
+		delete(st.Accounts, oldName)
+		st.Accounts[newName] = meta
+		if st.Active == oldName {
+			st.Active = newName
+		}
+		return nil
+	})
+}
+
+// mutate runs one load-modify-save cycle under a file lock, so parallel clalt
+// processes (several `clalt run` sessions) cannot overwrite each other's
+// changes. fn must not call another method that mutates: the lock is not
+// re-entrant. nothing is written when fn returns an error.
+func (s *Store) mutate(fn func(st *state) error) error {
+	return fslock.WithLock(s.statePath+".lock", lockTimeout, func() error {
+		st, err := s.load()
+		if err != nil {
+			return err
+		}
+		if err := fn(&st); err != nil {
+			return err
+		}
+		return s.save(st)
+	})
 }
 
 // load reads state.json, returning an empty state if the file is absent.
@@ -237,8 +249,10 @@ func (s *Store) load() (state, error) {
 		}
 		return st, err
 	}
+	// a missing file is a store with no accounts, but an empty one is a file
+	// something cut short, and writing on top of it would hide that
 	if len(raw) == 0 {
-		return st, nil
+		return st, fmt.Errorf("%s is empty", s.statePath)
 	}
 	if err := json.Unmarshal(raw, &st); err != nil {
 		return st, fmt.Errorf("parse state.json: %w", err)
@@ -257,5 +271,5 @@ func (s *Store) save(st state) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.statePath, raw, 0o600)
+	return fsutil.WriteFileAtomic(s.statePath, raw, 0o600)
 }

@@ -66,6 +66,14 @@ func ProfilesDir() string { return filepath.Join(ClaltDir(), "profiles") }
 // ProfileDir is the isolated config dir for one account.
 func ProfileDir(name string) string { return filepath.Join(ProfilesDir(), name) }
 
+// AccountsDir holds one claude config dir per account, each used as
+// CLAUDE_CONFIG_DIR for that account (claude keys the login to the path).
+func AccountsDir() string { return filepath.Join(ClaltDir(), "accounts") }
+
+// accountDir is the folder of account id and does not check the id, which is why
+// it is not exported: AccountDirFor is the way to get one.
+func accountDir(id string) string { return filepath.Join(AccountsDir(), id) }
+
 // SessionsDir holds one record per live `clalt run` session.
 func SessionsDir() string { return filepath.Join(ClaltDir(), "sessions") }
 

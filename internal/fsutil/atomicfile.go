@@ -4,11 +4,22 @@
 package fsutil
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"syscall"
+	"time"
 )
+
+// rename and retryRename are seams for tests: the retry only matters on Windows
+// and cannot be provoked portably otherwise.
+var rename = os.Rename
+var retryRename = runtime.GOOS == "windows"
+
+const renameAttempts = 10
 
 // WriteFileAtomic writes data to path so a reader either sees the old
 // content or the new content in full, never a torn write. It writes to a
@@ -47,7 +58,7 @@ func WriteFileAtomic(path string, data []byte, perm os.FileMode) error {
 	if err := os.Chmod(tmpPath, perm); err != nil {
 		return fmt.Errorf("chmod temp file: %w", err)
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err := renameWithRetry(tmpPath, path); err != nil {
 		return fmt.Errorf("rename temp file into place: %w", err)
 	}
 	committed = true
@@ -61,6 +72,32 @@ func WriteFileAtomic(path string, data []byte, perm os.FileMode) error {
 		}
 	}
 	return nil
+}
+
+// renameWithRetry retries a rename that fails because another process has the
+// target open. Windows refuses to replace a file that a reader holds for a few
+// milliseconds, and state.json is read by every clalt command. the wait is
+// bounded, so a real permission problem still fails quickly.
+func renameWithRetry(from, to string) error {
+	var err error
+	for i := 0; i < renameAttempts; i++ {
+		err = rename(from, to)
+		if err == nil || !retryRename || !renameBusy(err) {
+			return err
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return err
+}
+
+// renameBusy matches access denied, plus the sharing and lock violations that
+// Windows reports for a file held open elsewhere.
+func renameBusy(err error) bool {
+	if errors.Is(err, fs.ErrPermission) {
+		return true
+	}
+	var errno syscall.Errno
+	return runtime.GOOS == "windows" && errors.As(err, &errno) && (errno == 32 || errno == 33)
 }
 
 // syncDir fsyncs a directory so a rename inside it survives a crash, not just
