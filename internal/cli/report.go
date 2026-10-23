@@ -44,7 +44,8 @@ type accountReport struct {
 // recordsByAccount scans local transcripts and groups usage records by the
 // account id that was active at each record's time, per the switch log an old
 // clalt kept. what the log cannot place stays under usage.Unattributed, and so
-// does everything from the first sign-in of the folder design on. records
+// does everything from the first sign-in of the folder design on, unless a
+// session of clalt run saw its claude session id, which says whose it is. records
 // are deduped by message id and request id, so a reply Claude Code wrote as
 // several transcript lines counts once. the transcripts are the ones of the
 // shared home, and when they cannot be read that is an error: the numbers would
@@ -72,7 +73,11 @@ func (a *App) recordsByAccount() (map[string][]usage.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return usage.AttributeUntil(records, usageEvents, cutover), nil
+	sessions, err := usage.ReadSessionAccounts(config.SessionAccountsPath())
+	if err != nil {
+		return nil, err
+	}
+	return usage.AttributeSessions(records, usageEvents, sessions, cutover), nil
 }
 
 // buildReports assembles per-account usage from local transcripts. with a label

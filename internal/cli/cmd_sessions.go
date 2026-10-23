@@ -7,6 +7,7 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/profile"
+	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
 // sessionRow is a live `clalt run` session. account is the id the session was
@@ -17,6 +18,13 @@ type sessionRow struct {
 	PID       int       `json:"pid"`
 	Cwd       string    `json:"cwd"`
 	StartedAt time.Time `json:"startedAt"`
+
+	// from the registry, added after the fields above
+	Handle          string            `json:"handle,omitempty"`
+	Folder          string            `json:"folder,omitempty"`
+	WrapperPID      int               `json:"wrapperPid,omitempty"`
+	ClaudeSessionID string            `json:"claudeSessionId,omitempty"`
+	Terminal        registry.Terminal `json:"terminal"`
 }
 
 // labelsByID maps every account id, removed ones included, to its label.
@@ -51,7 +59,11 @@ func (a *App) cmdSessions(args []string) error {
 		if !known {
 			label = clean(s.Account)
 		}
-		rows = append(rows, sessionRow{Account: s.Account, Label: label, PID: s.PID, Cwd: clean(s.Cwd), StartedAt: s.StartedAt})
+		rows = append(rows, sessionRow{
+			Account: s.Account, Label: label, PID: s.PID, Cwd: clean(s.Cwd), StartedAt: s.StartedAt,
+			Handle: s.Handle, Folder: clean(s.Folder), WrapperPID: s.WrapperPID,
+			ClaudeSessionID: clean(s.ClaudeSessionID), Terminal: s.Terminal,
+		})
 	}
 	if a.JSON {
 		return a.emitJSON(rows)

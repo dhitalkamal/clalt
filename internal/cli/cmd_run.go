@@ -137,11 +137,14 @@ func projectsProblem(rep profile.Report, folder string) string {
 // `clalt sessions` while it lasts. clalt stays until claude is gone, whatever
 // signal it gets in the meantime, see relaySignals.
 func (a *App) runClaude(acc account.Account, folder string, args []string) error {
-	cmd, err := claudecli.Session(context.Background(), folder, args)
+	cmd, err := claudecli.Session(context.Background(), folder, a.withFeedSettings(args))
 	if err != nil {
 		return err
 	}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = a.In, a.Out, a.Err
+	sess := a.beginSession(acc, folder)
+	defer sess.finish()
+	sess.attach(cmd)
 	// before the start, so that a signal in between is held and not lost
 	sigs := make(chan os.Signal, 8)
 	// Notify with no signals at all would take every signal
@@ -154,14 +157,9 @@ func (a *App) runClaude(acc account.Account, folder string, args []string) error
 	}
 	over := make(chan struct{})
 	go relaySignals(sigs, cmd.Process, over, !a.interruptReachesClaude())
-	pid := cmd.Process.Pid
-	cwd, _ := os.Getwd()
-	_ = profile.WriteSession(config.SessionsDir(), profile.Session{
-		Account: acc.Name, PID: pid, Cwd: cwd, StartedAt: a.clock(),
-	})
+	sess.started(cmd.Process.Pid)
 	err = cmd.Wait()
 	close(over)
-	_ = profile.RemoveSession(config.SessionsDir(), pid)
 	return claudeExit(err)
 }
 

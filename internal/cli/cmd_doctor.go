@@ -69,6 +69,7 @@ func (a *App) runDoctor() doctorReport {
 	}
 	checks = append(checks, accounts...)
 	checks = append(checks, envCheck(), settingsCheck())
+	checks = append(checks, a.feedChecks()...)
 	checks = append(checks, a.leftoverChecks()...)
 
 	rep := doctorReport{Checks: checks}

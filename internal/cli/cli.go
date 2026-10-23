@@ -88,6 +88,10 @@ func run(app *App, args []string) int {
 		err = app.cmdDashboard(cmdArgs)
 	case "migrate":
 		err = app.cmdMigrate(cmdArgs)
+	case "hook":
+		err = app.cmdHook(cmdArgs)
+	case "statusline":
+		err = app.cmdStatusline(cmdArgs)
 	case "help", "-h", "--help":
 		app.usage()
 	default:

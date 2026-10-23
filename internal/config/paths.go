@@ -52,6 +52,18 @@ func accountDir(id string) string { return filepath.Join(AccountsDir(), id) }
 // SessionsDir holds one record per live `clalt run` session.
 func SessionsDir() string { return filepath.Join(ClaltDir(), "sessions") }
 
+// SessionAccountsPath is the log of which claude session ran under which
+// account, appended by the hooks of `clalt run` sessions. unlike the feed it is
+// kept, since usage is attributed by it long after the session ended.
+func SessionAccountsPath() string { return filepath.Join(ClaltDir(), "session-accounts.jsonl") }
+
+// FeedDir holds what claude's hooks and statusline report: the state of each
+// running session and the limits of each account.
+func FeedDir() string { return filepath.Join(ClaltDir(), "feed") }
+
+// LogsDir holds clalt's own log files, such as the errors of the hooks.
+func LogsDir() string { return filepath.Join(ClaltDir(), "logs") }
+
 // VaultDir held the encrypted per-account token store of clalt v0.1.0. nothing
 // reads or writes it now; `clalt doctor` reports it so it can be deleted.
 func VaultDir() string { return filepath.Join(ClaltDir(), "vault") }

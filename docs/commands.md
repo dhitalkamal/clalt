@@ -83,6 +83,12 @@ the code claude ends with. A signal that was ignored when clalt started, under `
 that a script puts in the background, stays ignored for clalt and for claude, as
 it would for claude run by hand.
 
+Each session gets a handle in `CLALT_SESSION`, a record in
+`~/.config/clalt/sessions/`, and hooks and a status line that report what it is
+doing, passed to claude with `--settings` and never written to your settings (see
+[feed.md](feed.md)). `clalt hook` and `clalt statusline` are the commands claude
+runs for that; they are not meant to be run by hand.
+
 Everything clalt says while it gets the session ready is on stderr, so stdout is
 claude's alone: `clalt run work -- -p "..." | jq` gets claude's answer and
 nothing else. Everything after the account name goes to claude, `--json`

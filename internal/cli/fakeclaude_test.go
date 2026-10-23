@@ -208,6 +208,12 @@ func (f *fakeClaude) session() (argv []string, env map[string]string, cwd string
 	if a := strings.TrimSuffix(read("session.argv"), "\n"); a != "" {
 		argv = strings.Split(a, "\n")
 	}
+	// the pair that clalt run puts first is not what the user asked claude for
+	if len(argv) >= 2 && argv[0] == "--settings" && strings.HasPrefix(argv[1], `{"hooks"`) {
+		if argv = argv[2:]; len(argv) == 0 {
+			argv = nil
+		}
+	}
 	env = map[string]string{}
 	for _, line := range strings.Split(read("session.env"), "\n") {
 		if k, v, ok := strings.Cut(line, "="); ok {
@@ -239,4 +245,18 @@ func (f *fakeClaude) sessionStdin() string {
 func (f *fakeClaude) sessionRecords() string {
 	b, _ := os.ReadFile(filepath.Join(f.dir, "session.records"))
 	return string(b)
+}
+
+// sessionSettings is the JSON that clalt run passed to the last session with
+// --settings, or "" when it passed none.
+func (f *fakeClaude) sessionSettings() string {
+	b, err := os.ReadFile(filepath.Join(f.dir, "session.argv"))
+	if err != nil {
+		f.t.Fatalf("no session was started: %v", err)
+	}
+	argv := strings.Split(strings.TrimSuffix(string(b), "\n"), "\n")
+	if len(argv) >= 2 && argv[0] == "--settings" && strings.HasPrefix(argv[1], `{"hooks"`) {
+		return argv[1]
+	}
+	return ""
 }

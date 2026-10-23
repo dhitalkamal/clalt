@@ -32,7 +32,7 @@ func (a *App) cmdUsage(args []string) error {
 		a.renderReport(r)
 	}
 	a.printf("\nlocal stats are per-machine, read from claude's transcripts and attributed by the old switch log.\n")
-	a.printf("usage newer than that log is not split per account yet.\n")
+	a.printf("usage newer than that log is split by the claude sessions that clalt run saw, and the rest is unattributed.\n")
 	return nil
 }
 

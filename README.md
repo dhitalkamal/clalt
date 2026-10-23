@@ -113,6 +113,8 @@ The details are in `docs/`, one file per subject:
   home, the history check and MCP servers
 - [docs/auth.md](docs/auth.md): the environment variables clalt removes before
   every claude call
+- [docs/feed.md](docs/feed.md): the session registry and feed that hooks and the
+  status line fill, and what `clalt run` passes to claude for it
 - [docs/doctor.md](docs/doctor.md): the checks of `clalt doctor`, and when it
   fails or only warns
 - [docs/upgrading.md](docs/upgrading.md): upgrading from v0.1.0

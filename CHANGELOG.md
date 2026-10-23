@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Session registry and feed. `clalt run` gives each session a handle
+  (`CLALT_SESSION`), keeps a record of it with the terminal location, and passes
+  claude a `--settings` that installs hooks and a status line, which write the
+  state of each session and the 5-hour and 7-day limits of each account to
+  `~/.config/clalt/feed/`. Your own settings are never modified, and your own
+  hooks and status line command keep running. `clalt sessions --json` gains
+  `handle`, `folder`, `wrapperPid`, `claudeSessionId` and `terminal`, and
+  `clalt doctor` checks the feed. See docs/feed.md.
+
 - `clalt migrate [--dry-run]`: copies the conversation history held in
   per-account profile folders (`~/.config/clalt/profiles/<name>/projects`) into
   the shared projects folder, which is `~/.claude/projects`, or

@@ -41,6 +41,9 @@ right after upgrading from v0.1.0, exits 0 with warnings.
 - Auth variables set in the current shell, and an `apiKeyHelper` or auth
   variables in the shared `settings.json` and `settings.local.json` (names only,
   never values; the list is in [auth.md](auth.md)).
+- The session feed: sessions that started and never reported (their hooks are
+  off), records and feed files of sessions that are gone, and the hook errors of
+  the last 24 hours (see [feed.md](feed.md)). All of these are warnings.
 - Leftovers of the old design: the token vault, the old profile folders, the
   old keepalive job and the marker files it left in `~/.config/clalt/`, and on
   macOS a `~/.claude/.credentials.json`. What to delete is in

@@ -98,7 +98,9 @@ account can be there more than once.
   started shows. A session whose account no longer exists shows its id.
 - Without a session it says so and shows how to start one.
 - `--json` gives an array of `account` (the id), `label`, `pid`, `cwd` and
-  `startedAt`. The command takes no arguments.
+  `startedAt`, plus `handle`, `folder`, `wrapperPid`, `claudeSessionId` and
+  `terminal` (`kind`, and the kitty, tmux or IDE details) from the registry, see
+  [feed.md](feed.md). The command takes no arguments.
 - The dashboard lists the same sessions in its sessions panel, where `k` kills
   the selected one.
 

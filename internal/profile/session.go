@@ -1,80 +1,27 @@
 package profile
 
-import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-)
+import "github.com/dhitalkamal/clalt/internal/registry"
 
-// Session records a live `clalt run` process so the dashboard can list parallel
-// sessions. Records are keyed by PID and removed when the process exits.
-type Session struct {
-	Account   string    `json:"account"`
-	PID       int       `json:"pid"`
-	Cwd       string    `json:"cwd"`
-	StartedAt time.Time `json:"startedAt"`
-}
+// Session is a record of the session registry. the names here are the ones the
+// old dashboard and the tests of earlier versions use, kept so that they keep
+// compiling; internal/registry is where the code is.
+type Session = registry.Record
 
-func sessionPath(dir string, pid int) string {
-	return filepath.Join(dir, strconv.Itoa(pid)+".json")
-}
-
-// WriteSession records a running session.
+// WriteSession records a running session. a record that has no handle yet gets
+// one, so a caller from before handles still works.
 func WriteSession(dir string, s Session) error {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+	if s.Handle == "" {
+		s.Handle = registry.NewHandle()
 	}
-	raw, err := json.Marshal(s)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(sessionPath(dir, s.PID), raw, 0o600)
+	return registry.Registry{Dir: dir}.Create(s)
 }
 
-// RemoveSession clears a session record (missing is not an error).
+// RemoveSession clears the records of a process (missing is not an error).
 func RemoveSession(dir string, pid int) error {
-	err := os.Remove(sessionPath(dir, pid))
-	if os.IsNotExist(err) {
-		return nil
-	}
-	return err
+	return registry.Registry{Dir: dir}.RemovePID(pid)
 }
 
 // ListSessions returns live sessions, pruning records whose process has exited.
 func ListSessions(dir string) ([]Session, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var out []Session
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		raw, rerr := os.ReadFile(filepath.Join(dir, e.Name()))
-		if rerr != nil {
-			continue
-		}
-		var s Session
-		if json.Unmarshal(raw, &s) != nil {
-			continue
-		}
-		if !alive(s.PID) {
-			_ = os.Remove(filepath.Join(dir, e.Name())) // prune dead
-			continue
-		}
-		out = append(out, s)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].StartedAt.Before(out[j].StartedAt) })
-	return out, nil
+	return registry.Registry{Dir: dir}.List()
 }
-
-// alive reports whether a process with pid exists. It is implemented per-OS in
-// alive_unix.go and alive_windows.go because the liveness check differs.
