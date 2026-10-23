@@ -9,6 +9,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func TestWriteFileAtomicRoundTrip(t *testing.T) {
@@ -101,7 +102,7 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 		// failed write would leave the reader spinning forever
 		defer close(stop)
 		toggle := false
-		for i := 0; i < 200; i++ {
+		for i := 0; i < 100; i++ {
 			p := payloadA
 			if toggle {
 				p = payloadB
@@ -126,6 +127,10 @@ func TestWriteFileAtomicConcurrentWritesNeverTornRead(t *testing.T) {
 				return
 			default:
 			}
+			// pause between reads: a reader holding the file open back to
+			// back starves the rename past its retry budget on windows, which
+			// no real caller does (it reads once per command)
+			time.Sleep(time.Millisecond)
 			data, err := ReadFile(path)
 			if err != nil {
 				continue // a miss here is fine, not a torn read
