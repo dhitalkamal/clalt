@@ -66,6 +66,11 @@ func sessionRows(c viewCtx, s Session, selected bool) []rich {
 	if !s.StartedAt.IsZero() {
 		elapsed = elapsedText(c.now.Sub(s.StartedAt))
 	}
-	l3 := cat(indent, rich{txt(elapsed), gap(3), txt(fmt.Sprintf("+%d -%d lines", s.Added, s.Removed)), gap(3), txt(approx(s.Cost))}).clip(c.w)
+	facts := rich{txt(elapsed), gap(3)}
+	// no lines changed is also what a source that does not know them says
+	if s.Added+s.Removed > 0 {
+		facts = append(facts, txt(fmt.Sprintf("+%d -%d lines", s.Added, s.Removed)), gap(3))
+	}
+	l3 := cat(indent, facts, rich{txt(approx(s.Cost))}).clip(c.w)
 	return []rich{l1, l2, l3}
 }

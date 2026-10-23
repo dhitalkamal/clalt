@@ -117,8 +117,13 @@ var resetVariants = []struct {
 	{0, func(Window, bool, time.Time) string { return "" }},
 }
 
-// limitBlock draws the 5h and 7d bars at one width
+// limitBlock draws the 5h and 7d bars at one width. without a reading there is
+// nothing to draw: ageRow says so, and bars at 0% would claim an account has
+// room that nobody knows it has.
 func limitBlock(c viewCtx, a Account) []rich {
+	if !a.Limits.known() {
+		return nil
+	}
 	wins := []struct {
 		label  string
 		x      Window

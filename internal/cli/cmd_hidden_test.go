@@ -53,20 +53,6 @@ func TestRemovedAccountsAreLeftOutOfTheViews(t *testing.T) {
 			t.Errorf("rows = %v", rows)
 		}
 	})
-	t.Run("the old dashboard", func(t *testing.T) {
-		e := removedAccountEnv(t)
-		data, err := e.app.Data()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(data.Accounts) != 1 || data.Accounts[0].Name != "kept" {
-			t.Errorf("accounts = %+v", data.Accounts)
-		}
-		frame, _ := e.app.dashboardFrame()
-		if strings.Contains(frame, "gone") {
-			t.Errorf("the frame shows a removed account:\n%s", frame)
-		}
-	})
 	t.Run("the duplicate email check of login", func(t *testing.T) {
 		e := removedAccountEnv(t)
 		// remove forgot the email, so a hand-written state file is the only way

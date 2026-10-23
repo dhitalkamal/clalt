@@ -3,7 +3,6 @@ package dashboard
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -14,8 +13,8 @@ import (
 type flashExpiredMsg struct{ id int }
 
 type launchMsg struct {
-	cmd *exec.Cmd
-	err error
+	launch Launch
+	err    error
 }
 
 type execDoneMsg struct{ err error }
@@ -128,49 +127,71 @@ func (m model) accountKey(k string) (model, tea.Cmd) {
 	return m.askSignOut(a), nil
 }
 
-// launch asks the actions for a command to run with the terminal released
+// launch asks the actions for something to run with the terminal released
 func (m model) launch(id string, signIn bool) tea.Cmd {
 	act, ctx := m.act, m.ctx
 	return func() tea.Msg {
-		var c *exec.Cmd
+		var l Launch
 		err := protect("action", func() (err error) {
 			if signIn {
-				c, err = act.SignIn(ctx, id)
+				l, err = act.SignIn(ctx, id)
 			} else {
-				c, err = act.Run(ctx, id)
+				l, err = act.Run(ctx, id)
 			}
 			return
 		})
-		return launchMsg{cmd: c, err: err}
+		return launchMsg{launch: l, err: err}
 	}
 }
 
+// minRun is the least time a launch keeps the terminal. a variable so a test can lengthen it. bubbletea v2.1.0 can
+// leave its renderer stopped when an exec returns at once, which a refusal
+// that was already shown can do.
+var minRun = 50 * time.Millisecond
+
+// heldLaunch is a Launch that does not return before min has passed
+type heldLaunch struct {
+	Launch
+	min time.Duration
+}
+
+func (h heldLaunch) Run() error {
+	start := time.Now()
+	err := h.Launch.Run()
+	if left := h.min - time.Since(start); left > 0 {
+		time.Sleep(left)
+	}
+	return err
+}
+
 func (m model) onLaunch(msg launchMsg) (tea.Model, tea.Cmd) {
-	// the command that runs next keeps the dashboard busy until execDoneMsg
-	if msg.err != nil || msg.cmd == nil || msg.cmd.Err != nil {
+	var cannot error
+	if starter, ok := msg.launch.(interface{ StartError() error }); ok && msg.launch != nil {
+		cannot = starter.StartError()
+	}
+	// the launch that runs next keeps the dashboard busy until execDoneMsg
+	if msg.err != nil || msg.launch == nil || cannot != nil {
 		m.busy = false
 	}
 	switch {
 	case msg.err != nil:
 		return m.fail(msg.err)
-	case msg.cmd == nil:
+	case msg.launch == nil:
 		return m.say("Nothing was started.", false)
-	case msg.cmd.Err != nil:
-		// bubbletea v2.1.0 can leave its renderer stopped when the command
-		// returns at once, so a program that is not there is reported here
-		return m.fail(msg.cmd.Err)
+	case cannot != nil:
+		return m.fail(cannot)
 	}
-	return m, tea.ExecProcess(msg.cmd, func(err error) tea.Msg { return execDoneMsg{err: err} })
+	return m, tea.Exec(heldLaunch{msg.launch, minRun}, func(err error) tea.Msg { return execDoneMsg{err: err} })
 }
 
 // onExecDone reloads, since claude may have changed a login or the usage. a
-// command that ran and exited says its status, except for the ways of leaving
-// claude that are normal: ctrl+c, which is 130, and a signal. a failure to run
-// the command at all is a red error.
+// launch that ran and ended with a status says it, except for the ways of
+// leaving claude that are normal: ctrl+c, which is 130, and a signal. an error
+// that has no status, such as a failure to run at all, is a red message.
 func (m model) onExecDone(msg execDoneMsg) (tea.Model, tea.Cmd) {
 	m.busy = false
 	var cmds []tea.Cmd
-	var exit *exec.ExitError
+	var exit interface{ ExitCode() int }
 	if msg.err != nil {
 		var c tea.Cmd
 		if !errors.As(msg.err, &exit) {

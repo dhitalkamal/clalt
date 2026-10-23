@@ -21,11 +21,12 @@ func Run(ctx context.Context, src Source, act Actions, opt Options) error {
 
 // Render draws one frame of snap at w by h as plain text with no escape codes,
 // for output that is not a terminal. opt picks the glyph set and the clock the
-// times in snap are shown against.
+// times in snap are shown against. the texts of snap are cleaned first, like
+// the program does for every load.
 func Render(snap Snapshot, w, h int, opt Options) string {
 	opt.NoColor = true
 	m := newModel(context.Background(), nil, nil, opt)
-	m.snap, m.have, m.loading = snap, true, false
+	m.snap, m.have, m.loading = cleanSnapshot(snap), true, false
 	m.loadedAt = m.now()
 	m.w, m.h = w, h
 	return ansi.Strip(m.refilter().render())

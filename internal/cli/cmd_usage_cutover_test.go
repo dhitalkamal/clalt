@@ -87,19 +87,19 @@ func TestABudgetCapDoesNotSeeUsageThatIsNobodysYet(t *testing.T) {
 	}
 }
 
-func TestTheOldDashboardAttributesTheSameWay(t *testing.T) {
+func TestTheDashboardAttributesTheSameWay(t *testing.T) {
 	e := newEnv(t)
 	e.at(loginTime)
 	e.signIn("work", "w@example.com")
 	e.writeSwitchLog(switchToWork)
 	e.writeTranscript(beforeIt, afterIt)
 
-	data, err := e.app.Data()
+	byAccount, err := (&dashboardHost{app: e.app}).Usage()
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := data.Accounts[0].Stats.Billable; got != 300 {
-		t.Errorf("the dashboard shows %d tokens for work, want 300", got)
+	if recs := byAccount["work"]; len(recs) != 1 || recs[0].Billable() != 300 {
+		t.Errorf("the dashboard reads %+v for work, want the one reply of 300 tokens", recs)
 	}
 }

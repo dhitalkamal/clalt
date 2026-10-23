@@ -81,8 +81,8 @@ clalt sessions             list live parallel run sessions
 clalt budget [name]        show or set per-account spend caps
                            (--daily N, --weekly N, --clear)
 clalt usage [name]         local usage stats
-clalt dashboard            interactive usage dashboard (TUI)
-clalt dashboard --demo     preview the new dashboard on demo data
+clalt dashboard            full-screen dashboard of accounts, sessions and usage
+clalt dashboard --demo     the dashboard on made-up data, touches no account
 clalt version              print build version (--json for machine-readable)
 ```
 
@@ -121,8 +121,7 @@ The details are in `docs/`, one file per subject:
 - [docs/migrate.md](docs/migrate.md): `clalt migrate`, copying the history of old
   per-account profile folders into the shared history
 - [docs/dashboard.md](docs/dashboard.md): usage, [budgets](docs/dashboard.md#budgets),
-  [sessions](docs/dashboard.md#sessions) and the dashboard, with a preview of
-  the new one
+  [sessions](docs/dashboard.md#sessions) and the dashboard, with its keys
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Environment overrides

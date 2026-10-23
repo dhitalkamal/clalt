@@ -3,7 +3,6 @@ package demo
 import (
 	"context"
 	"fmt"
-	"os/exec"
 
 	"github.com/dhitalkamal/clalt/internal/dashboard"
 )
@@ -16,11 +15,11 @@ var _ dashboard.Actions = actions{}
 // runs and nothing changes.
 func Actions() dashboard.Actions { return actions{} }
 
-func (actions) Run(_ context.Context, id string) (*exec.Cmd, error) {
+func (actions) Run(_ context.Context, id string) (dashboard.Launch, error) {
 	return nil, dashboard.Notice("Demo: would start claude as " + id + ".")
 }
 
-func (actions) SignIn(_ context.Context, id string) (*exec.Cmd, error) {
+func (actions) SignIn(_ context.Context, id string) (dashboard.Launch, error) {
 	return nil, dashboard.Notice("Demo: would sign in to " + id + ".")
 }
 

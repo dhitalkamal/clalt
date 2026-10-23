@@ -2,6 +2,10 @@ package dashboard
 
 import "fmt"
 
+// known is true once a source has given a limit reading. until then the
+// percents are not 0%, they are not known, and the views say so.
+func (l Limits) known() bool { return !l.ReadAt.IsZero() }
+
 func limitsContent(c viewCtx, a Account) content {
 	if !a.SignedIn {
 		return signedOutContent(c)

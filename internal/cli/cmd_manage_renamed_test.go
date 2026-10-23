@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,8 +27,8 @@ func TestRenameOfARenamedAccountFindsItByItsLabel(t *testing.T) {
 	if acc := e.account("desk"); acc.Name != "work" {
 		t.Errorf("id = %q, want work", acc.Name)
 	}
-	if err := e.app.Rename("desk", "den"); err != nil {
-		t.Fatalf("the dashboard renames by label too: %v", err)
+	if err := e.app.liveAdapter().Rename(context.Background(), "work", "den"); err != nil {
+		t.Fatalf("the dashboard renames by id: %v", err)
 	}
 	if acc := e.account("den"); acc.Name != "work" {
 		t.Errorf("id = %q, want work", acc.Name)
@@ -135,17 +136,17 @@ func TestDoctorDoesNotAskClaudeAboutTheFolderOfAnUnsafeId(t *testing.T) {
 	noClaudeCalls(t, e)
 }
 
-func TestControllerLogoutOfARemovedOrUnknownAccountFails(t *testing.T) {
+func TestTheDashboardSignOutOfARemovedOrUnknownAccountFails(t *testing.T) {
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
-	if err := e.app.Remove("work"); err != nil {
-		t.Fatal(err)
+	if code := e.run("remove", "work", "--force"); code != 0 {
+		t.Fatalf("remove exited %d: %s", code, e.errOut.String())
 	}
 	before := len(e.claude.calls("logout"))
 
-	for _, label := range []string{"work", "nobody"} {
-		if err := e.app.Logout(label); err == nil {
-			t.Errorf("Logout(%q) should fail, like clalt logout", label)
+	for _, id := range []string{"work", "nobody"} {
+		if err := e.app.liveAdapter().SignOut(context.Background(), id); err == nil {
+			t.Errorf("SignOut(%q) should fail: it is not listed", id)
 		}
 	}
 	if got := len(e.claude.calls("logout")); got != before {

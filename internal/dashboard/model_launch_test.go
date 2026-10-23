@@ -44,7 +44,7 @@ func TestARunCommandSuspendsTheProgramThroughExec(t *testing.T) {
 	m, _ := actionModel(act)
 	_, cmd := Press(m, "enter")
 	launch, ok := RunCmd(cmd, time.Second).(launchMsg)
-	if !ok || launch.cmd == nil || launch.err != nil {
+	if !ok || launch.launch == nil || launch.err != nil {
 		t.Fatalf("enter asks the actions for a command off the update loop, got %#v", launch)
 	}
 	_, exec := upd(m, launch)
@@ -58,7 +58,7 @@ func TestARunCommandSuspendsTheProgramThroughExec(t *testing.T) {
 func TestACommandThatCannotStartIsReportedWithoutLeavingTheScreen(t *testing.T) {
 	m, _ := actionModel(&fakeActions{})
 	missing := exec.Command("clalt-test-no-such-program")
-	shown, cmd := upd(m, launchMsg{cmd: missing})
+	shown, cmd := upd(m, launchMsg{launch: Command(missing)})
 	if got := fmt.Sprintf("%T", RunCmd(cmd, 100*time.Millisecond)); got == "tea.execMsg" {
 		t.Error("the screen must not be released for a command that cannot run")
 	}
@@ -72,7 +72,7 @@ func TestSignInAlsoGoesThroughExec(t *testing.T) {
 	m, _ := actionModel(act)
 	_, cmd := Press(m, "s")
 	launch, ok := RunCmd(cmd, time.Second).(launchMsg)
-	if !ok || launch.cmd == nil {
+	if !ok || launch.launch == nil {
 		t.Fatalf("s asks for an interactive command, got %#v", launch)
 	}
 }

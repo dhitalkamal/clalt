@@ -168,12 +168,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   commands, agents and CLAUDE.md.
 - `--json` after the account name of `clalt run`, with or without a `--`, now
   goes to claude instead of being taken by clalt.
-- the old dashboard shows labels and the sign-in recorded in `state.json`, and
-  no longer has the token expiry and keepalive panels. Its 5h percent is shown as
-  the estimate it is (`~17%`: the tokens of the last five hours over a fixed
-  2,000,000, not a share of the plan's limit). It warns in its header when usage
-  or the sessions cannot be read, says when a reload failed, and keeps the reason
-  of a refused `run` or `login` on screen until you press enter.
+- `clalt dashboard` opens the focus-panes dashboard (Bubble Tea v2) on your
+  real accounts: sign-in state from `claude auth status` (asked in the
+  background, cached, never per redraw), usage per day, project and model from
+  the transcripts, budgets, and run, sign in, sign out, rename and budget from
+  the keys. Enter and `s` run the code of `clalt run` and `clalt login` with the
+  terminal handed over, and a refusal stays on screen until you press enter.
+  Limits and running sessions show as not available until the statusline feed
+  and session registry are connected. Failures are logged to
+  `~/.config/clalt/logs/dashboard.log`. `--demo` still shows made-up data.
 - `state.json` gains `label`, `org`, `signedInAt` and `hidden` per account, and
   `thinSince` once. The fields v0.1.0 wrote are still written, so the v0.1.0
   binary can read the file. The `active` pointer is kept and never changed. The
@@ -215,6 +218,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `CLALT_REDIRECT_URI`, `CLALT_API_BASE` and `CLALT_NO_AUTO_KEEPALIVE`.
   `CLALT_CLAUDE_BIN` and `CLALT_ASCII` still work.
 - the `golang.org/x/crypto` dependency.
+- the old dashboard (`internal/tui`) and the Charm v1 libraries it used.
+
+### Fixed
+
+- every command waited about 5 seconds on a terminal that does not answer a
+  colour query: bubbletea v1 asked for the background colour when the program
+  started. It is gone with the old dashboard.
+- `go test` hung when stdout was a terminal, because the dashboard asked the
+  process's stdout and not the app's own streams.
 
 ### Security
 

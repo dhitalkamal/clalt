@@ -3,7 +3,6 @@ package dashboard
 import (
 	"context"
 	"errors"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -22,8 +21,8 @@ type panicActions struct {
 	value any
 }
 
-func (p *panicActions) Run(context.Context, string) (*exec.Cmd, error)    { panic(p.value) }
-func (p *panicActions) SignIn(context.Context, string) (*exec.Cmd, error) { panic(p.value) }
+func (p *panicActions) Run(context.Context, string) (Launch, error)       { panic(p.value) }
+func (p *panicActions) SignIn(context.Context, string) (Launch, error)    { panic(p.value) }
 func (p *panicActions) Rename(context.Context, string, string) error      { panic(p.value) }
 func (p *panicActions) StopSession(context.Context, string, string) error { panic(p.value) }
 

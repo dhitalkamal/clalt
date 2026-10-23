@@ -79,7 +79,7 @@ func TestAStartFailureAndAnExitStatusAreLoggedButAQuitIsNot(t *testing.T) {
 	upd(m, execDoneMsg{err: errors.New("fork/exec /x/claude: permission denied")})
 	upd(m, execDoneMsg{err: exitError(t, 3)})
 	upd(m, execDoneMsg{err: exitError(t, 130)})
-	upd(m, launchMsg{cmd: helperCmd(0), err: errors.New("no such profile")})
+	upd(m, launchMsg{launch: Command(helperCmd(0)), err: errors.New("no such profile")})
 	got := lc.all()
 	if len(got) != 3 || !strings.Contains(got[0], "permission denied") || !strings.Contains(got[1], "status 3") || !strings.Contains(got[2], "no such profile") {
 		t.Errorf("failures are logged, ctrl+c is not: %q", got)

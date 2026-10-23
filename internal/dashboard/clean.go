@@ -13,7 +13,10 @@ import (
 
 func clean(s string) string {
 	return strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
+		// format characters (a right to left override) and line separators
+		// change what is drawn or where a line ends. the joiners that scripts
+		// and emoji need are kept.
+		if unicode.IsControl(r) || (unicode.In(r, unicode.Cf, unicode.Zl, unicode.Zp) && r != '\u200c' && r != '\u200d') {
 			return ' '
 		}
 		return r

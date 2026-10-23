@@ -1,39 +1,72 @@
 # Usage dashboard
 
-`clalt dashboard` opens a full-screen interactive dashboard; `clalt usage`
-prints the same data as static text (and the dashboard falls back to one static
-frame when stdout is not a terminal). Both build stats from Claude Code's local
-transcripts (`~/.claude/projects/**/*.jsonl`). `clalt budget` reads them too.
-They are the transcripts of the shared claude home, also inside a `clalt run`
-session, where `CLAUDE_CONFIG_DIR` points at an account folder. When they cannot
-be read, `usage` and `budget` exit 1 and say why instead of reporting zero, and
-the dashboard says so in its header.
+`clalt dashboard` opens a full-screen dashboard of your accounts: who is signed
+in, how much room each one has, what is running, and what it cost. `clalt usage`
+prints the usage as static text. Without a terminal the dashboard prints one
+plain frame instead. `clalt dashboard --demo` shows it on made-up data and
+touches no account.
 
-The dashboard has an accounts panel (an estimate of each account's 5h use, with
-a `!` on one that is signed out or has to sign in again within three days), a
-sessions panel with the live `clalt run` sessions, and a detail pane for the
-selected account: 5h and 7d windows, today's cost, trend, models, hours,
-projects, email, budget and the sign-in. It shows the sign-in recorded in
-`state.json`; it does not ask claude.
+The left pane lists the accounts, the right pane shows the selected one in five
+views, switched with `[` `]` or `1` to `5`:
 
-The percent in the accounts panel is an estimate, which is why it has a tilde
-(`~17%`). It is the tokens that the transcripts hold for the account in the last
-five hours, over a fixed 2,000,000. It is not a share of the plan's limit, which
-nothing local knows, and it leaves out usage that is not attributed to an
-account: that shows only in `clalt usage`. The bars in the detail pane use the
-same reference. The real limits come with the statusline feed of the next step.
+- Overview: who is signed in and until when, the 5h and 7d limits, the budget,
+  today and the week, and what is running.
+- Sessions: the running claude sessions of the account.
+- Limits: the 5h readings of the last seven days and the pace of both windows.
+- History: usage per day, per project (enter opens a project) and per model,
+  for the last 30 days. `h` and `l` switch the tab.
+- Profile: the account folder, the claude version, whether the settings are
+  shared with `~/.claude`, the login and the usage feed.
 
-When something cannot be read (the transcripts, the folder of the sessions, or a
-reload after an action), the header says so, and a reload that failed says so
-instead of showing the old numbers as current. A `run` or `login` that was
-refused prints why and waits for enter before the dashboard comes back.
+Where the numbers come from:
 
-Controls: `tab` and `shift+tab` move between panels, `up`/`down` (or `j`/`k`)
-select, `enter` or `r` run the selected account, `n` sign an account in, `e`
-set its budget, `R` rename it, `l` sign it out, `d` remove it, `/` filter,
-`:` command palette, `?` toggle the keybinding overlay, `q` quit. In the
-sessions panel `k` kills the selected session. Running and signing in happen
-after the dashboard closes.
+- Accounts, labels, budgets and when each signed in: `state.json`.
+- Whether an account is signed in: `claude auth status`, asked for every account
+  in the background (four at a time, and again after a minute at the earliest),
+  never on every redraw. A call that fails keeps the last answer and puts a red
+  `!` on the account. If claude is missing or too old, the header says so and the
+  recorded state is shown.
+- Usage: claude's transcripts, read in the background every half minute, with
+  the attribution of `clalt usage`. The header says how much of the last 30
+  days is not split per account yet (see below).
+- Limits and running sessions come from the statusline feed and the session
+  registry. Until they are connected an account shows `--` for its 5h usage,
+  "No limit reading yet." in the overview, and the header says that running
+  sessions are not shown yet.
+
+What a failed read says: the header shows the first warning, a reload that
+failed says so with the age of the numbers on screen, and every failure is
+written with its full text to `~/.config/clalt/logs/dashboard.log` (one line
+each, kept to about 512 KB, never any transcript text).
+
+Keys:
+
+```
+up/down, k/j     move in the focused pane
+tab              switch pane
+[ ] or 1-5       switch view
+h/l, left/right  switch the History tab
+enter            run claude as the account (in History > Projects: open the project)
+s                sign in
+e                set the budget
+r                rename the account (accounts pane)
+d                sign out the account (accounts pane)
+x                stop the selected session
+/                filter the accounts
+a                switch ascii mode
+?                show the keys
+esc              close help or the filter, go back from a project
+q                quit
+ctrl+c           quit from anywhere
+```
+
+`esc` never quits. `enter` and `s` run `clalt run` and `clalt login` for the
+account, with the dashboard out of the way: the same checks, the same messages,
+and when one refuses, the reason stays on screen until you press enter. When
+claude ends, the dashboard comes back and reloads. `d` signs the account out and
+keeps its history, like `clalt logout`; `r` changes the label only; `e` asks for
+the daily and then the weekly cap, empty for none. `NO_COLOR` turns the colors
+off and `CLALT_ASCII=1` starts in ascii mode.
 
 Token accounting: the headline "tokens" figure is input + output only. Cache
 reads are excluded from that number (with a high cache-hit rate they are ~30x
@@ -44,7 +77,8 @@ Usage is split per account by an old switch log that nothing writes to any more.
 From the first sign-in made with this version of clalt on, usage is not split
 per account yet: `clalt usage` shows it, and anything else it cannot place,
 under `unattributed`, and it counts against no account's budget. `state.json`
-keeps the time of that first sign-in as `thinSince`.
+keeps the time of that first sign-in as `thinSince`. The dashboard shows what
+it can place and says in its header how much it cannot.
 
 ## Budgets
 
@@ -77,7 +111,8 @@ clalt budget work --clear       remove both caps of work
   daily cap is set and today's spend has reached it. Setting a cap with `--json`
   prints that table and nothing else.
 
-The dashboard's detail pane shows the daily cap, and `e` sets both caps.
+The dashboard's Overview shows the caps next to what was spent, and `e` sets
+both.
 
 ## Sessions
 
@@ -101,16 +136,5 @@ account can be there more than once.
   `startedAt`, plus `handle`, `folder`, `wrapperPid`, `claudeSessionId` and
   `terminal` (`kind`, and the kitty, tmux or IDE details) from the registry, see
   [feed.md](feed.md). The command takes no arguments.
-- The dashboard lists the same sessions in its sessions panel, where `k` kills
-  the selected one.
-
-## Preview of the new dashboard
-
-`clalt dashboard --demo` opens the new focus-panes dashboard on made-up data, so
-you can try it without touching any account. The current dashboard stays the
-default and nothing here reads or changes your accounts. Keys: `j`/`k` move,
-`tab` switches pane, `[` `]` or `1`-`5` switch view, `h`/`l` switch the history
-tab, `/` filters, `a` toggles ascii mode, `?` lists every key, `q` quits and
-`esc` never does. Enter, `s`, `e` and `x` only say what they would have done.
-`NO_COLOR` turns the colors off and `CLALT_ASCII=1` starts in ascii mode.
-Without a terminal it prints a single plain frame.
+- The dashboard's Sessions view is fed by the session registry that comes with
+  the statusline feed, and stops a session with `x`.

@@ -175,3 +175,20 @@ func TestACleanedLabelStillFindsItsAccountByID(t *testing.T) {
 		t.Errorf("actions address the account by id: %v", got)
 	}
 }
+
+func TestCleanTurnsFormatAndLineSeparatorCharactersIntoSpaces(t *testing.T) {
+	for name, in := range map[string]string{
+		"right to left override": "a\u202eb", "isolate": "a\u2066b", "line separator": "a\u2028b", "paragraph separator": "a\u2029b",
+	} {
+		if got := clean(in); got != "a b" {
+			t.Errorf("%s: clean = %q", name, got)
+		}
+	}
+	if got := clean("a\u200db\u200cc"); got != "a\u200db\u200cc" {
+		t.Errorf("joiners are kept for scripts and emoji: %q", got)
+	}
+	snap := cleanSnapshot(Snapshot{Accounts: []Account{{ID: "x", Label: "ev\u202eil", Email: "e\u2028"}}})
+	if a := snap.Accounts[0]; a.Label != "ev il" || a.Email != "e " {
+		t.Errorf("snapshot = %+v", a)
+	}
+}

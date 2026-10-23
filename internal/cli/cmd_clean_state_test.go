@@ -168,25 +168,6 @@ func TestSessionsCleanTheLabelOfAnAccountThatIsStillThere(t *testing.T) {
 	}
 }
 
-func TestTheDashboardCleansWhatTheStateFileHolds(t *testing.T) {
-	e := hostileStateEnv(t)
-
-	data, err := e.app.Data()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(data.Accounts) != 1 {
-		t.Fatalf("accounts = %+v", data.Accounts)
-	}
-	a := data.Accounts[0]
-	for _, v := range []string{a.Name, a.Plan, a.Email} {
-		if hasControl(v) || strings.ContainsRune(v, '\u202e') {
-			t.Errorf("an escape reached the dashboard: name %q, plan %q, email %q", a.Name, a.Plan, a.Email)
-		}
-	}
-}
-
 // the messages that name an account by its label print it where they print
 // anything else: the line that says what happened to the folder, the history
 // warning, the question before a remove

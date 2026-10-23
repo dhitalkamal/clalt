@@ -47,7 +47,10 @@ func profileContent(c viewCtx, a Account) content {
 	}
 	used := rich{txt("never")}
 	if !a.LastUsedAt.IsZero() {
-		used = rich{txt(agoText(c.now.Sub(a.LastUsedAt)) + " in " + a.LastIn)}
+		used = rich{txt(agoText(c.now.Sub(a.LastUsedAt)))}
+		if a.LastIn != "" {
+			used = rich{txt(agoText(c.now.Sub(a.LastUsedAt)) + " in " + a.LastIn)}
+		}
 	}
 	items := []struct {
 		label string

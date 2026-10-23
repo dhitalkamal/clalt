@@ -49,11 +49,24 @@ func (f *fakeSource) set(snap Snapshot, err error) {
 // fakeActions records what the dashboard asked for, by account id, and the
 // context each call got.
 type fakeActions struct {
-	mu    sync.Mutex
-	calls []string
-	ctxs  []context.Context
-	cmd   *exec.Cmd
-	err   error
+	mu     sync.Mutex
+	calls  []string
+	ctxs   []context.Context
+	cmd    *exec.Cmd // a program for Run and SignIn to hand back, as the tests that start one write it
+	launch Launch    // what they hand back instead, when it is set
+	err    error
+}
+
+// result is what Run and SignIn return: a nil Launch when there is nothing
+// to run, and not a Launch that holds a nil command
+func (f *fakeActions) result() (Launch, error) {
+	switch {
+	case f.launch != nil:
+		return f.launch, f.err
+	case f.cmd != nil:
+		return Command(f.cmd), f.err
+	}
+	return nil, f.err
 }
 
 func (f *fakeActions) record(ctx context.Context, format string, args ...any) {
@@ -75,14 +88,14 @@ func (f *fakeActions) contexts() []context.Context {
 	return append([]context.Context(nil), f.ctxs...)
 }
 
-func (f *fakeActions) Run(ctx context.Context, id string) (*exec.Cmd, error) {
+func (f *fakeActions) Run(ctx context.Context, id string) (Launch, error) {
 	f.record(ctx, "run %s", id)
-	return f.cmd, f.err
+	return f.result()
 }
 
-func (f *fakeActions) SignIn(ctx context.Context, id string) (*exec.Cmd, error) {
+func (f *fakeActions) SignIn(ctx context.Context, id string) (Launch, error) {
 	f.record(ctx, "signin %s", id)
-	return f.cmd, f.err
+	return f.result()
 }
 
 func (f *fakeActions) Rename(ctx context.Context, id, label string) error {

@@ -67,7 +67,11 @@ func accountRow(g glyphs, a Account, now time.Time, selected, wide bool, w int) 
 		return alignRight(left, word, w)
 	}
 	pct := a.Limits.Five.Percent
-	right := rich{span{pctTone(pct), fmt.Sprintf("%3d%%", pct)}, gap(1), rowFlag(a, now)}
+	cell := span{pctTone(pct), fmt.Sprintf("%3d%%", pct)}
+	if !a.Limits.known() {
+		cell = dim("  --")
+	}
+	right := rich{cell, gap(1), rowFlag(a, now)}
 	clusterW := 6
 	if wide {
 		clusterW = 10
@@ -86,12 +90,12 @@ func worstWindow(a Account) int { return max(a.Limits.Five.Percent, a.Limits.Sev
 
 // roomHint names the signed in account with the most room left, the one whose
 // worse window has the lowest usage. an account at 90 or more in either window
-// has no room to name. with fewer than two signed in accounts there is nothing
-// to compare.
+// has no room to name, and one with no limit reading has no usage to compare.
+// with fewer than two accounts to compare there is nothing to name.
 func roomHint(accts []Account) string {
 	best, signedIn := -1, 0
 	for i, a := range accts {
-		if !a.SignedIn {
+		if !a.SignedIn || !a.Limits.known() {
 			continue
 		}
 		signedIn++

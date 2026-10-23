@@ -140,7 +140,7 @@ func TestSessionWithoutEffortBranchOrContext(t *testing.T) {
 	want := []string{
 		"> idle     ~/tmp",
 		"           Sonnet 5.5",
-		"           0h00m   +0 -0 lines   ~$0.00",
+		"           0h00m   ~$0.00",
 	}
 	for i := range want {
 		if got[i] != want[i] {
