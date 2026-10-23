@@ -104,6 +104,8 @@ func run(app *App, args []string) int {
 		err = app.cmdHook(cmdArgs)
 	case "statusline":
 		err = app.cmdStatusline(cmdArgs)
+	case "crew":
+		err = app.cmdCrew(cmdArgs)
 	case "help", "-h", "--help":
 		app.usage()
 	default:
@@ -174,6 +176,10 @@ usage:
   clalt jump <session>        bring the terminal of a running session to the front
   clalt notify [on|off|status|test]
                               alerts when a session needs you
+  clalt crew start <name>     run a Kiro Crew gateway for the account (localhost only)
+  clalt crew stop <name>      stop the gateway clalt started for the account
+  clalt crew status [name]    the gateways clalt started: port, state, uptime
+  clalt crew logs <name>      what the gateway printed (-n lines, default 100)
   clalt budget [name]         show or set per-account spend caps (--daily/--weekly/--clear)
   clalt usage [name]          local usage stats
   clalt dashboard             full-screen dashboard of accounts, sessions and usage

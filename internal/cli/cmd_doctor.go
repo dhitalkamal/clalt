@@ -72,6 +72,7 @@ func (a *App) runDoctor() doctorReport {
 	checks = append(checks, envCheck(), settingsCheck())
 	checks = append(checks, a.feedChecks()...)
 	checks = append(checks, a.leftoverChecks()...)
+	checks = append(checks, a.crewChecks()...)
 
 	rep := doctorReport{Checks: checks}
 	for _, c := range checks {

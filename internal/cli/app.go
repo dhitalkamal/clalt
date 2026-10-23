@@ -9,6 +9,7 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/crew"
 )
 
 // App holds the constructed dependencies for one invocation.
@@ -31,6 +32,10 @@ type App struct {
 
 	// now is the clock; tests set it, nil means time.Now.
 	now func() time.Time
+
+	// crewOpts is what the crew manager is built with; tests set it, the zero
+	// value is the real thing.
+	crewOpts crew.Options
 
 	// terminal says whether the input of a session is a terminal. tests set it,
 	// nil means look at In, see inputIsTerminal.

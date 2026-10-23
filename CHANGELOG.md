@@ -33,6 +33,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   most one per session per wait, with an off setting. The session hooks that
   raise it come with the session feed.
 
+- `clalt crew start|stop|status|logs <name>`: one detached Kiro Crew gateway per
+  account, with the account's login, its own home and port (from 5500), localhost
+  only (checked with lsof). It only runs Kiro Crew 0.9.x (CLALT_CREW_ALLOW_UNTESTED=1
+  lifts that), stops only the process it started (pid and
+  start time checked), and never prints a token. `clalt doctor` reports stale
+  records and an unsupported version once a gateway has a record. See docs/crew.md.
 - `clalt migrate [--dry-run]`: copies the conversation history held in
   per-account profile folders (`~/.config/clalt/profiles/<name>/projects`) into
   the shared projects folder, which is `~/.claude/projects`, or
