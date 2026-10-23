@@ -14,6 +14,7 @@ import (
 	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/claudecli"
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
 
 // loginWarnWindow is how far ahead doctor warns that an account has to sign in
@@ -180,7 +181,7 @@ func settingsCheck() checkResult {
 	}
 	var found, unreadable []string
 	for _, name := range []string{"settings.json", "settings.local.json"} {
-		raw, err := os.ReadFile(filepath.Join(shared, name))
+		raw, err := fsutil.ReadFile(filepath.Join(shared, name))
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
 		}

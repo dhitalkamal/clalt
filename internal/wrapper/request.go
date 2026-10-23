@@ -151,7 +151,7 @@ func TakeResult(dir, handle string) (Result, bool) {
 	if err != nil {
 		return Result{}, false
 	}
-	raw, err := os.ReadFile(path + ".result")
+	raw, err := fsutil.ReadFile(path + ".result")
 	if err != nil {
 		return Result{}, false
 	}

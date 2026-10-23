@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+
+	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
 
 // readObject parses a json object file into raw top-level values, which keeps
@@ -17,7 +18,7 @@ import (
 // empty object with nil bytes; an empty file, bad json or anything but an
 // object is an error.
 func readObject(path string) (raw []byte, top map[string]json.RawMessage, err error) {
-	raw, err = os.ReadFile(path)
+	raw, err = fsutil.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, map[string]json.RawMessage{}, nil
 	}
@@ -51,7 +52,7 @@ func serversOf(top map[string]json.RawMessage, path string) (map[string]json.Raw
 }
 
 func readManifest(path string) ([]string, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := fsutil.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}

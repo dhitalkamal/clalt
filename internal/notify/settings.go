@@ -20,7 +20,7 @@ func settingsPath(dir string) string { return filepath.Join(dir, "settings.json"
 // Enabled reads the on/off setting in dir. no file means on. a file that
 // cannot be read or parsed also means on, with an error that says why.
 func Enabled(dir string) (bool, error) {
-	data, err := os.ReadFile(settingsPath(dir))
+	data, err := fsutil.ReadFile(settingsPath(dir))
 	if errors.Is(err, fs.ErrNotExist) {
 		return true, nil
 	}

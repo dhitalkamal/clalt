@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -32,7 +31,7 @@ var pins = map[string]any{
 // object is an error and is left as it is. the write is atomic and private.
 func pinDefaults(p Paths) error {
 	cfg := map[string]any{}
-	raw, err := os.ReadFile(p.LocalConfig)
+	raw, err := fsutil.ReadFile(p.LocalConfig)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 	case err != nil:

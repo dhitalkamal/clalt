@@ -219,7 +219,7 @@ func refuseSymlink(path string) error {
 // unchangedSince reports whether the file still holds the bytes a plan was made
 // from (nil for a file that was missing).
 func unchangedSince(path string, seen []byte) (bool, error) {
-	cur, err := os.ReadFile(path)
+	cur, err := fsutil.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return seen == nil, nil
 	}

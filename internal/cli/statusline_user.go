@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
 
 // statuslineWait is how long the user's own statusLine command gets. claude
@@ -39,7 +40,7 @@ func readUserStatusLine() (userStatusLine, bool) {
 	if dir == "" {
 		return userStatusLine{}, false
 	}
-	raw, err := os.ReadFile(filepath.Join(dir, "settings.json"))
+	raw, err := fsutil.ReadFile(filepath.Join(dir, "settings.json"))
 	if err != nil {
 		return userStatusLine{}, false
 	}

@@ -45,7 +45,7 @@ func ReadRecord(id string) (rec Record, found bool, err error) {
 	if err != nil {
 		return Record{}, false, err
 	}
-	raw, err := os.ReadFile(p.Record)
+	raw, err := fsutil.ReadFile(p.Record)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return Record{}, false, nil
