@@ -21,6 +21,9 @@ type Config struct {
 	Gateways Gateways // nil: NoGateways
 	Now      func() time.Time
 	Home     string // the user's home, shown as ~ in folders
+	// DefaultHome is the id of the account that plain claude (~/.claude) is
+	// signed in as, or empty. nil means none.
+	DefaultHome func() string
 
 	// Grace is the longest a load waits for what a background read has not
 	// brought yet. SignInTTL, UsageTTL and VersionTTL say how old an answer

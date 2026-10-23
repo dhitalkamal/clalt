@@ -33,6 +33,10 @@ func (a *App) cmdHook(args []string) (err error) {
 	raw := readInput(a.In)
 	handle := os.Getenv(sessionEnvVar)
 	if !registry.ValidHandle(handle) {
+		// not a clalt run session: plain claude in a home that is an account's
+		if ctx, ok := extContext(); ok && event != "" {
+			a.extHook(ctx, event, raw, deadline)
+		}
 		return nil
 	}
 	if event == "" {
@@ -92,8 +96,11 @@ func (a *App) applyHook(reg registry.Registry, rec registry.Record, event string
 		hookLog(now, event, "%s: update the feed: %v", rec.Handle, err)
 	}
 	reg.LockWait = capWait(wait, deadline)
-	if err := noteClaudeSession(reg, rec, in.SessionID, now); err != nil {
-		hookLog(now, event, "%s: record the claude session id: %v", rec.Handle, err)
+	// an ext session has no registry record and is noted in the ledger by its caller
+	if !feed.IsExt(rec.Handle) {
+		if err := noteClaudeSession(reg, rec, in.SessionID, now); err != nil {
+			hookLog(now, event, "%s: record the claude session id: %v", rec.Handle, err)
+		}
 	}
 	if event == "SessionStart" {
 		store.LockWait, reg.LockWait = capWait(wait, deadline), capWait(wait, deadline)
@@ -115,7 +122,7 @@ func pruneFeed(store feed.Store, reg registry.Registry, now time.Time) {
 			live[e.Handle] = true
 		}
 	}
-	_, _ = store.Prune(now, func(h string) bool { return live[h] })
+	_, _ = store.Prune(now, func(h string) bool { return live[h] || keepExt(store, h, now) })
 }
 
 // noteClaudeSession records a claude session id that is new to the session, in

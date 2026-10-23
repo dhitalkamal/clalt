@@ -94,6 +94,20 @@ claude's alone: `clalt run work -- -p "..." | jq` gets claude's answer and
 nothing else. Everything after the account name goes to claude, `--json`
 included.
 
+## Plain claude
+
+```
+clalt feed install [--yes]     add the hooks and status line to ~/.claude/settings.json
+clalt feed uninstall [--yes]   remove exactly those
+clalt feed status [--json]     installed or not, which account plain claude is
+clalt feed forget-default      undo the usage attributed to plain claude
+clalt feed remember-default    attribute it again
+```
+
+These give plain `claude` the live feed, when it is signed in as the same email
+as one of your accounts. The details, the backup and what uninstall restores are
+in [feed.md](feed.md).
+
 ## Managing accounts
 
 ```
@@ -109,7 +123,9 @@ clalt rename <old> <new>   label only, the folder never moves
 `list` asks claude about every account, a few at a time, and shows `unknown`
 with the reason when it cannot get an answer. `list --json` gives `id`,
 `label`, `email`, `org`, `plan`, `signedIn` (true, false or null), `reason`,
-`signedInAt`, `loginDueAt`, `lastUsedAt` and `folder`.
+`signedInAt`, `loginDueAt`, `lastUsedAt`, `folder` and `defaultHome` (true for the
+account that plain `claude` in `~/.claude` is also signed in as, from the cache
+of the default home; the table says it in a line under it).
 
 `whoami` looks at `CLAUDE_CONFIG_DIR`: inside an account folder (which is what
 a `clalt run` session looks like) it shows that account; inside an old v0.1.0

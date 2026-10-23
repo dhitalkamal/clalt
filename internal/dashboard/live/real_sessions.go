@@ -2,6 +2,7 @@ package live
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/feed"
@@ -55,5 +56,31 @@ func (r *RegistrySessions) Running(context.Context) ([]Session, error) {
 		s.Branch = gitBranch(s.Cwd)
 		out = append(out, s)
 	}
-	return out, nil
+	return append(out, r.plainClaude()...), nil
+}
+
+// extFresh is how recently a session of plain claude must have reported to be
+// listed: it has no wrapper whose death would show, only the feed.
+const extFresh = 6 * time.Hour
+
+// plainClaude lists the sessions that plain claude reported through the global
+// hooks, see feed.ExtHandle. they have no registry record, so the feed is all
+// there is: one that ended or went quiet is not shown.
+func (r *RegistrySessions) plainClaude() []Session {
+	all, err := r.Feed.Sessions()
+	if err != nil {
+		return nil
+	}
+	var out []Session
+	for _, st := range all {
+		if !feed.IsExt(st.Handle) || st.State == feed.StateEnded || r.now().Sub(st.UpdatedAt) > extFresh {
+			continue
+		}
+		out = append(out, Session{
+			Handle: st.Handle, AccountID: st.Account, ClaudeSessionID: strings.TrimPrefix(st.Handle, "ext-"),
+			State: SessionState(st.State), Reason: st.Reason, Model: st.Model, Cwd: st.Cwd, Branch: gitBranch(st.Cwd),
+			ContextPct: st.ContextPct, StartedAt: st.Since, UpdatedAt: st.UpdatedAt,
+		})
+	}
+	return out
 }

@@ -158,7 +158,7 @@ func (a *App) liveAdapter() *live.Adapter {
 	home := config.Home()
 	fd := feed.Store{Dir: config.FeedDir()}
 	return live.New(live.Config{
-		Store: a.Store, Host: &dashboardHost{app: a}, Now: a.clock, Home: home,
+		Store: a.Store, Host: &dashboardHost{app: a}, Now: a.clock, Home: home, DefaultHome: a.defaultHomeAccount,
 		Feed:     live.FeedFiles{Store: fd, Now: a.clock},
 		Sessions: &live.RegistrySessions{Reg: registry.Registry{Dir: config.SessionsDir()}, Feed: fd, Now: a.clock},
 		Gateways: live.CrewGateways{},

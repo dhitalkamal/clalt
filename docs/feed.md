@@ -3,6 +3,8 @@
 `clalt run` keeps a record of each session it starts, and claude tells clalt what
 the session is doing. Nothing here changes your own claude settings: the hooks and
 the status line are given to claude with `--settings` for that session only.
+Plain `claude` (the default home, `~/.claude`) is covered by the opt-in
+`clalt feed install` further down.
 
 ## What `clalt run` adds
 
@@ -65,4 +67,92 @@ session, it appends the id and the account to `~/.config/clalt/session-accounts.
 (this file is kept, unlike the feed). `clalt usage` and `clalt budget` use it for the
 usage from the first sign-in of the folder design on: a transcript record goes to the
 account its claude session ran under, and a conversation that moved is split by time.
-Sessions that were not started by `clalt run` stay unattributed.
+Sessions that were not started by `clalt run` are attributed to the account of
+the default home when there is one, see below, and stay unattributed otherwise.
+
+## Plain claude: the default home
+
+People run plain `claude` (config in `~/.claude`, its own login) next to
+`clalt run`. clalt sees those sessions only when it can tell whose they are, and
+it does that by email.
+
+**Matching.** clalt asks claude about the default home exactly as plain claude
+sees it (`CLAUDE_CONFIG_DIR` unset, no key or token variables, no short timeout)
+and keeps the answer in `~/.config/clalt/default-home.json`. If it is a claude.ai
+login whose email equals the recorded email of one visible account (case does
+not matter), that account is the default home's. A different email, a login that
+is not claude.ai (an API key, a third party provider) or two accounts with the
+same email leave plain claude outside clalt, and `clalt doctor` says why. When
+claude cannot be asked, an earlier match is kept and the reason is recorded.
+`clalt list` and the dashboard Profile say "also the default claude (~/.claude)".
+Asking claude is slow, so only `clalt feed status`, `clalt feed install`,
+`clalt usage` and the dashboard do it, at most once a day (feed status always).
+Hooks, the status line, doctor and the other views read the file.
+
+**Usage.** A session that no clalt run session claimed is attributed to the
+matched account when it started at or after the later of the first sign-in of the
+folder design and the moment this match began (`matchedSince` in
+`default-home.json`, reset whenever the account or the state changes). So a
+`/login` as another account, or plain claude going from outside to matched, never
+charges the new account for what ran before; when the match changes, the sessions
+the old one earned are written to the ledger first.
+Each one is written to `session-accounts.jsonl` with `"source":"default"`, so it
+can be seen and undone: `clalt feed forget-default` removes those lines (usage is
+unattributed again) and stops clalt from adding them,
+`clalt feed remember-default` turns it back on. A session that already has a line
+is never moved.
+
+**Live feed, opt in.**
+
+```
+clalt feed install [--yes]     add clalt's hooks and status line to ~/.claude/settings.json
+clalt feed uninstall [--yes]   take exactly those out again
+clalt feed status [--json]     installed or not, the account, the backup
+```
+
+A plain claude session that starts while the cached answer is older than 5 minutes
+makes its hook ask claude again first; if that does not finish inside the hook's
+time, the session is not recorded or attributed at all rather than guessed.
+(The status line never asks: it waits for the hook.)
+
+Install is refused on Windows: claude runs hook commands in Git Bash, or in
+PowerShell when Git Bash is missing, and one command cannot be made reliable for
+both. `clalt run` sessions still feed clalt there.
+
+Install needs a match, asks first (`--yes` for scripts; with no terminal and no
+`--yes` it refuses) and refuses when `settings.json` is a symlink, not a regular
+file or not a JSON object. Before writing it copies the file to
+`~/.config/clalt/backups/settings/settings-<UTC time>.json`. It adds one handler
+per event of the list above, after yours (your hooks keep running), and every
+command ends in the word `clalt-feed`, which is how uninstall and status find them.
+Nothing else in the file is touched. If you have a `statusLine` of your own, clalt
+keeps it in `~/.config/clalt/feed-install.json`, not in `settings.json`, puts its
+own in its place (with your `padding`, `refreshInterval` and
+`hideVimModeIndicator`) and `clalt statusline` runs yours. The file is written
+atomically, after checking that the file is still what the question was about;
+if claude saved it meanwhile, install stops with "settings.json changed while
+waiting, run clalt feed install again" and writes nothing. A second install
+changes nothing.
+
+Every installed command is guarded: with clalt moved or removed, a hook is a
+silent no-op, and the status line runs your own command directly (a copy of it is
+in the command in `settings.json` for that case). The path is the stable link on
+`PATH` when the running clalt sits in a versioned or temporary folder (a Homebrew
+Cellar, a go build cache); install says which it used. `clalt feed status` and
+doctor warn when the recorded clalt no longer exists.
+
+Uninstall puts your file back byte for byte from the backup when it is still
+exactly what install wrote. If you changed it since, it removes only the entries
+with the marker, restores your statusLine and rewrites the file with sorted keys
+and two space indent (the one formatting change; your values are kept as they
+are) after backing it up too.
+
+The installed commands do nothing, quietly, unless the session is a `clalt run`
+session (`CLALT_SESSION`) or plain claude in a home that is matched to an account.
+A session that has both the per-session settings and the global ones records
+once, through `CLALT_SESSION`. A plain claude session is kept as
+`ext-<claude session id>` in `~/.config/clalt/feed/sessions/` under the matched
+account, shows in the dashboard Sessions view (it cannot be stopped from there)
+and, with its status line, fills the limits of the account. It counts as running
+while it has not ended and reported in the last 6 hours, and its feed file is
+removed 24 hours after the last report.

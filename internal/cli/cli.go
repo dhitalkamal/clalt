@@ -104,6 +104,8 @@ func run(app *App, args []string) int {
 		err = app.cmdHook(cmdArgs)
 	case "statusline":
 		err = app.cmdStatusline(cmdArgs)
+	case "feed":
+		err = app.cmdFeed(cmdArgs)
 	case "crew":
 		err = app.cmdCrew(cmdArgs)
 	case "help", "-h", "--help":
@@ -177,6 +179,11 @@ usage:
   clalt jump <session>        bring the terminal of a running session to the front
   clalt notify [on|off|status|test]
                               alerts when a session needs you
+  clalt feed install|uninstall|status
+                              give plain claude (~/.claude) the live feed too, when
+                              it is signed in as one of the accounts (--yes skips
+                              the question); forget-default undoes the usage
+                              clalt attributed to it
   clalt crew start <name>     run a Kiro Crew gateway for the account (localhost only)
   clalt crew stop <name>      stop the gateway clalt started for the account
   clalt crew status [name]    the gateways clalt started: port, state, uptime

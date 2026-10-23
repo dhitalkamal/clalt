@@ -11,12 +11,15 @@ views, switched with `[` `]` or `1` to `5`:
 
 - Overview: who is signed in and until when, the 5h and 7d limits, the budget,
   today and the week, and what is running.
-- Sessions: the running claude sessions of the account.
+- Sessions: the running claude sessions of the account, including plain `claude`
+  sessions when the feed is installed for it (they cannot be stopped from here).
 - Limits: the 5h readings of the last seven days and the pace of both windows.
 - History: usage per day, per project (enter opens a project) and per model,
   for the last 30 days. `h` and `l` switch the tab.
 - Profile: the account folder, the claude version, whether the settings are
-  shared with `~/.claude`, the login and the usage feed.
+  shared with `~/.claude`, the login and the usage feed. A Default row says
+  "also the default claude (~/.claude)" for the account that plain `claude` is
+  signed in as, see [feed.md](feed.md).
 
 Where the numbers come from:
 

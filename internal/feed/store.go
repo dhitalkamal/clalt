@@ -13,7 +13,6 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/fslock"
 	"github.com/dhitalkamal/clalt/internal/fsutil"
-	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
 const defaultLockWait = 2 * time.Second
@@ -66,7 +65,7 @@ func readJSON(path string, v any) bool {
 // no file yet starts as "starting". fn says whether it changed anything; only
 // then is the file written, with UpdatedAt set to now.
 func (s Store) UpdateSession(handle, account string, now time.Time, fn func(*SessionState) bool) error {
-	if !registry.ValidHandle(handle) {
+	if !ValidKey(handle) {
 		return fmt.Errorf("not a session handle: %q", handle)
 	}
 	if err := os.MkdirAll(s.Dir, 0o700); err != nil {
@@ -91,7 +90,7 @@ func (s Store) UpdateSession(handle, account string, now time.Time, fn func(*Ses
 // Session reads one session. a missing or corrupt file is "not there".
 func (s Store) Session(handle string) (SessionState, bool) {
 	var st SessionState
-	if !registry.ValidHandle(handle) || !readJSON(s.sessionPath(handle), &st) {
+	if !ValidKey(handle) || !readJSON(s.sessionPath(handle), &st) {
 		return SessionState{}, false
 	}
 	return st, true
@@ -120,7 +119,7 @@ func (s Store) Sessions() ([]SessionState, error) {
 
 // RemoveSession deletes the file of a session. a missing one is not an error.
 func (s Store) RemoveSession(handle string) error {
-	if !registry.ValidHandle(handle) {
+	if !ValidKey(handle) {
 		return nil
 	}
 	if err := os.Remove(s.sessionPath(handle)); err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -167,7 +166,7 @@ func (s Store) activityPath(handle string) string {
 // lock, since it runs after every tool call and a lost write only makes a
 // later notification look older than it is.
 func (s Store) TouchActivity(handle string, now time.Time) error {
-	if !registry.ValidHandle(handle) {
+	if !ValidKey(handle) {
 		return fmt.Errorf("not a session handle: %q", handle)
 	}
 	return writeJSON(s.activityPath(handle), now.UTC())
@@ -176,7 +175,7 @@ func (s Store) TouchActivity(handle string, now time.Time) error {
 // Activity is when TouchActivity was last called for the session, or zero.
 func (s Store) Activity(handle string) time.Time {
 	var t time.Time
-	if !registry.ValidHandle(handle) || !readJSON(s.activityPath(handle), &t) {
+	if !ValidKey(handle) || !readJSON(s.activityPath(handle), &t) {
 		return time.Time{}
 	}
 	return t

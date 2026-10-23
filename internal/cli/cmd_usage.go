@@ -14,6 +14,8 @@ func (a *App) cmdUsage(args []string) error {
 	if err != nil {
 		return err
 	}
+	// which account plain claude is decides where its usage goes
+	a.refreshDefaultHomeIfStale()
 	reports, err := a.buildReports(label)
 	if err != nil {
 		return err

@@ -28,6 +28,9 @@ type accountRow struct {
 	LoginDueAt *time.Time `json:"loginDueAt"`
 	LastUsedAt *time.Time `json:"lastUsedAt"`
 	Folder     string     `json:"folder"`
+	// DefaultHome is set for the account that plain claude (~/.claude) is also
+	// signed in as, from the cache of the default home
+	DefaultHome bool `json:"defaultHome"`
 }
 
 func timeOrNil(t time.Time) *time.Time {
@@ -131,6 +134,11 @@ func (a *App) visibleRows() ([]accountRow, error) {
 		rows[i] = rowFor(accts[i])
 		rows[i].SignedIn, rows[i].Reason = signInOf(accts[i])
 	})
+	if def := a.defaultHomeAccount(); def != "" {
+		for i := range rows {
+			rows[i].DefaultHome = rows[i].ID == def
+		}
+	}
 	return rows, nil
 }
 
@@ -156,7 +164,15 @@ func (a *App) cmdList(args []string) error {
 		last := ago(derefTime(r.LastUsedAt), now)
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Label, dash(r.Email), dash(r.Plan), signedInCell(r), dueCell(r, now), last)
 	}
-	return tw.Flush()
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if r.DefaultHome {
+			a.printf("\n%s is also the default claude (~/.claude)\n", r.Label)
+		}
+	}
+	return nil
 }
 
 func derefTime(t *time.Time) time.Time {

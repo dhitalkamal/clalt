@@ -152,6 +152,7 @@ func (a *Adapter) buildAccount(ctx context.Context, acc account.Account, sr sign
 	}
 	folder, folderErr := config.AccountDirFor(acc.Name)
 	out.Profile = dashboard.Profile{Folder: folder, ClaudeVersion: ver.version, FeedInstalled: a.cfg.Feed.Installed(acc.Name)}
+	out.Profile.DefaultHome = a.cfg.DefaultHome != nil && a.cfg.DefaultHome() == acc.Name
 	var warn string
 	if folderErr == nil {
 		var err error

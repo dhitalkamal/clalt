@@ -32,6 +32,8 @@ func (a *App) cmdStatusline(args []string) error {
 		}()
 		if h := os.Getenv(sessionEnvVar); registry.ValidHandle(h) {
 			a.recordStatusline(h, raw)
+		} else if ctx, ok := extContext(); ok {
+			a.recordStatuslineExt(ctx, raw)
 		}
 	}()
 	defer func() { <-recorded }()
@@ -103,6 +105,21 @@ func (a *App) recordStatusline(handle string, raw []byte) {
 	if !found {
 		return
 	}
+	err := store.UpdateSession(handle, account, now, func(s *feed.SessionState) bool { return applyStatus(s, in) })
+	if err != nil {
+		hookLog(now, "statusline", "%s: update the feed: %v", handle, err)
+	}
+	if err := noteClaudeSession(reg, rec, in.SessionID, now); err != nil {
+		hookLog(now, "statusline", "%s: record the claude session id: %v", handle, err)
+	}
+}
+
+// applyStatus copies what a statusline input says about the session into s and
+// says whether anything changed. an ended session stays as it is.
+func applyStatus(s *feed.SessionState, in statusInput) bool {
+	if s.State == feed.StateEnded {
+		return false
+	}
 	model, cwd := in.Model.ID, in.Workspace.CurrentDir
 	if model == "" {
 		model = in.Model.DisplayName
@@ -110,28 +127,17 @@ func (a *App) recordStatusline(handle string, raw []byte) {
 	if cwd == "" {
 		cwd = in.Cwd
 	}
-	err := store.UpdateSession(handle, account, now, func(s *feed.SessionState) bool {
-		if s.State == feed.StateEnded {
-			return false
-		}
-		changed := false
-		if model != "" && s.Model != model {
-			s.Model, changed = model, true
-		}
-		if cwd != "" && s.Cwd != cwd {
-			s.Cwd, changed = cwd, true
-		}
-		if p := in.ContextWindow.UsedPercentage; p != nil && (s.ContextPct == nil || *s.ContextPct != *p) {
-			s.ContextPct, changed = p, true
-		}
-		return changed
-	})
-	if err != nil {
-		hookLog(now, "statusline", "%s: update the feed: %v", handle, err)
+	changed := false
+	if model != "" && s.Model != model {
+		s.Model, changed = model, true
 	}
-	if err := noteClaudeSession(reg, rec, in.SessionID, now); err != nil {
-		hookLog(now, "statusline", "%s: record the claude session id: %v", handle, err)
+	if cwd != "" && s.Cwd != cwd {
+		s.Cwd, changed = cwd, true
 	}
+	if p := in.ContextWindow.UsedPercentage; p != nil && (s.ContextPct == nil || *s.ContextPct != *p) {
+		s.ContextPct, changed = p, true
+	}
+	return changed
 }
 
 // accountOfConfigDir is the id of the account whose folder dir is, or "".

@@ -25,6 +25,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Plain `claude` beside clalt. clalt recognises the default home (`~/.claude`) as
+  an account when it is signed in as the same email (claude.ai login, case does
+  not matter), shows it in `clalt list`, the dashboard Profile and `clalt doctor`,
+  and attributes the usage of sessions that `clalt run` never saw to that account,
+  recorded in `session-accounts.jsonl` with source `default`
+  (`clalt feed forget-default` undoes it).
+- `clalt feed install|uninstall|status`: an opt-in live feed for plain claude.
+  Install asks first, refuses a symlink or invalid `settings.json`, backs the
+  file up, appends clalt's hooks after yours and chains your own statusLine;
+  uninstall removes exactly what was added. Plain claude sessions show in the
+  dashboard Sessions view and fill the limits of the matched account. Usage is
+  attributed only from when the match began, install stops if settings.json
+  changed while it asked, the installed commands are no-ops when clalt is gone,
+  and install is refused on Windows.
+
 - The dashboard lists removed accounts in a dim `Removed` section at the bottom
   of the accounts pane. On one, `D` deletes it for good (same type-the-label
   box) and `enter` signs it back in; other action keys say what works. They

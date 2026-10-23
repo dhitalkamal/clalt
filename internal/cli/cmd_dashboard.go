@@ -43,6 +43,9 @@ func (a *App) cmdDashboard(args []string) error {
 		a.printf("%s\n", dashboard.Render(snap, 100, 40, dashboard.Options{ASCII: true}))
 		return nil
 	}
+	// matching plain claude to an account asks claude, which is slow: it runs
+	// beside the dashboard, and the next load picks the answer up from the cache
+	go a.refreshDefaultHomeIfStale()
 	opt := dashboard.EnvOptions(os.Getenv)
 	opt.Logger = dashboardLogger(dashboardLogPath())
 	return dashboard.Run(context.Background(), ad, ad, opt)

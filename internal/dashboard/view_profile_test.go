@@ -89,3 +89,17 @@ func TestProfileAgesFollowTheClockAndUnknownTimesAreLeftOut(t *testing.T) {
 		}
 	}
 }
+
+func TestProfileSaysWhenTheAccountIsAlsoTheDefaultClaude(t *testing.T) {
+	a := testAccount()
+	if strings.Contains(joined(profileContent(ctxFor(wideBody), a)), "default claude") {
+		t.Error("the default claude is mentioned for an account that is not")
+	}
+	a.Profile.DefaultHome = true
+
+	out := joined(profileContent(ctxFor(wideBody), a))
+
+	if !strings.Contains(out, "Default    also the default claude (~/.claude)") {
+		t.Errorf("missing the row in\n%s", out)
+	}
+}

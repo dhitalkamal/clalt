@@ -83,3 +83,7 @@ func home() string {
 	h, _ := os.UserHomeDir()
 	return h
 }
+
+// DefaultHomePath caches whether plain claude (the default home) is signed in as
+// one of the accounts, so that hooks and reports need not ask claude.
+func DefaultHomePath() string { return filepath.Join(ClaltDir(), "default-home.json") }

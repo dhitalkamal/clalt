@@ -20,6 +20,9 @@ type SessionAccount struct {
 	Ts        time.Time `json:"ts"`
 	SessionID string    `json:"sessionId"`
 	Account   string    `json:"account"`
+	// Source says how the line came to be. empty is a hook of a clalt run
+	// session; SourceDefault is the default home attributed it, see DefaultLines.
+	Source string `json:"source,omitempty"`
 }
 
 // AttributeSessions is AttributeUntil for the time after the switch log

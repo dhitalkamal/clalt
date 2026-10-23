@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/feedinstall"
 	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
 
@@ -50,15 +51,31 @@ func readUserStatusLine() (userStatusLine, bool) {
 	if json.Unmarshal(raw, &s) != nil || s.StatusLine == nil {
 		return userStatusLine{}, false
 	}
+	u, ok := parseUserStatusLine(s.StatusLine)
+	if ok && feedinstall.IsOurs(u.Command) {
+		// clalt feed install put ours here, and kept the user's in its own state
+		orig, found := feedinstall.LoadOriginal(feedInstallPath())
+		var o map[string]json.RawMessage
+		if !found || json.Unmarshal(orig, &o) != nil {
+			return userStatusLine{}, false
+		}
+		return parseUserStatusLine(o)
+	}
+	return u, ok
+}
+
+// parseUserStatusLine reads a statusLine object: a command, and the optional
+// keys that change how claude draws it.
+func parseUserStatusLine(line map[string]json.RawMessage) (userStatusLine, bool) {
 	var kind, command string
-	_ = json.Unmarshal(s.StatusLine["type"], &kind)
-	_ = json.Unmarshal(s.StatusLine["command"], &command)
+	_ = json.Unmarshal(line["type"], &kind)
+	_ = json.Unmarshal(line["command"], &command)
 	if kind != "command" || strings.TrimSpace(command) == "" {
 		return userStatusLine{}, false
 	}
 	u := userStatusLine{Command: command, Extras: map[string]json.RawMessage{}}
 	for _, k := range []string{"padding", "refreshInterval", "hideVimModeIndicator"} {
-		if v, ok := s.StatusLine[k]; ok {
+		if v, ok := line[k]; ok {
 			u.Extras[k] = v
 		}
 	}

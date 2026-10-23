@@ -225,3 +225,33 @@ func TestAgo(t *testing.T) {
 		t.Errorf("ago(zero) = %q, want never", got)
 	}
 }
+
+func TestListMarksTheAccountThatIsAlsoTheDefaultClaude(t *testing.T) {
+	e := newEnv(t)
+	e.signIn("work", "w@example.com")
+	e.signIn("side", "s@example.com")
+	e.run("list")
+	if strings.Contains(e.out.String(), "default claude") {
+		t.Errorf("marked without a match: %s", e.out.String())
+	}
+	e.plainClaudeAs("W@example.com")
+	e.app.refreshDefaultHome()
+	e.reset()
+
+	e.run("list")
+
+	if !strings.Contains(e.out.String(), "work is also the default claude (~/.claude)") || strings.Contains(e.out.String(), "side is also") {
+		t.Errorf("list: %s", e.out.String())
+	}
+	e.reset()
+	e.run("list", "--json")
+	var rows []map[string]any
+	if err := json.Unmarshal(e.out.Bytes(), &rows); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range rows {
+		if want := r["label"] == "work"; r["defaultHome"] != want {
+			t.Errorf("%v defaultHome = %v", r["label"], r["defaultHome"])
+		}
+	}
+}

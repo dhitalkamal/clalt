@@ -59,7 +59,7 @@ func (a *App) sessionsCheck() checkResult {
 	}
 	orphans := 0
 	for _, s := range states {
-		if !live[s.Handle] && !(s.State == feed.StateEnded && now.Sub(s.UpdatedAt) < 10*time.Minute) {
+		if !live[s.Handle] && !keepExt(store, s.Handle, now) && !(s.State == feed.StateEnded && now.Sub(s.UpdatedAt) < 10*time.Minute) {
 			orphans++
 		}
 	}

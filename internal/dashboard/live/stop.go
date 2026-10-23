@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/dashboard"
+	"github.com/dhitalkamal/clalt/internal/feed"
 	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
@@ -29,6 +30,9 @@ type Proc struct {
 // wrapper. a recycled pid fails one of those. only claude gets SIGTERM, the
 // wrapper then sees it exit and cleans up as it always does.
 func (r *RegistrySessions) Stop(ctx context.Context, accountID, handle string) error {
+	if feed.IsExt(handle) {
+		return dashboard.Notice("That session is plain claude, not started by clalt run. clalt cannot stop it.")
+	}
 	rec, ok, err := r.Reg.Get(handle)
 	switch {
 	case err != nil:

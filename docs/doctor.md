@@ -48,6 +48,10 @@ right after upgrading from v0.1.0, exits 0 with warnings.
 - The session feed: sessions that started and never reported (their hooks are
   off), records and feed files of sessions that are gone, and the hook errors of
   the last 24 hours (see [feed.md](feed.md)). All of these are warnings.
+- The default home: which account plain `claude` (`~/.claude`) is signed in as,
+  or that it stays outside clalt and why, and whether the live feed is installed
+  for it. It reads the cache of that answer, so it never asks claude and says
+  when it was checked; `clalt feed status` refreshes it.
 - Leftovers of the old design: the token vault, the old profile folders, the
   old keepalive job and the marker files it left in `~/.config/clalt/`, and on
   macOS a `~/.claude/.credentials.json`. What to delete is in

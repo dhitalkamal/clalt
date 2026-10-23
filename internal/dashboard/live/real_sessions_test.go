@@ -153,3 +153,40 @@ func TestBranchIgnoresHeadsThatAreHugeOrLongOrPointNowhere(t *testing.T) {
 		t.Errorf("a huge .git file gave %q", got)
 	}
 }
+
+func TestSessionsOfPlainClaudeShowFromTheFeedAlone(t *testing.T) {
+	f := newFiles(t)
+	f.record(t, h1, "work", epoch.Add(-time.Hour), nil)
+	ext := func(id string, state feed.State, age time.Duration) {
+		h, _ := feed.ExtHandle(id)
+		f.state(t, h, "work", epoch.Add(-age), func(s *feed.SessionState) { s.State, s.Model, s.Cwd = state, "claude-opus-5-5", "/p" })
+	}
+	ext("plain-1", feed.StateBusy, time.Minute)
+	ext("plain-ended", feed.StateEnded, time.Minute)
+	ext("plain-stale", feed.StateIdle, 7*time.Hour)
+
+	got, err := regSessions(f, epoch).Running(context.Background())
+
+	if err != nil || len(got) != 2 {
+		t.Fatalf("got %+v err %v", got, err)
+	}
+	if got[0].Handle != h1 {
+		t.Errorf("a session of clalt run comes first: %+v", got)
+	}
+	s := got[1]
+	if s.Handle != "ext-plain-1" || s.AccountID != "work" || s.State != StateBusy || s.ClaudeSessionID != "plain-1" || s.Model != "claude-opus-5-5" || s.Cwd != "/p" {
+		t.Errorf("ext session = %+v", s)
+	}
+}
+
+func TestStopRefusesAPlainClaudeSessionWithAnHonestNotice(t *testing.T) {
+	f := newFiles(t)
+	h, _ := feed.ExtHandle("plain-1")
+	f.state(t, h, "work", epoch, func(s *feed.SessionState) { s.State = feed.StateIdle })
+
+	err := regSessions(f, epoch).Stop(context.Background(), "work", h)
+
+	if err == nil || !strings.Contains(err.Error(), "not started by clalt run") {
+		t.Errorf("err = %v", err)
+	}
+}

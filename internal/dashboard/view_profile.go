@@ -63,6 +63,12 @@ func profileContent(c viewCtx, a Account) content {
 		{"Usage feed", feed},
 		{"Last used", used},
 	}
+	if p.DefaultHome {
+		items = append(items, struct {
+			label string
+			value rich
+		}{"Default", rich{txt("also the default claude (~/.claude)")}})
+	}
 	if p.Gateway != "" {
 		items = append(items, struct {
 			label string

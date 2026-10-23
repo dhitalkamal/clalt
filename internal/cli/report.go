@@ -77,6 +77,10 @@ func (a *App) recordsByAccount() (map[string][]usage.Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	sessions, err = a.addDefaultLines(records, sessions, cutover)
+	if err != nil {
+		return nil, err
+	}
 	return usage.AttributeSessions(records, usageEvents, sessions, cutover), nil
 }
 
