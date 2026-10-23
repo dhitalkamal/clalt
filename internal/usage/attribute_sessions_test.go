@@ -3,6 +3,7 @@ package usage
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -87,5 +88,23 @@ func TestAppendSessionAccountWritesOneLineEach(t *testing.T) {
 	got, _ := ReadSessionAccounts(path)
 	if len(got) != 2 || got[1].SessionID != "b" {
 		t.Errorf("%+v", got)
+	}
+}
+
+// an over-long line is skipped, and the lines after it still count.
+func TestReadSessionAccountsSkipsAnOversizedLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "s.jsonl")
+	body := `{"ts":"2026-10-01T00:00:00Z","sessionId":"s1","account":"a"}` + "\n" +
+		strings.Repeat("x", 200*1024) + "\n" +
+		"not json\n" +
+		`{"ts":"2026-10-02T00:00:00Z","sessionId":"s2","account":"b"}` + "\n"
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ReadSessionAccounts(path)
+
+	if err != nil || len(got) != 2 || got[0].SessionID != "s1" || got[1].SessionID != "s2" {
+		t.Errorf("got %v, err %v", got, err)
 	}
 }

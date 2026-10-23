@@ -32,9 +32,11 @@ nothing is an error, and one that matches several lists them and stops.
 Running a conversation goes through the same path as
 `clalt run <name> -- --resume <id>`, started from the folder the conversation
 ran in, so claude finds it in its own project. Every check `run` makes still
-applies. The account is `--account <name>`, else the account that last ran the
-conversation when clalt knows it, else the command stops and asks for
-`--account`.
+applies. Folder rules only steer the choice: an account named with `--account`
+is used as named, while the account of the log is skipped when its rules exclude
+the folder. The account is `--account <name>`, else the account that last ran the
+conversation when clalt knows it, else the account the picker
+chooses for that folder (the most room), as `clalt run` does with no name.
 
 It stops, and runs nothing, in two cases:
 

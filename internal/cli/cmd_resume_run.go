@@ -9,6 +9,7 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/conversation"
+	"github.com/dhitalkamal/clalt/internal/rules"
 )
 
 // resumeConversation continues one conversation under an account, through the
@@ -25,7 +26,7 @@ func (a *App) resumeConversation(root, word, label string) error {
 		return err
 	}
 
-	acc, err := a.resumeAccount(c, label)
+	acc, note, err := a.resumeAccount(c, label)
 	if err != nil {
 		return err
 	}
@@ -44,6 +45,9 @@ func (a *App) resumeConversation(root, word, label string) error {
 		}
 	}
 
+	if note != "" {
+		fmt.Fprintln(a.Err, note)
+	}
 	fmt.Fprintf(a.Err, "resuming %s as %s in %s\n", c.ID[:8], name, clean(c.Cwd))
 	return runIn(c.Cwd, func() error {
 		return a.cmdRun([]string{acc.Label(), "--", "--resume", c.ID})
@@ -60,34 +64,33 @@ func ambiguousError(amb *conversation.AmbiguousError) error {
 }
 
 // resumeAccount is the account named by --account, else the one that last ran
-// the conversation when the feed knows it and it still exists, else the user is
-// asked to name one.
-func (a *App) resumeAccount(c conversation.Conversation, label string) (account.Account, error) {
+// the conversation when the log knows it, it still exists and its folder rules
+// allow the conversation's folder, else the picker's choice for that folder.
+// note is a line for stderr to print once the checks that follow have passed.
+func (a *App) resumeAccount(c conversation.Conversation, label string) (acc account.Account, note string, err error) {
 	if label != "" {
-		return a.findVisible(label)
+		acc, err = a.findVisible(label)
+		return acc, "", err
 	}
 	all, err := a.Store.List()
 	if err != nil {
-		return account.Account{}, err
+		return account.Account{}, "", err
 	}
-	if id, ok := a.deps().lastAccount(c.ID); ok {
-		for _, acc := range all {
-			if acc.Name == id && !acc.Meta.Hidden {
-				return acc, nil
-			}
+	id, ok := a.deps().lastAccount(c.ID)
+	for _, cand := range all {
+		if !ok || cand.Name != id || cand.Meta.Hidden {
+			continue
 		}
-	}
-	var names []string
-	for _, acc := range all {
-		if !acc.Meta.Hidden {
-			names = append(names, shown(acc))
+		allRules, err := a.Store.AllRules()
+		if err != nil {
+			return account.Account{}, "", err
 		}
+		if c.Cwd == "" || rules.Allows(allRules[cand.Name].Folders, c.Cwd) {
+			return cand, "", nil
+		}
+		fmt.Fprintf(a.Err, "%s last ran this conversation, but its folder rules do not include %s\n", clean(cand.Label()), clean(c.Cwd))
 	}
-	msg := "which account? no account is known for this conversation, pass --account <name>"
-	if len(names) > 0 {
-		msg += " (" + strings.Join(names, ", ") + ")"
-	}
-	return account.Account{}, usageError{msg, resumeUsage}
+	return a.pickForResume(c.Cwd)
 }
 
 // checkFolderThere refuses to run a conversation from somewhere else when the

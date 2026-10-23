@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dhitalkamal/clalt/internal/account"
+	"github.com/dhitalkamal/clalt/internal/pick"
 	"github.com/dhitalkamal/clalt/internal/terminal"
 )
 
@@ -93,18 +95,15 @@ func TestResumeUsesTheAccountThatLastRanTheConversation(t *testing.T) {
 	}
 }
 
-func TestResumeAsksForAnAccountWhenNoneIsKnown(t *testing.T) {
-	e, _, _ := readyToResume(t)
-	e.signIn("home", "b@example.com")
+func TestResumeFailsWithoutAnyAccount(t *testing.T) {
+	e := newEnv(t)
+	e.useFakeDeps()
+	e.seedConversation(convID(7), t.TempDir(), "continue me", "2026-10-22T11:00:00Z")
 
 	code := e.run("resume", "aaaaaaaa")
 
-	out := e.errOut.String()
-	if code != 2 || !strings.Contains(out, "--account") || !strings.Contains(out, "work") || !strings.Contains(out, "home") {
-		t.Errorf("exit %d: %s", code, out)
-	}
-	if e.claude.sessionStarted() {
-		t.Error("claude was started without an account")
+	if code == 0 || e.claude.sessionStarted() || !strings.Contains(e.errOut.String(), "clalt login") {
+		t.Errorf("exit %d: %s", code, e.errOut.String())
 	}
 }
 
@@ -116,7 +115,7 @@ func TestResumeIgnoresALastAccountThatWasRemoved(t *testing.T) {
 	}
 	e.reset()
 
-	if code := e.run("resume", "aaaaaaaa"); code != 2 || e.claude.sessionStarted() {
+	if code := e.run("resume", "aaaaaaaa"); code != 1 || e.claude.sessionStarted() {
 		t.Errorf("exit %d, started %v: %s", code, e.claude.sessionStarted(), e.errOut.String())
 	}
 }
@@ -237,5 +236,63 @@ func TestResumeRefusesARelativeFolder(t *testing.T) {
 
 	if code != 1 || e.claude.sessionStarted() || !strings.Contains(e.errOut.String(), "not an absolute path") {
 		t.Errorf("exit %d, started %v: %s", code, e.claude.sessionStarted(), e.errOut.String())
+	}
+}
+
+// with nothing known about the conversation, the picker chooses the allowed
+// account with the most room, as `clalt run` does.
+func TestResumePicksAnAccountWhenNoneIsKnown(t *testing.T) {
+	e, _, _ := readyToResume(t)
+	e.signIn("home", "b@example.com")
+	withLimits(t, e, map[string]pick.Limits{"work": seenLimits(80, 10), "home": seenLimits(10, 10)})
+
+	if code := e.run("resume", "aaaaaaaa"); code != 0 {
+		t.Fatalf("exit %d: %s", code, e.errOut.String())
+	}
+	if _, env, _ := e.claude.session(); env["CLAUDE_CONFIG_DIR"] != e.folder("home") {
+		t.Errorf("ran in %q: %s", env["CLAUDE_CONFIG_DIR"], e.errOut.String())
+	}
+}
+
+// an attributed account whose folder rules now exclude the conversation's
+// folder is not used without --account: the picker chooses another.
+func TestResumeSkipsAnAttributedAccountTheRulesForbid(t *testing.T) {
+	e, f, _ := readyToResume(t)
+	e.signIn("home", "b@example.com")
+	f.lastSeen[convID(7)] = e.account("work").Name
+	e.setRules("work", account.Rules{Folders: []string{subfolder(t, "elsewhere")}})
+
+	if code := e.run("resume", "aaaaaaaa"); code != 0 {
+		t.Fatalf("exit %d: %s", code, e.errOut.String())
+	}
+	if _, env, _ := e.claude.session(); env["CLAUDE_CONFIG_DIR"] != e.folder("home") {
+		t.Errorf("ran in %q", env["CLAUDE_CONFIG_DIR"])
+	}
+	if !strings.Contains(e.errOut.String(), "rules") {
+		t.Errorf("no word on why: %s", e.errOut.String())
+	}
+}
+
+// an explicit --account keeps working whatever the rules say.
+func TestResumeAccountFlagIgnoresFolderRules(t *testing.T) {
+	e, _, _ := readyToResume(t)
+	e.setRules("work", account.Rules{Folders: []string{subfolder(t, "elsewhere")}})
+
+	if code := e.run("resume", "aaaaaaaa", "--account", "work"); code != 0 {
+		t.Fatalf("exit %d: %s", code, e.errOut.String())
+	}
+}
+
+// the picked line comes only once the folder and open checks have passed.
+func TestResumeSaysNothingOfAPickWhenTheFolderIsGone(t *testing.T) {
+	e, _, cwd := readyToResume(t)
+	if err := os.RemoveAll(cwd); err != nil {
+		t.Fatal(err)
+	}
+
+	code := e.run("resume", "aaaaaaaa")
+
+	if code != 1 || strings.Contains(e.errOut.String(), "picked") {
+		t.Errorf("exit %d: %s", code, e.errOut.String())
 	}
 }

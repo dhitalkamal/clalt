@@ -17,11 +17,10 @@ type sessionDeps struct {
 	exe    func() (string, error)
 	goos   string
 
-	// the running sessions, dead ones left out. the registry of step 3a plugs in
-	// here: until it does there are none.
+	// the running sessions, dead ones left out, from the session registry.
 	sessions func() ([]terminal.Session, error)
-	// the account id that last ran a claude session, when the feed knows. the
-	// feed of step 3a plugs in here: until it does nothing is known.
+	// the account id that last ran a claude session, when the attribution log
+	// knows.
 	lastAccount func(claudeSessionID string) (accountID string, ok bool)
 }
 
@@ -36,8 +35,8 @@ func realDeps() *sessionDeps {
 		env:         os.Getenv,
 		exe:         os.Executable,
 		goos:        runtime.GOOS,
-		sessions:    func() ([]terminal.Session, error) { return nil, nil },
-		lastAccount: func(string) (string, bool) { return "", false },
+		sessions:    registrySessions,
+		lastAccount: attributedAccount,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -75,14 +76,30 @@ func ReadSessionAccounts(path string) ([]SessionAccount, error) {
 	}
 	defer f.Close()
 	var out []SessionAccount
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
+	r := bufio.NewReader(f)
+	skipping := false
+	for {
+		line, prefix, err := r.ReadLine()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return out, nil
+			}
+			return out, err
+		}
+		// a line longer than the reader's buffer is dropped whole, not fatal
+		if prefix {
+			skipping = true
+			continue
+		}
+		if skipping {
+			skipping = false
+			continue
+		}
 		var m SessionAccount
-		if json.Unmarshal(sc.Bytes(), &m) == nil && m.SessionID != "" && m.Account != "" {
+		if json.Unmarshal(line, &m) == nil && m.SessionID != "" && m.Account != "" {
 			out = append(out, m)
 		}
 	}
-	return out, sc.Err()
 }
 
 // AppendSessionAccount adds one mapping. one short line in one write, so

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `clalt jump` and the already-open check of `clalt resume` read the session
+  registry. `clalt resume <id>` without `--account` uses the account that last
+  ran the conversation (from `session-accounts.jsonl`), else the account the
+  picker chooses for the folder it ran in.
 - The dashboard shows running sessions (state, model, context, folder, branch),
   the 5-hour and 7-day limits with the age of the reading, and Kiro Crew
   gateways, from the session registry, the feed and the crew records. A limit
