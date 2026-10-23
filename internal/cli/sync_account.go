@@ -23,14 +23,9 @@ func (a *App) syncAccount(folder string) (profile.Report, error) {
 	// the home itself is never made here, it may only be unmounted. one that is
 	// there but has no projects folder yet (claude ran, nothing was saved) gets
 	// one, because without it the account's history would stay with the account
-	if _, err := os.Stat(shared); err == nil {
-		// an entry in any form counts, a link into a volume that is not mounted
-		// included: it is for run to say that it is not reachable
-		projects := filepath.Join(shared, "projects")
-		if _, err := os.Lstat(projects); errors.Is(err, fs.ErrNotExist) {
-			if err := os.MkdirAll(projects, 0o700); err != nil {
-				return profile.Report{}, fmt.Errorf("create the shared projects folder: %w", err)
-			}
+	if missingSharedProjects(shared) {
+		if err := os.MkdirAll(filepath.Join(shared, "projects"), 0o700); err != nil {
+			return profile.Report{}, fmt.Errorf("create the shared projects folder: %w", err)
 		}
 	}
 	rep, err := syncLinks(folder)
@@ -43,6 +38,22 @@ func (a *App) syncAccount(folder string) (profile.Report, error) {
 	mcp, mcpErr := syncServers(folder)
 	a.reportSync(rep, mcp, mcpErr)
 	return rep, nil
+}
+
+// missingSharedProjects says whether the shared home is there without a projects
+// entry, which is when login and run make the folder. an entry in any form
+// counts, a link into a volume that is not mounted included: it is for run to say
+// that it is not reachable. doctor asks the same question, so that it judges an
+// account the way run is going to find it.
+func missingSharedProjects(shared string) bool {
+	if shared == "" {
+		return false
+	}
+	if _, err := os.Stat(shared); err != nil {
+		return false
+	}
+	_, err := os.Lstat(filepath.Join(shared, "projects"))
+	return errors.Is(err, fs.ErrNotExist)
 }
 
 // noHomeKnown is what is said when no absolute path for the claude home can be

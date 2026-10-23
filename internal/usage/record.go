@@ -1,6 +1,6 @@
-// Package usage computes local (and optionally live) Claude usage stats: it
-// parses Claude Code's transcript JSONL, rolls it into 5h/7d windows, estimates
-// cost, attributes activity to accounts, and builds daily trends.
+// Package usage computes local Claude usage stats: it parses Claude Code's
+// transcript JSONL, rolls it into 5h/7d windows, estimates cost, attributes
+// activity to accounts, and builds daily trends.
 package usage
 
 import "time"

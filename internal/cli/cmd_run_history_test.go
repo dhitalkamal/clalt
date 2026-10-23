@@ -161,7 +161,7 @@ func TestHistoryOf(t *testing.T) {
 
 			c.setup(t, folder, shared)
 
-			if got := historyOf(folder); got != c.want {
+			if got, _ := historyOf(folder); got != c.want {
 				t.Errorf("historyOf = %v, want %v", got, c.want)
 			}
 		})

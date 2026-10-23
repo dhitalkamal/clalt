@@ -9,13 +9,13 @@ fails. It never changes anything: `clalt run` repairs links, and old files are
 for you to delete.
 
 `fail` is for what is really broken: claude missing or too old, an account id
-that cannot be a folder name, two accounts that share one folder, a real
-`projects` folder in an account (its history would not be shared), a
-`state.json` that cannot be read, and a login of a different email than the one
-recorded. What you fix by doing something, such as signing in or mounting a
-volume, is a `warn`: not signed in, a folder that is missing, a login that is
-due, links or servers out of sync, a shared history folder that is not
-reachable, something claude said about an account, variables, settings,
+that cannot be a folder name, two accounts that share one folder, a `projects`
+folder in an account that has something in it (its history would not be
+shared), a `state.json` that cannot be read, and a login of a different email
+than the one recorded. What you fix by doing something, such as signing in or
+mounting a volume, is a `warn`: not signed in, a folder that is missing, a
+login that is due, links or servers out of sync, a shared history folder that is
+not reachable, something claude said about an account, variables, settings,
 leftovers, or a check that could not run. So doctor after a plain `logout`, or
 right after upgrading from v0.1.0, exits 0 with warnings.
 
@@ -26,7 +26,10 @@ right after upgrading from v0.1.0, exits 0 with warnings.
   failed check, and the checks that need no accounts still run.
 - For each account: the folder is there and is not shared with another account,
   its links and MCP servers are in sync, it is signed in, signed in as the
-  recorded email, and its login is not due within three days.
+  recorded email, and its login is not due within three days. Links are judged
+  the way `run` is going to find them: a shared `projects` folder that is
+  missing, or an empty `projects` folder in the account, is a warning, since
+  `run` makes the one and replaces the other with the link.
 - For each account you removed (they are not in the list any more): when its
   folder is there, claude is asked about it. A folder that still holds a login
   warns with `clalt logout <name>`, which signs it out and leaves the account

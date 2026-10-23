@@ -32,7 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   into it if it was removed, and the message says that `clalt logout <name>`
   signs it out. When the account's history does not reach the shared history,
   it prints one warning line right after linking the account and goes on with
-  the sign-in: `run` will refuse the account until it does.
+  the sign-in: `run` will refuse the account until it does. The tip to use a
+  private window for the sign-in goes to stderr, so stdout holds only what claude
+  and the result of the sign-in say.
 - `clalt run <name> [-- claude args]` starts claude in the account's folder. It
   links the folder to the shared claude home, mirrors user-scope MCP servers,
   removes the variables that would override the login (naming them, never their
@@ -49,10 +51,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   without a `projects` folder gets one (mode 0700) from `login` and `run`. What
   clalt says while it prepares the session (what it synced, the variables it
   does not pass on, what it left alone) goes to stderr, so stdout is claude's
-  alone. While the session runs clalt waits for claude: a Ctrl-C is claude's to
-  handle, and a SIGTERM or SIGHUP sent to clalt is passed on to claude, unless
-  it was ignored when clalt started (under `nohup`, for example). clalt exits
-  with claude's own exit code.
+  alone. While the session runs clalt waits for claude: at a terminal a Ctrl-C
+  is claude's to handle, and a SIGTERM or SIGHUP sent to clalt is passed on to
+  claude, and so is a SIGINT when no terminal sends it a Ctrl-C (its input is
+  not a terminal and it is not in the foreground group of one: a headless `-p`
+  run, a script, a supervisor), unless the signal was ignored when clalt
+  started (under `nohup`, for example). clalt exits with claude's own exit
+  code.
 - sharing with `~/.claude`: folders are linked, except the ones claude keeps per
   account. `skills` and `plugins` are linked entry by entry into a real folder of
   the account, so what claude.ai downloads for one account (`synced`, `.trash`,
@@ -99,13 +104,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   may have written but claude also writes when it cannot save its login in the
   keychain, so doctor says how to tell before anything is deleted. It only
   reports, and keeps `--json` with the new shape described under Changed. It
+  judges the links the way `run` is going to find them: a shared `projects`
+  folder that is missing, or an empty `projects` folder in an account, is a
+  warning, since `run` makes the one and replaces the other with the link. It
   exits 1 only for what is really broken: claude missing or too old, an id that
-  cannot be a folder name, two accounts that share a folder, a real `projects`
-  folder in an account, a `state.json` that cannot be read, and a login of a
-  different email than the one recorded. Everything you fix by doing something,
-  such as signing in or mounting a volume, is a warning (a shared history
-  folder that is not reachable is one), so doctor after a plain logout, or right
-  after upgrading from v0.1.0, exits 0.
+  cannot be a folder name, two accounts that share a folder, a `projects` folder
+  in an account that has something in it, a `state.json` that cannot be read,
+  and a login of a different email than the one recorded. Everything you fix by
+  doing something, such as signing in or mounting a volume, is a warning (a
+  shared history folder that is not reachable is one), so doctor after a plain
+  logout, or right after upgrading from v0.1.0, exits 0.
 - `clalt doctor` reports accounts whose ids differ only in case and so share one
   folder on a file system that ignores case (macOS and Windows by default), and
   `login` and `run` refuse them until one of the two is removed. v0.1.0 allowed
@@ -117,7 +125,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   that sign-in as `thinSince`, and that usage counts against no budget.
   `usage`, `budget` and the dashboard read the transcripts of the shared claude
   home, also inside a `clalt run` session, and `usage` and `budget` exit 1 and
-  say why when they cannot read them, instead of reporting zero.
+  say why when they cannot read them, instead of reporting zero. `unattributed`
+  is a reserved label, in any case, so that no account is taken for that row:
+  `login` and `rename` refuse it.
 
 ### Changed
 
@@ -142,7 +152,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   has `account` (the id) and `label`; `usage --json` has `id` and `name` (the
   label) and no longer has `active`, `expiresAt`, `live` or `liveNote`, and the
   row for usage that nobody can be blamed for is `unattributed`, as id and as
-  name; `budget --json` gains `id`.
+  name; `budget --json` gains `id` and prints nothing but the JSON, also right
+  after a cap was set (v0.1.0 put a line of text in front of it).
 - accounts share the conversation history in `~/.claude/projects` instead of
   keeping a separate history each, along with settings, skills, plugins,
   commands, agents and CLAUDE.md.
@@ -189,6 +200,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `clalt login --magic-link`, `clalt run --refresh`, `--isolated`,
   `--no-supervise` and `--link`, and `clalt doctor --fix`. The removed commands
   and flags exit 2 with one line that says what replaces them.
+- the environment variables of the old OAuth login and keepalive, which nothing
+  reads any more: `CLALT_NO_BROWSER`, `CLALT_OAUTH_CLIENT_ID`,
+  `CLALT_OAUTH_SCOPES`, `CLALT_AUTHORIZE_URL`, `CLALT_TOKEN_URL`,
+  `CLALT_REDIRECT_URI`, `CLALT_API_BASE` and `CLALT_NO_AUTO_KEEPALIVE`.
+  `CLALT_CLAUDE_BIN` and `CLALT_ASCII` still work.
 - the `golang.org/x/crypto` dependency.
 
 ### Security

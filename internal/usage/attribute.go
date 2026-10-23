@@ -5,8 +5,11 @@ import (
 	"time"
 )
 
-// Unattributed is the bucket for usage that predates any recorded switch, so it
-// cannot be tied to an account. Documented limitation of local attribution.
+// Unattributed is the bucket for usage that cannot be tied to an account: it
+// predates any recorded switch, or it is newer than the switch log, which
+// stopped growing when accounts became folders of their own (see
+// AttributeUntil). Reports use it as a label, so login and rename refuse it as
+// the label of an account.
 const Unattributed = "unattributed"
 
 // SwitchEvent mirrors account.SwitchEvent without importing that package, so the

@@ -7,10 +7,10 @@ import (
 )
 
 // SwitchEvent records that an account became active at a point in time. The log
-// lets the usage dashboard attribute local session activity to the account that
-// was active when it happened. Entries are written by earlier clalt versions;
-// the keychain-free run-only model no longer appends new ones, but existing logs
-// are still read for historical attribution.
+// lets usage be attributed to the account that was active when it happened.
+// Only clalt v0.1.0 and earlier wrote entries: every account is a folder of its
+// own now, none is active, and nothing appends to the log. It is still read, for
+// the usage from before that.
 type SwitchEvent struct {
 	Ts      time.Time `json:"ts"`
 	Account string    `json:"account"`

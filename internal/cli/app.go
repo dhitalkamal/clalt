@@ -27,6 +27,14 @@ type App struct {
 
 	// now is the clock; tests set it, nil means time.Now.
 	now func() time.Time
+
+	// terminal says whether the input of a session is a terminal. tests set it,
+	// nil means look at In, see inputIsTerminal.
+	terminal func() bool
+
+	// foreground says whether clalt is in the foreground group of a terminal.
+	// tests set it, nil means ask the controlling terminal.
+	foreground func() bool
 }
 
 func (a *App) clock() time.Time {

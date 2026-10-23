@@ -117,10 +117,17 @@ func claudeIsOldEnough(version string) (bool, error) {
 	return cmp >= 0, err
 }
 
-// planLinks lists what syncing the folder with the shared claude home would do.
-// it writes nothing.
-func planLinks(folder string) ([]profile.Step, error) {
-	return profile.Plan(folder, config.SharedClaudeDir())
+// planLinks lists what syncing the folder with the shared claude home would do,
+// as run is going to find it: run makes a shared projects folder that is missing
+// before it syncs, and makes says that it will. it writes nothing.
+func planLinks(folder string) (steps []profile.Step, makes bool, err error) {
+	shared := config.SharedClaudeDir()
+	if missingSharedProjects(shared) {
+		steps, err = profile.PlanWithFolders(folder, shared, "projects")
+		return steps, true, err
+	}
+	steps, err = profile.Plan(folder, shared)
+	return steps, false, err
 }
 
 // syncLinks links the folder to the shared claude home.
@@ -144,7 +151,11 @@ func (a *App) createAccount(label string) (account.Account, error) {
 	return a.Store.Create(label, folderExists)
 }
 
-// relabel changes an account's label.
+// relabel changes an account's label. the label that usage reports keep for
+// themselves is refused, whichever command asks.
 func (a *App) relabel(id, label string) error {
+	if err := refuseReservedLabel(label); err != nil {
+		return err
+	}
 	return a.Store.Relabel(id, label)
 }

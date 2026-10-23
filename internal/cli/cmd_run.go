@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/term"
+
 	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/claudecli"
 	"github.com/dhitalkamal/clalt/internal/config"
@@ -103,7 +105,7 @@ func finishRunArgs(label string, claudeArgs []string) (string, []string, error) 
 // only at what the sync reported: claude makes a real projects folder when
 // there is none, and then no other account could resume what was said here.
 func projectsProblem(rep profile.Report, folder string) string {
-	state := historyOf(folder)
+	state, cause := historyOf(folder)
 	if state == historyShared {
 		return ""
 	}
@@ -113,6 +115,9 @@ func projectsProblem(rep profile.Report, folder string) string {
 		if e.Name == "projects" {
 			return "projects could not be linked"
 		}
+	}
+	if state == historyUnknown {
+		return fmt.Sprintf("could not look at the projects folder: %s. 'clalt doctor' says more", clean(cause.Error()))
 	}
 	if state == historyOwn {
 		why := ""
@@ -148,7 +153,7 @@ func (a *App) runClaude(acc account.Account, folder string, args []string) error
 		return fmt.Errorf("start claude: %w", err)
 	}
 	over := make(chan struct{})
-	go relaySignals(sigs, cmd.Process, over)
+	go relaySignals(sigs, cmd.Process, over, !a.interruptReachesClaude())
 	pid := cmd.Process.Pid
 	cwd, _ := os.Getwd()
 	_ = profile.WriteSession(config.SessionsDir(), profile.Session{
@@ -161,25 +166,57 @@ func (a *App) runClaude(acc account.Account, folder string, args []string) error
 }
 
 // relaySignals deals with the signals that clalt gets while claude runs, until
-// over is closed. a Ctrl-C reaches claude by itself, since both are in the
-// terminal's foreground group, and what it means is claude's to decide, so it is
-// only taken in: clalt has to be there when claude ends, and the shell must not
-// get the terminal back before. it is caught and not ignored, because an ignored
-// signal is inherited through exec and claude would never see its own Ctrl-C.
-// SIGTERM and SIGHUP are for clalt alone (kill, an ide that stops it, a terminal
-// that is closed), and claude would be left running with nobody to answer to, so
-// they are passed on, and clalt ends with the code claude ends with.
-func relaySignals(sigs <-chan os.Signal, claude *os.Process, over <-chan struct{}) {
+// over is closed. at a terminal a Ctrl-C reaches claude by itself, since both are
+// in the terminal's foreground group, and what it means is claude's to decide, so
+// it is only taken in: clalt has to be there when claude ends, and the shell must
+// not get the terminal back before. passing it on as well would give claude a
+// second one, which can turn an interrupt into an exit. it is caught and not
+// ignored, because an ignored signal is inherited through exec and claude would
+// never see its own Ctrl-C. SIGTERM and SIGHUP are for clalt alone (kill, an ide
+// that stops it, a terminal that is closed), and claude would be left running
+// with nobody to answer to, so they are passed on, and clalt ends with the code
+// claude ends with. so is an interrupt when passInterrupt is set, which is for
+// a clalt that no terminal sends a Ctrl-C to (a headless -p run, a script, a
+// supervisor), where a kill -INT at clalt would be lost.
+func relaySignals(sigs <-chan os.Signal, claude *os.Process, over <-chan struct{}, passInterrupt bool) {
 	for {
 		select {
 		case s := <-sigs:
-			if s != os.Interrupt {
+			if s != os.Interrupt || passInterrupt {
 				_ = claude.Signal(s)
 			}
 		case <-over:
 			return
 		}
 	}
+}
+
+// interruptReachesClaude says whether a Ctrl-C at the terminal reaches claude by
+// itself: the input is a terminal, or clalt is in the foreground group of one,
+// as it is for `echo hi | clalt run work -p` typed at a shell. then passing an
+// interrupt on as well would give claude a second.
+func (a *App) interruptReachesClaude() bool {
+	if a.terminal != nil {
+		return a.terminal()
+	}
+	if a.inputIsTerminal() {
+		return true
+	}
+	if a.foreground != nil {
+		return a.foreground()
+	}
+	return inForegroundOfTerminal()
+}
+
+// inputIsTerminal says whether the input of the session is a terminal. claude is
+// given a.In as it is, so that is what counts: a reader that is no file reaches
+// it through a pipe.
+func (a *App) inputIsTerminal() bool {
+	if a.terminal != nil {
+		return a.terminal()
+	}
+	f, ok := a.In.(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
 }
 
 // watchedSignals are the signals that relaySignals deals with. one that was

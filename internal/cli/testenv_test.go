@@ -32,8 +32,6 @@ func newEnv(t *testing.T) *testEnv {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
-	// the old login opens a browser unless told not to
-	t.Setenv("CLALT_NO_BROWSER", "1")
 	unsetAuthEnv(t)
 
 	// a machine that has run claude has a claude home, and clalt will not make

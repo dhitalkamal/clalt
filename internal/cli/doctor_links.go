@@ -10,11 +10,16 @@ import (
 	"github.com/dhitalkamal/clalt/internal/profile"
 )
 
+// linksCheck compares an account's links with the shared claude home, as `clalt
+// run` is going to find it, and says what run would do about them. a real
+// projects folder is the one finding that fails, since claude would keep the
+// account's history to itself. the rest is for run to repair or for the user to
+// mount, so it is a warning. a failure about projects comes first and does not
+// hide the others.
 func linksCheck(label, folder string) checkResult {
-	shared := config.SharedClaudeDir()
-	steps, err := planLinks(folder)
+	steps, makes, err := planLinks(folder)
 	if errors.Is(err, profile.ErrNoSharedHome) {
-		return result(label, "links", statusWarn, "%v", noSharedHome(shared))
+		return result(label, "links", statusWarn, "%v", noSharedHome(config.SharedClaudeDir()))
 	}
 	if err != nil {
 		return result(label, "links", statusWarn, "could not check the links: %v", err)
@@ -26,7 +31,8 @@ func linksCheck(label, folder string) checkResult {
 		switch {
 		case st.Name == "projects":
 			projects = &steps[i]
-			if st.Action != profile.Keep {
+			// when run makes the shared folder, that is said with the folder
+			if st.Action != profile.Keep && !makes {
 				fix = append(fix, st.Name)
 			}
 		case st.Action != profile.Keep:
@@ -35,40 +41,64 @@ func linksCheck(label, folder string) checkResult {
 			kept = append(kept, st)
 		}
 	}
-	// the planner has nothing to say about a projects link that was never made
-	// because the shared folder is on an unmounted volume, and only keeps one that
-	// is there, so the folder is looked at the way run does. a link or a folder
-	// the plan fixes is left to the plan.
-	var history string
-	if projects == nil || projects.Action == profile.Keep {
-		switch historyOf(folder) {
-		case historyOwn:
-			why := ""
-			if projects != nil {
-				why = " (" + projects.Why + ")"
-			}
-			return result(label, "links", statusFail,
-				"projects is not linked to the shared history%s. move what is in it into %s, remove it and run 'clalt run %s'",
-				why, filepath.Join(shared, "projects"), label)
-		case historyUnreachable:
-			history = fmt.Sprintf("the shared history folder %s is not reachable (an unmounted volume?), or projects aims somewhere else, so 'clalt run %s' refuses",
-				filepath.Join(shared, "projects"), label)
-		}
-	}
-	if len(steps) == 0 && history == "" {
-		return result(label, "links", statusOK, "in sync with the shared claude home")
-	}
+	finding, fails := historyFinding(label, folder, projects, makes)
+
 	var parts []string
+	if fails {
+		parts = append(parts, finding)
+	}
 	if len(fix) > 0 {
 		parts = append(parts, fmt.Sprintf("%s to fix, 'clalt run %s' does it (%s)", count(len(fix), "link"), label, strings.Join(fix, ", ")))
 	}
 	if len(kept) > 0 {
 		parts = append(parts, "left as they are: "+keptList(kept))
 	}
-	if history != "" {
-		parts = append(parts, history)
+	if finding != "" && !fails {
+		parts = append(parts, finding)
 	}
-	return result(label, "links", statusWarn, "out of sync: %s", strings.Join(parts, "; "))
+	switch {
+	case fails:
+		return result(label, "links", statusFail, "out of sync: %s", strings.Join(parts, "; "))
+	case len(parts) > 0:
+		return result(label, "links", statusWarn, "out of sync: %s", strings.Join(parts, "; "))
+	}
+	return result(label, "links", statusOK, "in sync with the shared claude home")
+}
+
+// historyFinding says what stands between the account and the shared history, as
+// run will find it, or "" when nothing does. fails is true for a real projects
+// folder. a link that the plan makes or replaces is counted with the links to
+// fix, except when run makes the shared folder too, which is said here.
+func historyFinding(label, folder string, projects *profile.Step, makes bool) (finding string, fails bool) {
+	shared := filepath.Join(config.SharedClaudeDir(), "projects")
+	planned := projects != nil && projects.Action != profile.Keep
+	switch {
+	case planned && !makes:
+		return "", false
+	case makes && (planned || projects == nil):
+		// a link that aims at the folder that is not there yet is right once run
+		// has made it, so there is nothing to look at in the folder
+		return fmt.Sprintf("the shared history folder is missing. 'clalt run %s' makes %s and links the account to it", label, shared), false
+	}
+	// the plan has nothing to say about a projects link that was never made
+	// because the shared folder is on an unmounted volume, and only keeps one that
+	// is there, so the folder is looked at the way run does
+	state, cause := historyOf(folder)
+	switch state {
+	case historyOwn:
+		why := ""
+		if projects != nil {
+			why = " (" + projects.Why + ")"
+		}
+		return fmt.Sprintf("projects is not linked to the shared history%s. move what is in it into %s, remove it and run 'clalt run %s'",
+			why, shared, label), true
+	case historyUnknown:
+		return fmt.Sprintf("could not look at the projects folder (%s), so 'clalt run %s' refuses", clean(cause.Error()), label), false
+	case historyUnreachable:
+		return fmt.Sprintf("the shared history folder %s is not reachable (an unmounted volume?), or projects aims somewhere else, so 'clalt run %s' refuses",
+			shared, label), false
+	}
+	return "", false
 }
 
 func mcpCheck(label, folder string) checkResult {

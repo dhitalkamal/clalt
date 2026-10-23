@@ -2,13 +2,14 @@ package usage
 
 import "path/filepath"
 
-// CollectRoots de-duplicates a list of candidate transcript root directories
-// (the shared Claude projects dir plus each profile's own projects dir) by
-// real path, so a profile whose projects dir is a symlink back to the shared
-// one is never scanned twice. A profile with its own real (non-symlinked) dir
-// is kept as a distinct root. A missing dir is kept too (ScanProjects already
-// tolerates that, yielding no records for it) rather than silently dropped,
-// since dropping it here would be indistinguishable from a real scan error.
+// CollectRoots de-duplicates a list of candidate transcript root directories by
+// real path, so a root that is a symlink to another one in the list is never
+// scanned twice. clalt lists only the projects folder of the shared claude home,
+// which the projects folder of every account links to, but the rule is the same
+// for any list. A real (non-symlinked) dir is kept as a distinct root. A missing
+// dir is kept too (ScanProjects already tolerates that, yielding no records for
+// it) rather than silently dropped, since dropping it here would be
+// indistinguishable from a real scan error.
 func CollectRoots(dirs []string) []string {
 	seen := make(map[string]bool, len(dirs))
 	out := make([]string, 0, len(dirs))

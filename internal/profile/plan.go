@@ -62,6 +62,10 @@ type Step struct {
 // health check. names that are already right are left out. a split folder
 // (skills, plugins) comes before its entries.
 func Plan(profileDir, sharedHome string) ([]Step, error) {
+	return plan(profileDir, sharedHome, nil)
+}
+
+func plan(profileDir, sharedHome string, made []string) ([]Step, error) {
 	if err := checkDirs(profileDir, sharedHome); err != nil {
 		return nil, err
 	}
@@ -72,6 +76,7 @@ func Plan(profileDir, sharedHome string) ([]Step, error) {
 	if err != nil {
 		return nil, err
 	}
+	view.addMade(sharedHome, made)
 	steps, err := planFolder(profileDir, sharedHome, "", view)
 	if err != nil {
 		return nil, err
@@ -91,6 +96,22 @@ func Plan(profileDir, sharedHome string) ([]Step, error) {
 	}
 	sort.Slice(steps, func(i, j int) bool { return steps[i].Name < steps[j].Name })
 	return steps, nil
+}
+
+// PlanWithFolders is Plan for a shared home that is about to get a folder for
+// each of the names, which the caller makes before it syncs: `clalt run` does
+// that for a projects folder that is missing. the account is judged against the
+// home as it will be, so that doctor can say what run will do. a name that the
+// home has in any form is left as it is, and a name that is not linked whole
+// (skills and plugins are split, others stay per account) is an error, since
+// there is no plain folder to make up for it. it writes nothing.
+func PlanWithFolders(profileDir, sharedHome string, folders ...string) ([]Step, error) {
+	for _, name := range folders {
+		if homeRules.classify(name, true) != linkEntry {
+			return nil, fmt.Errorf("%s is not a folder that is linked whole", name)
+		}
+	}
+	return plan(profileDir, sharedHome, folders)
 }
 
 // checkDirs rejects what would turn into links aimed at the wrong place: an

@@ -16,6 +16,7 @@ nothing yet, gets one: `login` and `run` make `<shared home>/projects` (mode
 0700), since without it the history of the account would stay with the account.
 A `projects` that is there in any form counts, a link into a volume that is not
 mounted included. That one is for `run` to report (see "The history check").
+`clalt doctor` does not make the folder, and says that `run` will.
 
 ## What is shared
 

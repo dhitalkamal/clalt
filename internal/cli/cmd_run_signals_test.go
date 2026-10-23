@@ -15,13 +15,22 @@ import (
 
 // the test below runs this in a process of its own: clalt run work, against the
 // fake that the parent installed. TestMain points every process of this package
-// at the guard, so the fake is handed over by name.
+// at the guard, so the fake is handed over by name. the helper's stdin is the
+// null device, which is no terminal, so that is the case it is in unless the
+// parent says it models a terminal.
 func TestHelperThatRunsClalt(t *testing.T) {
 	if os.Getenv("CLALT_TEST_RUN_HELPER") == "" {
 		t.Skip("only runs as the helper of another test")
 	}
 	t.Setenv("CLALT_CLAUDE_BIN", os.Getenv("CLALT_TEST_FAKE"))
-	os.Exit(Run([]string{"run", "work"}))
+	app := NewApp()
+	if os.Getenv("CLALT_TEST_STDIN_TERMINAL") != "" {
+		app.terminal = func() bool { return true }
+	}
+	// the helper shares the group of the test run, which may be in the foreground
+	// of the developer's terminal, so the real answer is never used here
+	app.foreground = func() bool { return os.Getenv("CLALT_TEST_FOREGROUND") != "" }
+	os.Exit(run(app, []string{"run", "work"}))
 }
 
 // runningClalt is a clalt run in a process of its own, with claude held in its
@@ -35,11 +44,27 @@ type runningClalt struct {
 	log  string // where clalt's own output goes
 }
 
-func startRun(t *testing.T) *runningClalt { return startRunIgnoring(t) }
+// startRun starts clalt as it runs at a terminal: the input is a terminal, whose
+// Ctrl-C reaches claude by itself.
+func startRun(t *testing.T) *runningClalt { return startRunWith(t, true) }
 
-// startRunIgnoring starts clalt with the named signals ignored from the start,
-// the way nohup or a script that puts it in the background would.
-func startRunIgnoring(t *testing.T, ignored ...string) *runningClalt {
+// startHeadlessRun starts clalt with an input that is no terminal, as a
+// headless -p run, a script or a supervisor would.
+func startHeadlessRun(t *testing.T) *runningClalt { return startRunWith(t, false) }
+
+// startRunWith starts clalt with the input of a terminal or without, and with
+// the named signals ignored from the start, the way nohup or a script that puts
+// it in the background would.
+func startRunWith(t *testing.T, terminal bool, ignored ...string) *runningClalt {
+	return startRunMode(t, terminal, false, ignored...)
+}
+
+// startForegroundRun starts clalt with an input that is no terminal, in the
+// foreground group of a terminal, as `echo hi | clalt run work -p` typed at a
+// shell is: the terminal's Ctrl-C reaches claude by itself.
+func startForegroundRun(t *testing.T) *runningClalt { return startRunMode(t, false, true) }
+
+func startRunMode(t *testing.T, terminal, foreground bool, ignored ...string) *runningClalt {
 	t.Helper()
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
@@ -52,6 +77,12 @@ func startRunIgnoring(t *testing.T, ignored ...string) *runningClalt {
 	}
 	r.cmd = exec.Command(helper[0], helper[1:]...)
 	r.cmd.Env = append(os.Environ(), "CLALT_TEST_RUN_HELPER=1", "CLALT_TEST_FAKE="+os.Getenv("CLALT_CLAUDE_BIN"))
+	if terminal {
+		r.cmd.Env = append(r.cmd.Env, "CLALT_TEST_STDIN_TERMINAL=1")
+	}
+	if foreground {
+		r.cmd.Env = append(r.cmd.Env, "CLALT_TEST_FOREGROUND=1")
+	}
 	// a file and not a pipe: claude inherits it, and Wait would not return for a
 	// clalt that is gone while a pipe is still held open by claude
 	r.log = filepath.Join(t.TempDir(), "clalt.out")
@@ -129,11 +160,12 @@ func (r *runningClalt) claudePID() int {
 	return pid
 }
 
-// a Ctrl-C reaches clalt and claude together, since they share the terminal's
-// group, and claude decides what it means. clalt must still be there when claude
-// ends, or the shell gets the terminal back while claude is still using it. the
-// signal is caught and not ignored, so that claude does not inherit an ignore.
-func TestAnInterruptDuringTheSessionDoesNotEndClaltBeforeClaude(t *testing.T) {
+// at a terminal a Ctrl-C reaches clalt and claude together, since they share the
+// terminal's group, and claude decides what it means. clalt must still be there
+// when claude ends, or the shell gets the terminal back while claude is still
+// using it. the signal is caught and not ignored, so that claude does not
+// inherit an ignore.
+func TestAtATerminalAnInterruptDoesNotEndClaltBeforeClaude(t *testing.T) {
 	r := startRun(t)
 
 	if err := r.cmd.Process.Signal(syscall.SIGINT); err != nil {
@@ -159,7 +191,7 @@ func TestAnInterruptDuringTheSessionDoesNotEndClaltBeforeClaude(t *testing.T) {
 // the interrupt that the terminal sends to claude is claude's own, and it has to
 // get it as the default it expects: a clalt that had ignored the signal would
 // hand claude an ignore, through exec, and Ctrl-C would do nothing in claude
-func TestClaudeStillGetsItsOwnInterruptAndClaltEndsWithItsCode(t *testing.T) {
+func TestAtATerminalClaudeStillGetsItsOwnInterruptAndClaltEndsWithItsCode(t *testing.T) {
 	r := startRun(t)
 	pid := r.claudePID()
 
@@ -183,30 +215,33 @@ func TestClaudeStillGetsItsOwnInterruptAndClaltEndsWithItsCode(t *testing.T) {
 }
 
 // kill, an ide that closes, a terminal that is closed: the signal is for clalt
-// alone, and claude would be left running with nobody to answer to
+// alone, and claude would be left running with nobody to answer to, whatever
+// the input is
 func TestAStopSignalIsPassedOnToClaudeAndClaltEndsWithItsCode(t *testing.T) {
 	for name, c := range map[string]struct {
 		sig  syscall.Signal
 		code int
 	}{"TERM": {syscall.SIGTERM, 143}, "HUP": {syscall.SIGHUP, 129}} {
-		t.Run(name, func(t *testing.T) {
-			r := startRun(t)
+		for kind, terminal := range map[string]bool{"at a terminal": true, "without one": false} {
+			t.Run(name+" "+kind, func(t *testing.T) {
+				r := startRunWith(t, terminal)
 
-			if err := r.cmd.Process.Signal(c.sig); err != nil {
-				t.Fatal(err)
-			}
+				if err := r.cmd.Process.Signal(c.sig); err != nil {
+					t.Fatal(err)
+				}
 
-			code, ended := r.ended(10 * time.Second)
-			if got := r.signals(); got != name {
-				t.Errorf("claude was sent %q, want %s. clalt ended: %v, exit %d", got, name, ended, code)
-			}
-			if !ended || code != c.code {
-				t.Errorf("clalt ended: %v, exit %d, want %d: %s", ended, code, c.code, r.said())
-			}
-			if left := sessionRecordFiles(r.e); len(left) != 0 {
-				t.Errorf("the session record was left behind: %v", left)
-			}
-		})
+				code, ended := r.ended(10 * time.Second)
+				if got := r.signals(); got != name {
+					t.Errorf("claude was sent %q, want %s. clalt ended: %v, exit %d", got, name, ended, code)
+				}
+				if !ended || code != c.code {
+					t.Errorf("clalt ended: %v, exit %d, want %d: %s", ended, code, c.code, r.said())
+				}
+				if left := sessionRecordFiles(r.e); len(left) != 0 {
+					t.Errorf("the session record was left behind: %v", left)
+				}
+			})
+		}
 	}
 }
 
@@ -217,29 +252,34 @@ func TestAStopSignalIsPassedOnToClaudeAndClaltEndsWithItsCode(t *testing.T) {
 // which cannot trap a signal that was ignored when it started
 func TestASignalIgnoredWhenClaltStartsStaysIgnoredForClaude(t *testing.T) {
 	for name, sig := range map[string]syscall.Signal{"HUP": syscall.SIGHUP, "INT": syscall.SIGINT} {
-		t.Run(name, func(t *testing.T) {
-			r := startRunIgnoring(t, name)
+		for kind, terminal := range map[string]bool{"at a terminal": true, "without one": false} {
+			t.Run(name+" "+kind, func(t *testing.T) { stayIgnored(t, name, sig, terminal) })
+		}
+	}
+}
 
-			if err := r.cmd.Process.Signal(sig); err != nil {
-				t.Fatal(err)
-			}
-			if code, ended := r.ended(300 * time.Millisecond); ended {
-				t.Fatalf("clalt ended with %d and claude noted %q: %s", code, r.signals(), r.said())
-			}
-			if err := syscall.Kill(r.claudePID(), sig); err != nil {
-				t.Fatal(err)
-			}
-			if code, ended := r.ended(300 * time.Millisecond); ended {
-				t.Fatalf("claude ended on %s, so it was not ignored: claude noted %q, clalt exit %d", name, r.signals(), code)
-			}
+func stayIgnored(t *testing.T, name string, sig syscall.Signal, terminal bool) {
+	t.Helper()
+	r := startRunWith(t, terminal, name)
 
-			r.release()
-			if code, ended := r.ended(10 * time.Second); !ended || code != 0 {
-				t.Errorf("after claude ended: ended %v, exit %d: %s", ended, code, r.said())
-			}
-			if got := r.signals(); got != "" {
-				t.Errorf("claude noted %q", got)
-			}
-		})
+	if err := r.cmd.Process.Signal(sig); err != nil {
+		t.Fatal(err)
+	}
+	if code, ended := r.ended(300 * time.Millisecond); ended {
+		t.Fatalf("clalt ended with %d and claude noted %q: %s", code, r.signals(), r.said())
+	}
+	if err := syscall.Kill(r.claudePID(), sig); err != nil {
+		t.Fatal(err)
+	}
+	if code, ended := r.ended(300 * time.Millisecond); ended {
+		t.Fatalf("claude ended on %s, so it was not ignored: claude noted %q, clalt exit %d", name, r.signals(), code)
+	}
+
+	r.release()
+	if code, ended := r.ended(10 * time.Second); !ended || code != 0 {
+		t.Errorf("after claude ended: ended %v, exit %d: %s", ended, code, r.said())
+	}
+	if got := r.signals(); got != "" {
+		t.Errorf("claude noted %q", got)
 	}
 }

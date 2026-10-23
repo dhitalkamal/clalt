@@ -28,10 +28,12 @@ func ClaltDir() string {
 	return filepath.Join(home(), ".config", "clalt")
 }
 
-// StatePath is the non-secret metadata + active-pointer file.
+// StatePath is the account list: the labels, recorded sign-ins and budgets of
+// the accounts. there are no secrets in it.
 func StatePath() string { return filepath.Join(ClaltDir(), "state.json") }
 
-// SwitchLogPath records account-switch events for usage attribution.
+// SwitchLogPath is the log of account switches that clalt v0.1.0 kept for usage
+// attribution. nothing writes to it now, it is only read.
 func SwitchLogPath() string { return filepath.Join(ClaltDir(), "switches.jsonl") }
 
 // ProfilesDir holds the per-account profile folders of clalt v0.1.0. nothing

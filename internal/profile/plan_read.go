@@ -79,6 +79,19 @@ func (v sharedView) known() map[string]bool {
 	return out
 }
 
+// addMade adds the folders that the caller is about to make, as readShared would
+// have sorted them once they were there. a name that is there in any form, a
+// link to nothing included, is not made up, and neither is one that cannot be
+// looked at.
+func (v sharedView) addMade(dir string, names []string) {
+	for _, name := range names {
+		path := filepath.Join(dir, name)
+		if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
+			v.link[name] = path
+		}
+	}
+}
+
 // readShared sorts the entries of a shared folder by the rules. a symlink is
 // classified by what it points to. only a name that is absent from the listing
 // is gone. one that is listed but cannot be examined (a link whose target is

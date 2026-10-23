@@ -49,6 +49,7 @@ func TestLoginCreatesTheAccountAndRecordsWhoSignedIn(t *testing.T) {
 
 func TestLoginTellsAboutPrivateWindowsBeforeClaudeRuns(t *testing.T) {
 	e := newEnv(t)
+	e.app.Err = e.out // one stream, to see the order: the tip is on stderr, claude's output on stdout
 	e.claude.signInAs("a@example.com")
 
 	e.run("login", "work")
@@ -57,6 +58,28 @@ func TestLoginTellsAboutPrivateWindowsBeforeClaudeRuns(t *testing.T) {
 	tip, claude := strings.Index(out, "private window"), strings.Index(out, "Login successful")
 	if tip < 0 || claude < 0 || tip > claude {
 		t.Errorf("the private window tip should come first:\n%s", out)
+	}
+}
+
+// the tip is advice for whoever is at the terminal, and stdout is for what a
+// script reads: claude's own output and the result of the sign-in
+func TestLoginPutsThePrivateWindowTipOnStderrAndNotOnStdout(t *testing.T) {
+	e := newEnv(t)
+	e.claude.signInAs("a@example.com")
+
+	code := e.run("login", "work")
+
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, e.errOut.String())
+	}
+	if strings.Contains(e.out.String(), "tip:") || strings.Contains(e.out.String(), "private window") {
+		t.Errorf("the tip is on stdout:\n%s", e.out.String())
+	}
+	if !strings.Contains(e.errOut.String(), "tip: if your browser is signed into another claude.ai account, use a private window for this sign-in") {
+		t.Errorf("the tip is not on stderr:\n%s", e.errOut.String())
+	}
+	if out := e.out.String(); !strings.Contains(out, "work is signed in as a@example.com") {
+		t.Errorf("the result of the sign-in is not on stdout:\n%s", out)
 	}
 }
 

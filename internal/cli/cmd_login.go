@@ -17,6 +17,9 @@ func (a *App) cmdLogin(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := refuseReservedLabel(label); err != nil {
+		return err
+	}
 	acc, found, err := a.Store.ResolveLabel(label)
 	if err != nil {
 		return err
@@ -65,7 +68,8 @@ func (a *App) signIn(acc account.Account) (loginRemains bool, err error) {
 	a.warnHistory(shown(acc), folder)
 
 	a.noteStripped(folder)
-	a.printf("tip: if your browser is signed into another claude.ai account, use a private window for this sign-in\n")
+	// advice for whoever is at the terminal, so not on stdout, which is for output
+	fmt.Fprintf(a.Err, "tip: if your browser is signed into another claude.ai account, use a private window for this sign-in\n")
 	login, err := startLogin(folder, acc.Meta.Email)
 	if err != nil {
 		return false, err

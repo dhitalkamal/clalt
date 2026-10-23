@@ -13,11 +13,9 @@ func budgetRows(t *testing.T, e *testEnv, args ...string) []map[string]any {
 	if code := e.run(append([]string{"budget", "--json"}, args...)...); code != 0 {
 		t.Fatalf("budget exited %d: %s", code, e.errOut.String())
 	}
-	out := e.out.String()
-	// setting a cap prints a line before the table, which json mode leaves out
 	var rows []map[string]any
-	if err := json.Unmarshal([]byte(out[strings.Index(out, "["):]), &rows); err != nil {
-		t.Fatalf("not json: %v\n%s", err, out)
+	if err := json.Unmarshal(e.out.Bytes(), &rows); err != nil {
+		t.Fatalf("not json: %v\n%s", err, e.out.String())
 	}
 	return rows
 }

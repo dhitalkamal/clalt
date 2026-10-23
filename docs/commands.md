@@ -2,7 +2,9 @@
 
 The short list is in the [readme](../README.md). This is what each command does.
 Accounts are named by their label on every command line, ignoring case, and
-most commands take `--json`.
+most commands take `--json`. The label `unattributed`, in any case, is reserved:
+usage reports use it for usage that no account can claim, so `login` and
+`rename` refuse it.
 
 Exit codes: 0 when it worked, 2 for a mistake in the arguments (it prints the
 usage) and for an unknown or retired command, 1 for anything else that went
@@ -17,7 +19,8 @@ do. `doctor` exits 1 when a check fails.
 `clalt login <name>` runs `claude auth login` in the account's folder and then
 asks claude who signed in. It records the email, plan and organization with the
 time. If your browser is already signed in to another claude.ai account, use a
-private window for the sign-in: clalt prints that tip before it starts.
+private window for the sign-in: clalt prints that tip on stderr before it
+starts.
 
 clalt keeps the sign-ins apart:
 
@@ -65,13 +68,20 @@ Before it starts claude, `run` also checks that the account's history is the
 shared history, and refuses if it is not: see "The history check" in
 [sharing.md](sharing.md).
 
-While the session runs, clalt stays until claude is gone. A Ctrl-C reaches both of
-them, and what it means is claude's to decide, so clalt only waits. A SIGTERM or
-SIGHUP sent to clalt alone (`kill`, an IDE that stops it, a closed terminal) is
-passed on to claude, so that stopping clalt does not leave claude running, and
-clalt exits with the code claude ends with. A signal that was ignored when clalt
-started, under `nohup` or in a job that a script puts in the background, stays
-ignored for clalt and for claude, as it would for claude run by hand.
+While the session runs, clalt stays until claude is gone. At a terminal a
+Ctrl-C reaches both of them, and what it means is claude's to decide, so clalt
+only waits: passing it on as well would give claude a second one, which can turn
+an interrupt into an exit. A SIGTERM or SIGHUP sent to clalt alone (`kill`, an
+IDE that stops it, a closed terminal) is passed on to claude, so that stopping
+clalt does not leave claude running. So is a SIGINT when no terminal sends a
+Ctrl-C to clalt (a headless `-p` run, a script, a supervisor): then a `kill -INT`
+at clalt would be lost. "At a terminal" means that clalt's input is a terminal,
+or that clalt is in the foreground process group of its controlling terminal,
+as it is for `echo hi | clalt run work -p` typed at a shell: that Ctrl-C
+reaches claude by itself. On Windows only the input decides. clalt exits with
+the code claude ends with. A signal that was ignored when clalt started, under `nohup` or in a job
+that a script puts in the background, stays ignored for clalt and for claude, as
+it would for claude run by hand.
 
 Everything clalt says while it gets the session ready is on stderr, so stdout is
 claude's alone: `clalt run work -- -p "..." | jq` gets claude's answer and
