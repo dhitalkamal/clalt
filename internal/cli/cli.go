@@ -8,12 +8,28 @@ import (
 
 // Run parses args (os.Args[1:]) and dispatches a subcommand, returning an exit code.
 func Run(args []string) int {
+	rest, _ := splitJSON(args)
+	if len(rest) > 0 && rest[0] == "migrate" {
+		return run(plainApp(), args)
+	}
 	app, err := NewApp()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return 1
 	}
 	return run(app, args)
+}
+
+// splitJSON takes the global --json flag out of args, wherever it stands.
+func splitJSON(args []string) (rest []string, jsonOut bool) {
+	for _, a := range args {
+		if a == "--json" {
+			jsonOut = true
+			continue
+		}
+		rest = append(rest, a)
+	}
+	return rest, jsonOut
 }
 
 // usageError is a mistake in the arguments of a command. it exits with 2 and
@@ -23,15 +39,7 @@ type usageError struct{ msg, usage string }
 func (e usageError) Error() string { return e.msg }
 
 func run(app *App, args []string) int {
-	var rest []string
-	jsonOut := false
-	for _, a := range args {
-		if a == "--json" {
-			jsonOut = true
-			continue
-		}
-		rest = append(rest, a)
-	}
+	rest, jsonOut := splitJSON(args)
 	var err error
 	app.JSON = jsonOut
 
@@ -78,6 +86,8 @@ func run(app *App, args []string) int {
 		err = app.cmdUsage(cmdArgs)
 	case "dashboard":
 		err = app.cmdDashboard(cmdArgs)
+	case "migrate":
+		err = app.cmdMigrate(cmdArgs)
 	case "help", "-h", "--help":
 		app.usage()
 		return 0
@@ -132,6 +142,8 @@ usage:
   clalt usage [name] [--live]  usage stats (local by default)
   clalt dashboard [--live]     interactive usage dashboard (TUI)
   clalt dashboard --demo       preview the new dashboard on demo data
+  clalt migrate [--dry-run]  copy history from per-account profile folders into
+                             the shared projects folder (safe to repeat)
 
 global:
   --json                      machine-readable output where supported

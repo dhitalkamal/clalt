@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `clalt migrate [--dry-run]`: copies the conversation history held in
+  per-account profile folders (`~/.config/clalt/profiles/<name>/projects`) into
+  the shared projects folder, which is `~/.claude/projects`, or
+  `$CLAUDE_CONFIG_DIR/projects` when that is set to a folder outside clalt's
+  own. It never overwrites a file, never follows a link and leaves the profile
+  folders as they were, so it is safe to run again. A file that exists with
+  different content is listed as a conflict with the reason, and the profile's
+  version stays only in the profile folder. A dry run reports what a real run
+  would do and writes nothing.
 - building blocks for thin profiles that nothing calls yet: a wrapper for
   claude's own auth commands (status, login, logout, version, with auth
   environment variables stripped), profile link and MCP server sync with a
