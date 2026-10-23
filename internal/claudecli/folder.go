@@ -16,7 +16,11 @@ import (
 // an empty or relative path would end up wherever clalt happens to be, a missing
 // folder would be created by claude behind clalt's back, and the shared home
 // would have its own login replaced or signed out.
-func checkFolder(dir string) error {
+func checkFolder(dir string) error { return checkFolderFor(dir, false) }
+
+// checkFolderFor is checkFolder, with the shared home allowed for a call that
+// only reads.
+func checkFolderFor(dir string, allowShared bool) error {
 	switch {
 	case dir == "":
 		return errors.New("no account folder given")
@@ -32,7 +36,7 @@ func checkFolder(dir string) error {
 	case !fi.IsDir():
 		return fmt.Errorf("%s is not a folder", dir)
 	}
-	if shared := config.SharedClaudeDir(); shared != "" && fsutil.SamePath(dir, shared) {
+	if shared := config.SharedClaudeDir(); !allowShared && shared != "" && fsutil.SamePath(dir, shared) {
 		return fmt.Errorf("%s is the shared claude home, not an account folder", dir)
 	}
 	return nil

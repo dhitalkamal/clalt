@@ -178,9 +178,11 @@ func TestDoctorFlagsTheOldCredentialsFileOnMacOSWithoutReadingIt(t *testing.T) {
 
 // claude writes that file itself when it cannot save its login in the keychain,
 // so on a Mac it may be the real login and not a leftover. the advice says how
-// to tell and does not say to delete it outright.
+// to tell and does not say to delete it outright. that is what doctor says
+// when claude cannot answer for itself.
 func TestTheOldCredentialsAdviceSaysHowToTellAndDoesNotSayToDeleteItBlindly(t *testing.T) {
 	e := newEnv(t)
+	e.claude.set("STATUS_BROKEN", "1")
 	path := filepath.Join(e.home, ".claude", ".credentials.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)

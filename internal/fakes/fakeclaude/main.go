@@ -26,6 +26,15 @@ import (
 func fakeClaudeMain(args []string, stdin io.Reader) int {
 	dir := fakeutil.Beside()
 	cfg := os.Getenv("CLAUDE_CONFIG_DIR")
+	if cfg == "" {
+		// like the real one: no variable means the default home. tests set HOME
+		// on every platform, windows included
+		h := os.Getenv("HOME")
+		if h == "" {
+			h, _ = os.UserHomeDir()
+		}
+		cfg = filepath.Join(h, ".claude")
+	}
 	login := filepath.Join(cfg, ".fake-login")
 	on := func(name string) bool { return os.Getenv("FAKE_CLAUDE_"+name) != "" }
 	or := func(name, def string) string {

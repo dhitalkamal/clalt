@@ -43,6 +43,15 @@ func liveStatus(folder string) (claudecli.AuthStatus, error) {
 	return cleanStatus(st), err
 }
 
+// sharedStatus asks claude who is signed in to the shared claude home, a read
+// that claudecli allows only through its own call.
+func sharedStatus(folder string) (claudecli.AuthStatus, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), authTimeout)
+	defer cancel()
+	st, err := claudecli.StatusOfShared(ctx, folder)
+	return cleanStatus(st), err
+}
+
 // cleanStatus makes the fields that clalt stores and shows safe. the fields it
 // only compares, the auth method and the folder, are left exactly as claude
 // said them, so that cleaning cannot turn a wrong answer into a right one.

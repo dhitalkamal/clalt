@@ -98,9 +98,35 @@ func oldHistory() string {
 	switch {
 	case err != nil:
 		return fmt.Sprintf("history not checked: %v", err)
+	case rep.Total.Copied+rep.Total.Failed == 0 && rep.Total.Conflicts > 0:
+		return "all history is already in the shared folder; " + conflictsLeft(rep)
 	case rep.Total.Copied+rep.Total.Conflicts+rep.Total.Failed > 0:
 		return "history not copied yet: " + tally(rep.Total, true) +
 			". run 'clalt migrate --dry-run' to see it, 'clalt migrate' to copy it"
 	}
 	return "the history in them is already copied, so the folders can go when you like"
+}
+
+// conflictsLeft names the files that differ from the shared copy and so stay
+// only in the profile folders. a long list is cut short.
+func conflictsLeft(rep migrate.Report) string {
+	var paths []string
+	for _, p := range rep.Profiles {
+		for _, c := range p.Conflicts {
+			paths = append(paths, filepath.Join(rep.Source, p.Name, "projects", c.Path))
+		}
+	}
+	verb := "differs and stays"
+	if len(paths) != 1 {
+		verb = "differ and stay"
+	}
+	shown := paths
+	if len(shown) > 3 {
+		shown = shown[:3]
+	}
+	list := strings.Join(shown, ", ")
+	if len(paths) > len(shown) {
+		list += fmt.Sprintf(", and %d more", len(paths)-len(shown))
+	}
+	return fmt.Sprintf("%s %s only in the profile folder: %s", count(len(paths), "file"), verb, list)
 }

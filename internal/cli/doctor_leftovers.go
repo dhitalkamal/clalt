@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/dhitalkamal/clalt/internal/claudecli"
 	"github.com/dhitalkamal/clalt/internal/config"
 )
 
@@ -95,8 +96,9 @@ func keepaliveCheck(goos string) checkResult {
 // that file, so it is never a leftover there.
 func oldCredentialsMatter(goos string) bool { return goos == "darwin" }
 
-// credentialsCheck only looks whether the file is there. its content is a
-// login and is never read.
+// credentialsCheck asks claude whether the default claude home is signed in,
+// so the file is judged by the login and never opened. its content is a login
+// and is never read.
 func credentialsCheck() checkResult {
 	shared := config.SharedClaudeDir()
 	if shared == "" {
@@ -106,8 +108,21 @@ func credentialsCheck() checkResult {
 	if !exists(path) {
 		return result("leftover", "oldCredentials", statusOK, "no old credentials file")
 	}
-	// on a mac claude keeps its login in the keychain, but it writes this file
-	// itself when the keychain write fails, so it is not always a leftover
+	st, err := sharedStatus(shared)
+	if err == nil {
+		ok, why, _ := st.SignedIn(shared)
+		switch {
+		case ok:
+			return result("leftover", "oldCredentials", statusOK,
+				"%s is the live login of the default claude home and must stay", path)
+		case why == claudecli.ReasonNotSignedIn:
+			return result("leftover", "oldCredentials", statusWarn,
+				"%s looks like a leftover: the default claude home is not signed in, so nothing uses it and it can go", path)
+		}
+	}
+	// claude could not say, or said something other than a plain yes or no. on a
+	// mac claude writes this file itself when the keychain write fails, so it is
+	// not always a leftover
 	return result("leftover", "oldCredentials", statusWarn,
 		"%s is there. the old switch flow may have written it, but claude writes it too when it cannot save its login in the keychain, "+
 			"so it can be your real login. do not delete it blindly: run 'claude auth status' from a normal shell. "+

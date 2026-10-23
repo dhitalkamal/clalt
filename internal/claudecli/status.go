@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
@@ -37,7 +38,17 @@ type AuthStatus struct {
 // authTimeout. callers must not use short timeouts on auth calls: ending claude
 // in the middle of a token refresh can sign the folder out.
 func Status(ctx context.Context, configDir string) (AuthStatus, error) {
-	if err := checkFolder(configDir); err != nil {
+	return status(ctx, configDir, false)
+}
+
+// StatusOfShared is Status for the shared claude home. asking who is signed in
+// changes nothing, so it is allowed there; login and logout stay refused.
+func StatusOfShared(ctx context.Context, configDir string) (AuthStatus, error) {
+	return status(ctx, configDir, true)
+}
+
+func status(ctx context.Context, configDir string, allowShared bool) (AuthStatus, error) {
+	if err := checkFolderFor(configDir, allowShared); err != nil {
 		return AuthStatus{}, fmt.Errorf("claude auth status: %w", err)
 	}
 	ctx, cancel := withDefaultTimeout(ctx)
@@ -45,7 +56,7 @@ func Status(ctx context.Context, configDir string) (AuthStatus, error) {
 	if err := ensureVersion(ctx); err != nil {
 		return AuthStatus{}, fmt.Errorf("claude auth status: %w", err)
 	}
-	env, _ := Env(os.Environ(), configDir)
+	env := statusEnv(configDir, allowShared)
 	res, err := run(ctx, env, "auth", "status", "--json")
 	if err != nil {
 		return AuthStatus{}, fmt.Errorf("claude auth status: %w", err)
@@ -54,6 +65,32 @@ func Status(ctx context.Context, configDir string) (AuthStatus, error) {
 		return AuthStatus{}, res.failure("auth status", res.ended())
 	}
 	return parseStatus(res)
+}
+
+// statusEnv is the environment of a status call. the default shared home is
+// what claude sees with CLAUDE_CONFIG_DIR unset, and on a mac the keychain entry
+// of a login is named after that variable, so it stays unset there. it is set
+// for an account folder and for a shared home the user chose with the variable.
+func statusEnv(configDir string, shared bool) []string {
+	if shared {
+		if v := os.Getenv(configDirVar); v == "" || !fsutil.SamePath(v, configDir) {
+			env, _ := stripAuth(os.Environ())
+			return withoutConfigDir(env)
+		}
+	}
+	env, _ := Env(os.Environ(), configDir)
+	return env
+}
+
+// withoutConfigDir drops CLAUDE_CONFIG_DIR, which stripAuth keeps.
+func withoutConfigDir(env []string) []string {
+	out := env[:0:0]
+	for _, kv := range env {
+		if name, _, _ := strings.Cut(kv, "="); envKey(name) != envKey(configDirVar) {
+			out = append(out, kv)
+		}
+	}
+	return out
 }
 
 // parseStatus reads the json of a finished call. the keys that decide whether a

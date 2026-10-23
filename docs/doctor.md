@@ -57,10 +57,15 @@ right after upgrading from v0.1.0, exits 0 with warnings.
     (a `.credentials.json`), so doctor names each one it finds and says to
     delete those files. It only checks that the file exists and never opens it.
     It also says whether the history in the folders is copied, and points at
-    `clalt migrate` when it is not. That part needs the shared home, so inside
+    `clalt migrate` when it is not. When nothing is left to copy and only
+    files that differ from the shared copy remain, it says all history is
+    already in the shared folder and names those files. That part needs the shared home, so inside
     a `clalt run` session or with `HOME` unset it says it was not checked.
   - `~/.claude/.credentials.json` may be a leftover of the old switch flow, but
     claude writes it too when it cannot save its login in the keychain, and then
-    it is your real login. Doctor does not say to delete it. It says to run
-    `claude auth status` from a normal shell first: if that says you are not
-    signed in, the file is a leftover and can go.
+    it is your real login. Doctor asks claude itself (`claude auth status` for
+    the default claude home) and never opens the file. Signed in with a
+    claude.ai login: ok, the file is the live login and must stay. Not signed
+    in: a warning that the file looks like a leftover and can go. If claude
+    cannot answer, or the login is not a claude.ai one, the warning says to run
+    `claude auth status` from a normal shell first.

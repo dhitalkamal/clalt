@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `clalt doctor` asks claude whether the default claude home is signed in
+  before judging `~/.claude/.credentials.json`: a live login is ok and must
+  stay, a signed-out home makes it a leftover. It no longer asks you to run
+  `claude auth status` by hand unless claude cannot answer.
+- `clalt doctor` no longer says "would copy 0 files" for old profile folders
+  when only conflicts are left. It says all history is already in the shared
+  folder and names the files that differ.
+
 ### Added
 
 - `clalt remove <name> --delete` signs the account out, then deletes its
