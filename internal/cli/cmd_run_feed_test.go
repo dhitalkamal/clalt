@@ -79,7 +79,7 @@ func TestRunKeepsTheUsersSettingsFileUntouched(t *testing.T) {
 func TestRunMarksTheSessionStartingWhileClaudeRunsAndEndedAfter(t *testing.T) {
 	e := newEnv(t)
 	e.signIn("work", "a@example.com")
-	extendFake(t, e, `cat "$XDG_CONFIG_HOME"/clalt/feed/sessions/*.json > "$dir/session.feed"`)
+	extendFake(t, e, "feed")
 
 	if code := e.run("run", "work"); code != 0 {
 		t.Fatalf("exit %d: %s", code, e.errOut.String())

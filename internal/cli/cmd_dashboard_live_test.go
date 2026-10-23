@@ -46,6 +46,7 @@ func TestTheDashboardWithNoAccountsSaysHowToAddOne(t *testing.T) {
 }
 
 func TestTheDashboardCleansWhatTheStateFileAndTranscriptsHold(t *testing.T) {
+	skipWindows(t, "windows cannot create these names")
 	e := hostileStateEnv(t)
 	e.writeSwitchLog(`{"ts":"2026-08-23T00:00:00Z","account":"ok"}` + "\n")
 	e.writeTranscriptOf(hostile(), `claude\u001b]0;PWNED\u0007\nerror: forged line`)
@@ -92,6 +93,7 @@ func TestInteractiveNeedsBothStreamsToBeTerminals(t *testing.T) {
 }
 
 func TestTheDashboardLogGetsCleanedOneLineEntriesAndIsPrivate(t *testing.T) {
+	skipWindows(t, "windows has no unix file modes")
 	newEnv(t)
 	path := filepath.Join(config.ClaltDir(), "logs", "dashboard.log")
 	log := dashboardLogger(path)

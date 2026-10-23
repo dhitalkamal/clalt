@@ -125,6 +125,7 @@ func TestLinkWarningNamesAreCleaned(t *testing.T) {
 
 // a shared home that cannot be read stops the run, the sync is not skipped in silence
 func TestRunStopsWhenTheSharedHomeCannotBeRead(t *testing.T) {
+	skipWindows(t, "mode 0 does not make a folder unreadable on windows")
 	e := newEnv(t)
 	e.seedShared()
 	e.signIn("work", "a@example.com")

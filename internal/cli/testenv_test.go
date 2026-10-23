@@ -176,3 +176,12 @@ func (e *testEnv) answer(text string) {
 	e.app.In = strings.NewReader(text)
 	e.app.reader = nil
 }
+
+// skipWindows skips a test over a real difference of windows, which the reason
+// names.
+func skipWindows(t *testing.T, reason string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip(reason)
+	}
+}

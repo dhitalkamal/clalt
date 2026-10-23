@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -13,26 +12,6 @@ import (
 // until a test installs the fake, kirocrew is a path that does not exist, so a
 // test that forgot cannot reach the real one.
 func init() { os.Setenv("CLALT_KIROCREW_BIN", "/nonexistent/clalt-test-kirocrew") }
-
-// fakeKirocrewScript stands in for kirocrew. a gateway is a process that
-// records how it was started, prints a line with a token in it, and holds until
-// a release file appears (or a minute has passed).
-const fakeKirocrewScript = `#!/bin/sh
-dir=$(dirname "$0")
-case "$1" in
-  --version) echo "kirocrew ${FAKE_KIROCREW_VERSION:-0.9.0}"; exit 0 ;;
-  config) echo "config $*" >> "$dir/calls"; exit 0 ;;
-  gateway)
-    echo "gateway $*" >> "$dir/calls"
-    env | sort > "$dir/gateway.env"
-    echo "gateway up, open http://localhost/?token=abc123secret"
-    i=0
-    while [ ! -f "$dir/release" ] && [ $i -lt 1200 ]; do sleep 0.05; i=$((i+1)); done
-    exit 0 ;;
-esac
-echo "fake kirocrew: unexpected $*" >&2
-exit 64
-`
 
 type fakeKirocrew struct {
 	t   *testing.T
@@ -43,14 +22,8 @@ type fakeKirocrew struct {
 // gateways go when the test ends.
 func installFakeKirocrew(t *testing.T) *fakeKirocrew {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("these tests use sh scripts as kirocrew")
-	}
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "kirocrew")
-	if err := os.WriteFile(bin, []byte(fakeKirocrewScript), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	bin := mustInstallFake(t, "fakekirocrew", dir, "kirocrew")
 	t.Setenv("CLALT_KIROCREW_BIN", bin)
 	t.Setenv("FAKE_KIROCREW_VERSION", "")
 	t.Cleanup(func() {
@@ -91,6 +64,7 @@ func (f *fakeKirocrew) gatewayEnv() map[string]string {
 // crewEnv is a clalt install with a signed-in account called work and the fake kirocrew.
 func crewEnv(t *testing.T) (*testEnv, *fakeKirocrew) {
 	t.Helper()
+	skipWindows(t, "clalt crew is not available on windows")
 	e := newEnv(t)
 	e.seedShared()
 	k := installFakeKirocrew(t)

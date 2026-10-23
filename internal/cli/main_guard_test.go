@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -17,20 +16,17 @@ import (
 // the guard is only a guard when it is the claude that a test without a fake
 // reaches, and when it refuses to be claude. this test installs no fake.
 func TestTheGuardIsWhatClaudeResolvesToWhenNoFakeIsInstalled(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("the guard is an sh script, which windows cannot run as claude")
-	}
 	bin, err := claudecli.Binary()
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := os.ReadFile(bin)
-	if err != nil || !strings.Contains(string(raw), "a test ran claude without installing a fake") {
-		t.Fatalf("CLALT_CLAUDE_BIN does not point at the guard: %s %v", bin, err)
-	}
+	out, err := exec.Command(bin, "auth", "status").CombinedOutput()
 	var exit *exec.ExitError
-	if err := exec.Command(bin, "auth", "status").Run(); !errors.As(err, &exit) || exit.ExitCode() != 99 {
+	if !errors.As(err, &exit) || exit.ExitCode() != 99 {
 		t.Errorf("the guard did not refuse: %v", err)
+	}
+	if !strings.Contains(string(out), "a test ran claude without installing a fake") {
+		t.Errorf("CLALT_CLAUDE_BIN does not point at the guard: %s: %s", bin, out)
 	}
 }
 

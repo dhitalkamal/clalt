@@ -76,7 +76,6 @@ func TestLoginRefusesAnEmailThatLooksLikeAFlag(t *testing.T) {
 }
 
 func TestLoginWithoutClaudeIsAnError(t *testing.T) {
-	skipOnWindows(t)
 	isolateHome(t, t.TempDir())
 	t.Setenv("CLALT_CLAUDE_BIN", filepath.Join(t.TempDir(), "no-such-claude"))
 	if _, err := Login(context.Background(), t.TempDir(), ""); err == nil {
@@ -100,7 +99,6 @@ func TestLogoutFailureIsAnErrorWithTheFirstStderrLine(t *testing.T) {
 }
 
 func TestLogoutWithoutClaudeIsAnError(t *testing.T) {
-	skipOnWindows(t)
 	isolateHome(t, t.TempDir())
 	t.Setenv("CLALT_CLAUDE_BIN", filepath.Join(t.TempDir(), "no-such-claude"))
 	if err := Logout(context.Background(), t.TempDir()); err == nil {

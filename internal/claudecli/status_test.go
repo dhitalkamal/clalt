@@ -92,7 +92,6 @@ func TestStatusFailuresCarryTheFirstLineOfStderr(t *testing.T) {
 }
 
 func TestStatusWithoutClaudeIsAnError(t *testing.T) {
-	skipOnWindows(t)
 	isolateHome(t, t.TempDir())
 	t.Setenv("CLALT_CLAUDE_BIN", filepath.Join(t.TempDir(), "no-such-claude"))
 	if _, err := Status(context.Background(), t.TempDir()); err == nil {

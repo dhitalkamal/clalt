@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -121,7 +120,7 @@ func (a *App) listConversations(root string, r resumeArgs) error {
 		return nil
 	}
 	now := a.clock()
-	home := os.Getenv("HOME")
+	home := config.Home()
 	tw := tabwriter.NewWriter(a.out(), 0, 2, 2, ' ', 0)
 	fmt.Fprintln(tw, "ID\tLAST ACTIVE\tMODEL\tSIZE\tFOLDER\tTITLE")
 	for _, c := range found {

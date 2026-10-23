@@ -136,7 +136,7 @@ func TestRunRecordsTheSessionUnderTheIdWhileItLasts(t *testing.T) {
 	}
 
 	rec := e.claude.sessionRecords()
-	if !strings.Contains(rec, `"account":"`+id+`"`) || !strings.Contains(rec, cwd) {
+	if !strings.Contains(rec, `"account":"`+id+`"`) || !strings.Contains(rec, strings.ReplaceAll(cwd, `\`, `\\`)) {
 		t.Errorf("the session record while claude ran: %q", rec)
 	}
 	left, _ := filepath.Glob(filepath.Join(e.home, ".config", "clalt", "sessions", "*.json"))

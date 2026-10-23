@@ -71,6 +71,10 @@ func VaultDir() string { return filepath.Join(ClaltDir(), "vault") }
 // VaultKeyPath was the encryption key for VaultDir.
 func VaultKeyPath() string { return filepath.Join(ClaltDir(), "vault.key") }
 
+// Home is the user home dir by the rule every path here follows: $HOME when set
+// (so tests can override it), else what the platform says.
+func Home() string { return home() }
+
 // home returns the user home dir, falling back to $HOME so tests can override it.
 func home() string {
 	if h := os.Getenv("HOME"); h != "" {

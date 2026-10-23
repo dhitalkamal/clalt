@@ -25,6 +25,7 @@ func forgedIn(out string) bool {
 // CLAUDE_CONFIG_DIR is whatever the shell has. in the text it is cleaned, and
 // the JSON carries the path as it is, since the encoder escapes it already.
 func TestWhoamiCleansWhatTheEnvironmentHolds(t *testing.T) {
+	skipWindows(t, "windows cannot create these names")
 	for name, dir := range map[string]func() string{
 		"unknown account": func() string { return filepath.Join(config.AccountsDir(), hostile()) },
 		"old profile":     func() string { return filepath.Join(config.ProfilesDir(), hostile()) },
@@ -57,6 +58,7 @@ func TestWhoamiCleansWhatTheEnvironmentHolds(t *testing.T) {
 
 // the folder of an account is under XDG_CONFIG_HOME, which can be anywhere
 func TestWhoamiCleansTheFolderOfTheAccount(t *testing.T) {
+	skipWindows(t, "windows cannot create these names")
 	e := newEnv(t)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(e.home, hostile()))
 	plantState(t, `{"accounts":{"work":{"email":"w@example.com","addedAt":"2026-08-01T10:00:00Z"}}}`)
@@ -81,6 +83,7 @@ func TestWhoamiCleansTheFolderOfTheAccount(t *testing.T) {
 
 // the shared claude home can be anywhere the user pointed CLAUDE_CONFIG_DIR at
 func TestTheHistoryWarningCleansThePathItNames(t *testing.T) {
+	skipWindows(t, "windows cannot create these names")
 	e := newEnv(t)
 	shared := filepath.Join(e.home, hostile())
 	mustMkdir(t, shared)
@@ -133,6 +136,7 @@ func (e *testEnv) writeTranscriptOf(project, model string) {
 // the model id and the project come out of the transcripts, which anything can
 // write to
 func TestUsageCleansTheModelAndTheProjectOfATranscript(t *testing.T) {
+	skipWindows(t, "windows cannot create these names")
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
 	e.writeSwitchLog(switchToWork)

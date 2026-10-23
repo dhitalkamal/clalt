@@ -5,21 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 )
-
-// exited runs a shell that ends the way asked and returns the error exec gives
-// for it, since an *exec.ExitError cannot be made by hand.
-func exited(t *testing.T, script string) *exec.ExitError {
-	t.Helper()
-	skipOnWindows(t)
-	var ee *exec.ExitError
-	if !errors.As(exec.Command("sh", "-c", script).Run(), &ee) {
-		t.Fatalf("%q did not end with an exit error", script)
-	}
-	return ee
-}
 
 func sentAgo(d time.Duration) *cancelState {
 	st := &cancelState{}
@@ -29,7 +18,7 @@ func sentAgo(d time.Duration) *cancelState {
 
 func TestAResultFromBeforeTheContextEndedIsKept(t *testing.T) {
 	// the context ended later, but claude had already finished on its own
-	res, err := finish(exited(t, "exit 3"), context.DeadlineExceeded, &cancelState{}, []byte("out"), []byte("err"))
+	res, err := finish(exited(t, "exit", "3"), context.DeadlineExceeded, &cancelState{}, []byte("out"), []byte("err"))
 	if err != nil || res.code != 3 || string(res.stdout) != "out" || string(res.stderr) != "err" {
 		t.Errorf("finish = %+v, %v", res, err)
 	}
@@ -53,10 +42,18 @@ func TestACancelIsTypedAndSaysHowClaudeEnded(t *testing.T) {
 		st     *cancelState
 		killed bool
 	}{
-		{"stopped itself after the interrupt", exited(t, "exit 130"), sentAgo(time.Second), false},
+		{"stopped itself after the interrupt", exited(t, "exit", "130"), sentAgo(time.Second), false},
 		{"exit 0 after the interrupt", context.Canceled, sentAgo(time.Second), false},
-		{"killed once the grace was over", exited(t, "exit 1"), sentAgo(cancelGrace + time.Second), true},
-		{"died of a kill", exited(t, "kill -9 $$"), sentAgo(time.Second), true},
+		{"killed once the grace was over", exited(t, "exit", "1"), sentAgo(cancelGrace + time.Second), true},
+	}
+	if runtime.GOOS != "windows" {
+		// windows has no death by signal
+		cases = append(cases, struct {
+			name   string
+			runErr error
+			st     *cancelState
+			killed bool
+		}{"died of a kill", exited(t, "kill9"), sentAgo(time.Second), true})
 	}
 	for _, c := range cases {
 		_, err := finish(c.runErr, context.Canceled, c.st, nil, nil)

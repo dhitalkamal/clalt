@@ -81,6 +81,7 @@ func TestStatuslineWithoutLimitsOrContextKeepsWhatIsKnown(t *testing.T) {
 }
 
 func TestStatuslineWithoutASessionOnlyPassesThrough(t *testing.T) {
+	skipWindows(t, "the user command runs through the platform shell, and these use sh syntax")
 	e := newEnv(t)
 	t.Setenv("CLALT_SESSION", "")
 	setUserStatusLine(t, e, "echo mine")
@@ -105,6 +106,7 @@ func TestStatuslineWithNoUserStatusLinePrintsNothing(t *testing.T) {
 }
 
 func TestStatuslinePassesTheUsersExitCodeOn(t *testing.T) {
+	skipWindows(t, "the user command runs through the platform shell, and these use sh syntax")
 	e := newEnv(t)
 	setUserStatusLine(t, e, "echo partial; exit 3")
 
@@ -131,6 +133,7 @@ func TestStatuslineStopsASlowUserCommand(t *testing.T) {
 }
 
 func TestStatuslineDoesNotRunItselfInALoop(t *testing.T) {
+	skipWindows(t, "the user command runs through the platform shell, and these use sh syntax")
 	e := newEnv(t)
 	setUserStatusLine(t, e, `echo "chained=$CLALT_STATUSLINE_CHAINED"`)
 	e.statusline(`{}`)
@@ -158,6 +161,7 @@ func TestStatuslineFindsTheAccountThroughTheConfigDirWhenTheRecordIsGone(t *test
 }
 
 func TestStatuslineIgnoresNonsenseInputButStillPassesThrough(t *testing.T) {
+	skipWindows(t, "the user command runs through the platform shell, and these use sh syntax")
 	e := newEnv(t)
 	liveHandle(t)
 	setUserStatusLine(t, e, "echo ok")

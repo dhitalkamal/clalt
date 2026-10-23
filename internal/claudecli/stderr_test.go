@@ -2,6 +2,7 @@ package claudecli
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -80,6 +81,9 @@ func TestFailuresQuoteTheFirstMeaningfulStderrLine(t *testing.T) {
 }
 
 func TestACallEndedByASignalNamesTheSignal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a process on windows does not die by a signal")
+	}
 	f := newFake(t)
 	f.write("status.die", "KILL")
 

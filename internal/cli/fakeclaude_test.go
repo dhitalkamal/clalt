@@ -3,83 +3,9 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
-
-// fakeClaudeScript stands in for claude. a login is a file inside
-// CLAUDE_CONFIG_DIR, which is how the real one keys it to the folder, and the
-// FAKE_CLAUDE_* variables steer what it does. it records what it was asked next
-// to itself: one line per auth call in calls, and for a session the arguments,
-// the environment and the folder it ran in. FAKE_CLAUDE_SESSION_HOLDS makes a
-// session wait until a session.release file appears, and note in signals every
-// TERM, HUP or INT it gets, ending with the code a shell would report.
-const fakeClaudeScript = `#!/bin/sh
-dir=$(dirname "$0")
-cfg="$CLAUDE_CONFIG_DIR"
-login="$cfg/.fake-login"
-case "$1 $2" in
-  "auth login")
-    echo "login $cfg|$*" >> "$dir/calls"
-    env | sort > "$dir/login.env"
-    if [ -n "$FAKE_CLAUDE_READS_STDIN" ]; then read -r line; echo "$line" > "$dir/login.stdin"; fi
-    if [ -n "$FAKE_CLAUDE_LOGIN_FAILS" ]; then echo "login was cancelled" >&2; exit 1; fi
-    if [ -n "$FAKE_CLAUDE_LOGIN_NOOP" ]; then exit 0; fi
-    if [ -n "$FAKE_CLAUDE_LOGIN_WRITES_THEN_FAILS" ]; then
-      mkdir -p "$cfg"
-      printf '%s\n%s\n%s\n' "$FAKE_CLAUDE_EMAIL" "${FAKE_CLAUDE_ORG:-Example Org}" "${FAKE_CLAUDE_PLAN:-max}" > "$login"
-      echo "could not save the profile: network error" >&2
-      exit 1
-    fi
-    mkdir -p "$cfg"
-    org="${FAKE_CLAUDE_ORG:-Example Org}"
-    if [ -n "$FAKE_CLAUDE_NO_ORG" ]; then org=""; fi
-    printf '%s\n%s\n%s\n' "$FAKE_CLAUDE_EMAIL" "$org" "${FAKE_CLAUDE_PLAN:-max}" > "$login"
-    echo "Login successful"
-    exit 0 ;;
-  "auth status")
-    echo "status $cfg" >> "$dir/calls"
-    env | sort > "$dir/status.env"
-    if [ -f "$cfg/.fake-warn" ]; then cat "$cfg/.fake-warn" >&2; fi
-    if [ -n "$FAKE_CLAUDE_STATUS_HANGS" ]; then exec sleep 10; fi
-    if [ -n "$FAKE_CLAUDE_STATUS_BROKEN" ]; then printf '%b\n' "${FAKE_CLAUDE_STATUS_ERR:-keychain is locked}" >&2; exit 3; fi
-    if [ -n "$FAKE_CLAUDE_API_KEY_HELPER" ]; then
-      printf '{"loggedIn":true,"authMethod":"api_key_helper","configDirectory":"%s"}\n' "$cfg"
-      exit 0
-    fi
-    if [ -f "$login" ]; then
-      { read -r email; read -r org; read -r plan; } < "$login"
-      printf '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"%s","email":"%s","orgId":"org-1","orgName":"%s","subscriptionType":"%s","configDirectory":"%s","projectsDirectory":"%s/projects"}\n' "${FAKE_CLAUDE_PROVIDER:-firstParty}" "$email" "$org" "$plan" "${FAKE_CLAUDE_STATUS_FOLDER:-$cfg}" "$cfg"
-      exit 0
-    fi
-    printf '{"loggedIn":false,"authMethod":"none","apiProvider":"firstParty","configDirectory":"%s"}\n' "$cfg"
-    exit 1 ;;
-  "auth logout")
-    echo "logout $cfg" >> "$dir/calls"
-    env | sort > "$dir/logout.env"
-    if [ -n "$FAKE_CLAUDE_LOGOUT_HANGS" ]; then exec sleep 10; fi
-    if [ -n "$FAKE_CLAUDE_LOGOUT_FAILS" ]; then printf '%b\n' "${FAKE_CLAUDE_LOGOUT_ERR:-could not reach the keychain}" >&2; exit 1; fi
-    rm -f "$login"
-    exit 0 ;;
-esac
-if [ "$1" = "--version" ]; then echo "${FAKE_CLAUDE_VERSION:-2.1.303} (Claude Code)"; exit 0; fi
-printf '%s\n' "$@" > "$dir/session.argv"
-env | sort > "$dir/session.env"
-pwd > "$dir/session.cwd"
-cat "$XDG_CONFIG_HOME"/clalt/sessions/*.json > "$dir/session.records" 2>/dev/null
-if [ -n "$FAKE_CLAUDE_SESSION_HOLDS" ]; then
-  trap 'echo TERM >> "$dir/signals"; exit 143' TERM
-  trap 'echo HUP >> "$dir/signals"; exit 129' HUP
-  trap 'echo INT >> "$dir/signals"; exit 130' INT
-  echo $$ > "$dir/session.pid"
-  echo holding > "$dir/session.holding"
-  while [ ! -f "$dir/session.release" ]; do sleep 0.05; done
-fi
-if [ -n "$FAKE_CLAUDE_SESSION_PRINTS" ]; then echo "hello from claude"; cat > "$dir/session.stdin"; fi
-if [ "$FAKE_CLAUDE_EXIT" = "term" ]; then kill -TERM $$; fi
-exit "${FAKE_CLAUDE_EXIT:-0}"
-`
 
 // fakeClaudeVars are cleared at the start of every test, so a variable from the
 // developer's shell cannot change an answer.
@@ -90,7 +16,7 @@ var fakeClaudeVars = []string{
 	"FAKE_CLAUDE_SESSION_PRINTS", "FAKE_CLAUDE_STATUS_HANGS", "FAKE_CLAUDE_LOGOUT_HANGS",
 	"FAKE_CLAUDE_STATUS_ERR", "FAKE_CLAUDE_LOGOUT_ERR", "FAKE_CLAUDE_NO_ORG",
 	"FAKE_CLAUDE_LOGIN_WRITES_THEN_FAILS", "FAKE_CLAUDE_PROVIDER", "FAKE_CLAUDE_STATUS_FOLDER",
-	"FAKE_CLAUDE_SESSION_HOLDS",
+	"FAKE_CLAUDE_SESSION_HOLDS", "FAKE_CLAUDE_EXTRAS", "FAKE_CLAUDE_SIGNAL",
 }
 
 type fakeClaude struct {
@@ -101,14 +27,8 @@ type fakeClaude struct {
 // installFakeClaude makes the fake the claude binary for the test.
 func installFakeClaude(t *testing.T) *fakeClaude {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("these tests use sh scripts as the claude binary")
-	}
 	dir := t.TempDir()
-	bin := filepath.Join(dir, "claude")
-	if err := os.WriteFile(bin, []byte(fakeClaudeScript), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	bin := mustInstallFake(t, "fakeclaude", dir, "claude")
 	t.Setenv("CLALT_CLAUDE_BIN", bin)
 	for _, v := range fakeClaudeVars {
 		t.Setenv(v, "")

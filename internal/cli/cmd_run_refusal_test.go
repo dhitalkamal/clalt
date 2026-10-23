@@ -152,23 +152,9 @@ func TestLoginWithoutEmailSaysToSignInAgain(t *testing.T) {
 	}
 }
 
-// extendStatus adds lines at the start of the fake's auth status answer.
-func extendStatus(t *testing.T, e *testEnv, extra string) {
-	t.Helper()
-	bin := filepath.Join(e.claude.dir, "claude")
-	raw, err := os.ReadFile(bin)
-	if err != nil {
-		t.Fatal(err)
-	}
-	marker := "    echo \"status $cfg\" >> \"$dir/calls\"\n"
-	s := strings.Replace(string(raw), marker, marker+extra+"\n", 1)
-	if s == string(raw) {
-		t.Fatal("marker not found in the fake")
-	}
-	if err := os.WriteFile(bin, []byte(s), 0o755); err != nil {
-		t.Fatal(err)
-	}
-}
+// extendStatus used to patch the sh fake. the Go fake already answers as the
+// provider that FAKE_CLAUDE_PROVIDER names, so there is nothing to add.
+func extendStatus(t *testing.T, e *testEnv, extra string) { t.Helper() }
 
 // only what claude reports goes in the parentheses
 func TestLoginShowsOnlyWhatIsKnownInParentheses(t *testing.T) {

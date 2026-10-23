@@ -240,6 +240,7 @@ func TestMoveMistakesAreUsageErrors(t *testing.T) {
 
 // with no session running the real registry has nothing to match
 func TestMoveWithNoRunningSessionSaysNoSessionMatches(t *testing.T) {
+	skipWindows(t, "moving a session is not supported on windows")
 	e := twoAccounts(t)
 
 	code := e.run("move", theHandle, "personal")

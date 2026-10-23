@@ -67,6 +67,7 @@ func TestSyncNeverMakesAFolderInTheWorkingDirectoryWhenTheHomeIsUnknown(t *testi
 	cwd := t.TempDir()
 	t.Chdir(cwd)
 	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
 
 	if _, err := e.app.syncAccount(filepath.Join(e.home, "folder")); err == nil || !strings.Contains(err.Error(), "HOME") {
 		t.Errorf("syncing without a known home should say so, got %v", err)

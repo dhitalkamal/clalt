@@ -120,6 +120,7 @@ func TestListSaysUnknownWhenTheCheckFails(t *testing.T) {
 }
 
 func TestListDoesNotWaitForeverForClaude(t *testing.T) {
+	skipWindows(t, "windows cannot interrupt claude, so a call that hangs lasts out the grace period")
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
 	e.claude.set("STATUS_HANGS", "1")

@@ -17,6 +17,7 @@ func TestAuthCallsAreNotCutShort(t *testing.T) {
 }
 
 func TestLogoutUsesTheSameTimeoutAsStatus(t *testing.T) {
+	skipWindows(t, "windows cannot interrupt claude, so a call that hangs lasts out the grace period")
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
 	e.claude.set("LOGOUT_HANGS", "1")

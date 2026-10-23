@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -13,6 +14,9 @@ import (
 // ignored (a shell does that for background jobs).
 func skipIfInterruptIgnored(t *testing.T) {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("windows cannot interrupt another process: a cancel waits out the grace and kills")
+	}
 	if signal.Ignored(os.Interrupt) {
 		t.Skip("SIGINT is ignored here, so the fake cannot trap it")
 	}

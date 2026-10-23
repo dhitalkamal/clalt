@@ -8,61 +8,6 @@ import (
 	"testing"
 )
 
-// fakeScript stands in for claude. it records its arguments and environment
-// next to itself, appends every call to a calls file, and answers from files the
-// test drops there: <name>.out is printed with @CONFIG_DIR@ replaced by
-// CLAUDE_CONFIG_DIR, <name>.err goes to stderr and <name>.code is the exit code,
-// where name is status, login, logout or version. a plain --version prints
-// 2.1.303 unless version.out says otherwise. <name>.die names a signal the
-// script sends itself. a hang file makes every call except --version wait for a
-// signal instead, in the mode the file names, and <name>.hang does that for one
-// command only. the environment of the last call is in env, and that of the last
-// call of each command in env.<name>. the process group of the last call of each
-// command is in pgid.<name>. the hang mode settle is for a call that has to be
-// left alone: it notes an interrupt, and otherwise ends by itself after a second
-// and writes finished.
-const fakeScript = `#!/bin/sh
-dir=$(dirname "$0")
-echo "$*" >> "$dir/calls"
-printf '%s\n' "$@" > "$dir/argv"
-env | sort > "$dir/env"
-case "$1 $2" in
-  "auth status") name=status ;;
-  "auth login") name=login ;;
-  "auth logout") name=logout ;;
-  *) name=version ;;
-esac
-env | sort > "$dir/env.$name"
-ps -o pgid= -p $$ 2>/dev/null | tr -d ' ' > "$dir/pgid.$name"
-hangfile=""
-[ -f "$dir/hang" ] && [ "$name" != version ] && hangfile="$dir/hang"
-[ -f "$dir/$name.hang" ] && hangfile="$dir/$name.hang"
-if [ -n "$hangfile" ]; then
-  delay=5
-  case "$(cat "$hangfile")" in
-    ignore) trap '' INT ;;
-    slow) trap 'echo interrupted > "$dir/interrupted"; sleep 1; echo finished > "$dir/finished"; exit 0' INT ;;
-    settle) trap 'echo interrupted > "$dir/interrupted"; exit 130' INT; delay=1 ;;
-    *) trap 'echo interrupted > "$dir/interrupted"; exit 130' INT ;;
-  esac
-  sleep "$delay" >/dev/null 2>&1 &
-  echo ready > "$dir/ready"
-  wait $!
-  [ "$delay" = 1 ] && echo finished > "$dir/finished"
-  exit 0
-fi
-[ -f "$dir/$name.err" ] && cat "$dir/$name.err" >&2
-[ -f "$dir/$name.die" ] && kill -s "$(cat "$dir/$name.die")" $$
-if [ "$name" = version ] && [ ! -f "$dir/version.out" ]; then
-  echo "2.1.303 (Claude Code)"
-  exit 0
-fi
-[ -f "$dir/$name.out" ] && sed "s|@CONFIG_DIR@|$CLAUDE_CONFIG_DIR|g" "$dir/$name.out"
-code=0
-[ -f "$dir/$name.code" ] && code=$(cat "$dir/$name.code")
-exit "$code"
-`
-
 type fake struct {
 	t   *testing.T
 	dir string
@@ -72,9 +17,8 @@ type fake struct {
 // is never reachable from these tests: CLALT_CLAUDE_BIN wins over PATH.
 func newFake(t *testing.T) *fake {
 	t.Helper()
-	skipOnWindows(t)
 	dir := t.TempDir()
-	t.Setenv("CLALT_CLAUDE_BIN", writeExe(t, filepath.Join(dir, "claude"), fakeScript))
+	t.Setenv("CLALT_CLAUDE_BIN", mustInstallFake(t, "fakeclaudecli", dir, "claude"))
 	isolateHome(t, dir)
 	return &fake{t: t, dir: dir}
 }

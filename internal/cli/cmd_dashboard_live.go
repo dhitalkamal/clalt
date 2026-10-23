@@ -145,7 +145,7 @@ func dashboardLogPath() string { return filepath.Join(config.ClaltDir(), "logs",
 
 // liveAdapter is the dashboard's source and actions on this machine.
 func (a *App) liveAdapter() *live.Adapter {
-	home, _ := os.UserHomeDir()
+	home := config.Home()
 	fd := feed.Store{Dir: config.FeedDir()}
 	return live.New(live.Config{
 		Store: a.Store, Host: &dashboardHost{app: a}, Now: a.clock, Home: home,

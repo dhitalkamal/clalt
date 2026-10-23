@@ -64,7 +64,6 @@ func TestARefusedSessionHasNoCommandToStart(t *testing.T) {
 }
 
 func TestSessionWithoutClaudeIsAnError(t *testing.T) {
-	skipOnWindows(t)
 	t.Setenv("CLALT_CLAUDE_BIN", filepath.Join(t.TempDir(), "no-such-claude"))
 	if _, err := Session(context.Background(), t.TempDir(), nil); err == nil {
 		t.Error("expected an error with no claude binary")

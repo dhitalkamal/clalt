@@ -22,6 +22,7 @@ func TestDoctorDoesNotLookInTheWorkingDirectoryWhenTheClaudeHomeIsUnknown(t *tes
 	}
 	t.Chdir(cwd)
 	t.Setenv("HOME", "")
+	t.Setenv("USERPROFILE", "")
 
 	c := settingsCheck()
 	if c.Status != statusWarn || !strings.Contains(c.Detail, "HOME") || strings.Contains(c.Detail, "apiKeyHelper") {

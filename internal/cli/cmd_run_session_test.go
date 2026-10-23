@@ -9,22 +9,18 @@ import (
 	"time"
 )
 
-// extendFake adds lines to the session part of the fake, before its final exit.
-func extendFake(t *testing.T, e *testEnv, extra string) {
+// extendFake switches on extra things the fake claude does during a session:
+// state (copy clalt's state file), feed (copy the feed sessions), pid, stderr
+// (a line on stderr) and signal (send itself FAKE_CLAUDE_SIGNAL). the actions
+// live in internal/fakes/fakeclaude/extras.go.
+func extendFake(t *testing.T, e *testEnv, action string) {
 	t.Helper()
-	bin := filepath.Join(e.claude.dir, "claude")
-	raw, err := os.ReadFile(bin)
-	if err != nil {
-		t.Fatal(err)
+	switch action {
+	case "state", "feed", "pid", "stderr", "signal":
+	default:
+		t.Fatalf("the fake claude has no action %q: add one in internal/fakes/fakeclaude/extras.go", action)
 	}
-	marker := "if [ \"$FAKE_CLAUDE_EXIT\" = \"term\" ]; then kill -TERM $$; fi\n"
-	s := strings.Replace(string(raw), marker, extra+"\n"+marker, 1)
-	if s == string(raw) {
-		t.Fatal("marker not found in the fake")
-	}
-	if err := os.WriteFile(bin, []byte(s), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv("FAKE_CLAUDE_EXTRAS", os.Getenv("FAKE_CLAUDE_EXTRAS")+" "+action)
 }
 
 func sessionRecordFiles(e *testEnv) []string {
@@ -114,7 +110,7 @@ func TestRunStartsWhenTheUseCannotBeRecorded(t *testing.T) {
 func TestLastUseIsRecordedBeforeClaudeRuns(t *testing.T) {
 	e := newEnv(t)
 	e.signIn("work", "a@example.com")
-	extendFake(t, e, `cp "$XDG_CONFIG_HOME/clalt/state.json" "$dir/session.state"`)
+	extendFake(t, e, "state")
 
 	if code := e.run("run", "work"); code != 0 {
 		t.Fatalf("exit %d: %s", code, e.errOut.String())
@@ -159,7 +155,7 @@ func TestExitCodeOfOtherSignals(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			e := newEnv(t)
 			e.signIn("work", "a@example.com")
-			extendFake(t, e, `if [ -n "$FAKE_CLAUDE_SIGNAL" ]; then kill -"$FAKE_CLAUDE_SIGNAL" $$; fi`)
+			extendFake(t, e, "signal")
 			t.Setenv("FAKE_CLAUDE_SIGNAL", name)
 
 			if code := e.run("run", "work"); code != want {
@@ -191,7 +187,7 @@ func TestSessionRecordHasTheStartAndClaudesPid(t *testing.T) {
 	e := newEnv(t)
 	e.signIn("work", "a@example.com")
 	e.at(theClock)
-	extendFake(t, e, `echo $$ > "$dir/session.pid"`)
+	extendFake(t, e, "pid")
 
 	if code := e.run("run", "work"); code != 0 {
 		t.Fatalf("exit %d: %s", code, e.errOut.String())
@@ -214,7 +210,7 @@ func TestSessionRecordHasTheStartAndClaudesPid(t *testing.T) {
 func TestSessionStderrReachesStderr(t *testing.T) {
 	e := newEnv(t)
 	e.signIn("work", "a@example.com")
-	extendFake(t, e, `echo "problem on stderr" >&2`)
+	extendFake(t, e, "stderr")
 
 	if code := e.run("run", "work"); code != 0 {
 		t.Fatalf("exit %d: %s", code, e.errOut.String())
