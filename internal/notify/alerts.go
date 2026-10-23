@@ -24,6 +24,24 @@ const (
 	NoNotifier
 )
 
+// markerLockWait is the longest a hook waits for the lock of a stale marker. a
+// busy lock means another hook is replacing it, so skipping is fine.
+const markerLockWait = 300 * time.Millisecond
+
+// lockWait is markerLockWait, or what is left of ctx when that is less.
+func lockWait(ctx context.Context) time.Duration {
+	wait := markerLockWait
+	if dl, ok := ctx.Deadline(); ok {
+		if left := time.Until(dl); left < wait {
+			wait = left
+		}
+	}
+	if wait < time.Millisecond {
+		wait = time.Millisecond
+	}
+	return wait
+}
+
 // markerLife is how long a waiting marker holds back more notifications, so a
 // lost EndWait cannot silence a session for good.
 const markerLife = 6 * time.Hour
@@ -72,7 +90,7 @@ func (a *Alerts) NeedsYou(ctx context.Context, e Event) (Outcome, error) {
 	if a.Notifier == nil {
 		return NoNotifier, nil
 	}
-	made, err := a.claim(e.Handle)
+	made, err := a.claim(ctx, e.Handle)
 	if err != nil {
 		return 0, err
 	}
@@ -102,7 +120,7 @@ func (a *Alerts) marker(handle string) string { return filepath.Join(a.Dir, "wai
 
 // claim makes the marker file. false means a fresh one was already there. the
 // exclusive create is the atomic check and set.
-func (a *Alerts) claim(handle string) (bool, error) {
+func (a *Alerts) claim(ctx context.Context, handle string) (bool, error) {
 	p := a.marker(handle)
 	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return false, err
@@ -129,7 +147,7 @@ func (a *Alerts) claim(handle string) (bool, error) {
 		if now().Sub(fi.ModTime()) <= markerLife {
 			return false, nil
 		}
-		return a.replaceStale(p, now)
+		return a.replaceStale(ctx, p, now)
 	}
 	return false, nil
 }
@@ -137,8 +155,8 @@ func (a *Alerts) claim(handle string) (bool, error) {
 // replaceStale makes the marker again when it is still stale once the lock of
 // this handle is held. of several hooks that found the same stale marker, the
 // first replaces it and the others find a fresh one.
-func (a *Alerts) replaceStale(p string, now func() time.Time) (bool, error) {
-	lock, err := fslock.Acquire(filepath.Join(filepath.Dir(p), ".lock-"+filepath.Base(p)), 5*time.Second)
+func (a *Alerts) replaceStale(ctx context.Context, p string, now func() time.Time) (bool, error) {
+	lock, err := fslock.Acquire(filepath.Join(filepath.Dir(p), ".lock-"+filepath.Base(p)), lockWait(ctx))
 	if err != nil {
 		return false, err
 	}

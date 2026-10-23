@@ -10,11 +10,18 @@ import (
 	"github.com/dhitalkamal/clalt/internal/notify"
 )
 
-const notifyUsage = "clalt notify [on|off|status|test]"
+const notifyUsage = "clalt notify [on|off|status|test] or clalt notify idle on|off"
 
 // cmdNotify turns the needs-you notifications on or off, shows how they would
 // show, or sends a sample.
 func (a *App) cmdNotify(args []string) error {
+	if len(args) == 2 && args[0] == "idle" && (args[1] == "on" || args[1] == "off") {
+		if err := notify.SetIdleEnabled(filepath.Join(config.ClaltDir(), "notify"), args[1] == "on"); err != nil {
+			return fmt.Errorf("save the notify setting: %w", err)
+		}
+		a.printf("idle prompt notifications are %s\n", args[1])
+		return nil
+	}
 	word := "status"
 	if len(args) > 0 {
 		word = args[0]

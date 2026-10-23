@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Needs-you notifications now fire from the session hooks: a permission prompt
+  or question shows a desktop notification once per wait. `clalt notify idle
+  on` also notifies when a session is idle and waiting for a prompt.
 - Session registry and feed. `clalt run` gives each session a handle
   (`CLALT_SESSION`), keeps a record of it with the terminal location, and passes
   claude a `--settings` that installs hooks and a status line, which write the

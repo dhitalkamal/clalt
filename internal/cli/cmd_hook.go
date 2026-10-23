@@ -27,6 +27,8 @@ func (a *App) cmdHook(args []string) (err error) {
 		}
 		err = nil
 	}()
+	// every step below respects this, see hookBudget
+	deadline := time.Now().Add(hookBudget)
 	// read first, so that claude's write never meets a closed pipe
 	raw := readInput(a.In)
 	handle := os.Getenv(sessionEnvVar)
@@ -57,16 +59,17 @@ func (a *App) cmdHook(args []string) (err error) {
 			return nil
 		}
 	}
-	a.applyHook(reg, rec, event, in, wait)
+	a.applyHook(reg, rec, event, in, wait, deadline)
 	return nil
 }
 
 // applyHook records one event of a session: its state in the feed, and the
 // claude session id in the registry when it changed (a /clear or /resume makes
-// a new one).
-func (a *App) applyHook(reg registry.Registry, rec registry.Record, event string, in feed.HookInput, wait time.Duration) {
+// a new one). deadline is when the whole hook must be done: each lock wait is
+// cut to what is left, and the notification gets the rest.
+func (a *App) applyHook(reg registry.Registry, rec registry.Record, event string, in feed.HookInput, wait time.Duration, deadline time.Time) {
 	now := a.clock()
-	store := feed.Store{Dir: config.FeedDir(), LockWait: wait}
+	store := feed.Store{Dir: config.FeedDir(), LockWait: capWait(wait, deadline)}
 	switch event {
 	case "PostToolUse", "PostToolUseFailure":
 		// every tool call comes through here: note it without the lock, and
@@ -79,18 +82,25 @@ func (a *App) applyHook(reg registry.Registry, rec registry.Record, event string
 		// a permission prompt is announced about 6 seconds after it shows
 		in.RecentActivity = now.Sub(store.Activity(rec.Handle)) < 6*time.Second
 	}
+	needs := false
 	err := store.UpdateSession(rec.Handle, rec.Account, now, func(s *feed.SessionState) bool {
-		return feed.ApplyHook(s, event, in, now)
+		changed := feed.ApplyHook(s, event, in, now)
+		needs = changed && s.State == feed.StateNeedsYou
+		return changed
 	})
 	if err != nil {
 		hookLog(now, event, "%s: update the feed: %v", rec.Handle, err)
 	}
+	reg.LockWait = capWait(wait, deadline)
 	if err := noteClaudeSession(reg, rec, in.SessionID, now); err != nil {
 		hookLog(now, event, "%s: record the claude session id: %v", rec.Handle, err)
 	}
 	if event == "SessionStart" {
+		store.LockWait, reg.LockWait = capWait(wait, deadline), capWait(wait, deadline)
 		pruneFeed(store, reg, now)
 	}
+	// last, so that a slow notification cannot starve the feed and the registry
+	a.hookNotify(rec, event, in, needs, now, deadline)
 }
 
 // pruneFeed drops the feed files of sessions whose wrapper is gone.

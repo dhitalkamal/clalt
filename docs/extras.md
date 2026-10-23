@@ -104,6 +104,7 @@ running anything.
 
 ```
 clalt notify [on|off|status|test]
+clalt notify idle on|off
 ```
 
 When a session waits for you, clalt shows a desktop notification: the account,
@@ -124,5 +125,9 @@ on by default.
 counts as on, and `status` says so. `status` also says how a notification would
 be shown on this machine. `test` shows one now, whatever the setting.
 
-The alerts are raised by the session hooks of the session feed. Until that is
-connected, `clalt notify test` is the way to see what they will look like.
+The alerts are raised by the session hooks of the session feed, inside the hook
+last, within a 4 second budget for the whole hook, so a notification program
+that hangs cannot stall claude.
+A session that is idle and waits for its next prompt (claude's `idle_prompt`)
+does not notify unless you turn that on with `clalt notify idle on`; it is off by
+default, and `clalt notify idle off` turns it off again.
