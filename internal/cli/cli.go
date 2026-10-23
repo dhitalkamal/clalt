@@ -72,6 +72,14 @@ func run(app *App, args []string) int {
 		err = app.cmdBudget(cmdArgs)
 	case "sessions":
 		err = app.cmdSessions(cmdArgs)
+	case "resume":
+		err = app.cmdResume(cmdArgs)
+	case "launch":
+		err = app.cmdLaunch(cmdArgs)
+	case "jump":
+		err = app.cmdJump(cmdArgs)
+	case "notify":
+		err = app.cmdNotify(cmdArgs)
 	case "remove", "rm":
 		err = app.cmdRemove(cmdArgs)
 	case "rename":
@@ -156,6 +164,16 @@ usage:
                               move a running session to another account at its
                               next pause (the session by handle, pid or id prefix)
   clalt sessions              list live parallel run sessions
+  clalt resume [words]        list conversations of every account, newest first
+                              (--limit n, --json)
+  clalt resume <id> [--account <name>]
+                              continue a conversation as an account, in the folder
+                              it ran in
+  clalt launch <name> [--cwd dir] [-- ...]
+                              run claude as <name> in a new kitty tab or tmux window
+  clalt jump <session>        bring the terminal of a running session to the front
+  clalt notify [on|off|status|test]
+                              alerts when a session needs you
   clalt budget [name]         show or set per-account spend caps (--daily/--weekly/--clear)
   clalt usage [name]          local usage stats
   clalt dashboard             full-screen dashboard of accounts, sessions and usage

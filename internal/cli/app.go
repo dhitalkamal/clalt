@@ -15,6 +15,10 @@ import (
 type App struct {
 	Store *account.Store
 
+	// what resume, launch, jump and notify reach outside clalt with, nil means
+	// the real ones, see session_deps.go
+	sdeps *sessionDeps
+
 	JSON bool
 	Out  io.Writer
 	In   io.Reader

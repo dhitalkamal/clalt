@@ -84,6 +84,11 @@ clalt doctor               check claude, the accounts and leftovers of v0.1.0
 clalt migrate [--dry-run]  copy history from per-account profile folders into
                            the shared projects folder
 clalt sessions             list live parallel run sessions
+clalt resume [words]       list conversations of every account, or continue one
+                           with `clalt resume <id> [--account <name>]`
+clalt launch <name>        run claude as <name> in a new kitty tab or tmux window
+clalt jump <session>       bring the terminal of a running session to the front
+clalt notify [on|off]      desktop alerts when a session needs you
 clalt budget [name]        show or set per-account spend caps
                            (--daily N, --weekly N, --clear)
 clalt usage [name]         local usage stats
@@ -130,6 +135,8 @@ The details are in `docs/`, one file per subject:
   per-account profile folders into the shared history
 - [docs/dashboard.md](docs/dashboard.md): usage, [budgets](docs/dashboard.md#budgets),
   [sessions](docs/dashboard.md#sessions) and the dashboard, with its keys
+- [docs/extras.md](docs/extras.md): `clalt resume`, `clalt launch`, `clalt jump`
+  and the needs-you alerts
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release
 
 ## Environment overrides

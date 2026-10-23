@@ -16,6 +16,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   hooks and status line command keep running. `clalt sessions --json` gains
   `handle`, `folder`, `wrapperPid`, `claudeSessionId` and `terminal`, and
   `clalt doctor` checks the feed. See docs/feed.md.
+- `clalt resume [words] [--limit n]` lists the conversations in the shared
+  projects folder, across accounts, newest first, with a title, the folder, the
+  model and the size (`--json` for scripts). `clalt resume <id> [--account
+  <name>]` continues one through the same path as `clalt run <name> -- --resume
+  <id>`, from the folder it ran in. It refuses, running nothing, when that folder
+  is gone or the conversation is open in a running session. See docs/extras.md.
+- `clalt launch <name> [--cwd dir] [-- claude args]` opens `clalt run <name>` in
+  a new tmux window or kitty tab (remote control on a socket) that is already
+  there, and prints the command when neither is. `clalt jump <session>` brings
+  the terminal of a running session to the front through the same two, and says
+  where an IDE or plain-terminal session runs. Neither changes kitty or tmux
+  configuration.
+- `clalt notify [on|off|status|test]` and the notifier behind the needs-you
+  alerts: a desktop notification (osascript on macOS, notify-send on Linux), at
+  most one per session per wait, with an off setting. The session hooks that
+  raise it come with the session feed.
 
 - `clalt migrate [--dry-run]`: copies the conversation history held in
   per-account profile folders (`~/.config/clalt/profiles/<name>/projects`) into

@@ -138,6 +138,11 @@ account with the most room. `clalt move <session> <account>` moves a running
 session to another account at its next pause. All three are in
 [move.md](move.md), with the terms that apply to auto-switch.
 
+## Resume, launch, jump and alerts
+
+`clalt resume`, `clalt launch`, `clalt jump` and `clalt notify` are described in
+[extras.md](extras.md).
+
 ## Usage, budgets and sessions
 
 `clalt usage [name]`, `clalt budget [name]`, `clalt sessions` and
