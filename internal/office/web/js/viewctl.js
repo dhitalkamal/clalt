@@ -6,8 +6,8 @@ import { startEditor } from './editorhook.js';
 import { createChrome } from './chrome.js';
 import { createLayoutWatcher } from './layoutwatch.js';
 import { actionFor } from './keymap.js';
-import { goCam, spinCam, safeCam, navAction, onNavChange } from './camseam.js';
-import { parseHash, buildHash, remember, orderTemplates } from './viewstate.js';
+import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
+import { parseHash, buildHash, remember, orderTemplates, camAfterSwitch } from './viewstate.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -42,13 +42,17 @@ export function startView(first) {
       state.templates = orderTemplates(body.templates);
       chrome.setTemplates(state.templates);
     }
+    // the old manager walks the old layout, so it goes before the new one is built
+    resetNav();
+    state.cam = camAfterSwitch(state.cam);
     await applyLayout(body.layout);
-    chrome.setGarden(body.layout.v === 2);
+    chrome.showBar();
     chrome.markTemplate(watcher.template || templateOf(body.layout));
     chrome.setEdit(body.edit);
     notice('');
-    if (body.layout.v === 2) keepClear();
-    if (body.layout.v === 2) { chrome.markCam(state.cam); goCam(state.cam, true); }
+    keepClear();
+    chrome.markCam(state.cam);
+    goCam(state.cam, true);
     // the editor works on hall layouts only, so it starts the first time a hall shows
     maybeEditor(body);
   }
@@ -84,7 +88,7 @@ export function startView(first) {
     startEditor(body.layout).catch((e) => { console.error(e); notice('the editor could not start: ' + e.message); });
   }
 
-  // screen fractions the presets keep free: the template panel on the left (wide screens only) and the camera bar
+  // screen fractions the presets keep free (hall and garden alike): the template panel on the left (wide screens only) and the camera bar
   function keepClear() {
     const wide = innerWidth >= 900;
     safeCam({ left: wide ? 280 / innerWidth : 0, bottom: 70 / Math.max(1, innerHeight), top: 0.02 });
@@ -121,21 +125,22 @@ export function startView(first) {
   watcher.adopt(first.template, first.rev);
   state.templates = orderTemplates(first.templates);
   chrome.setTemplates(state.templates);
-  chrome.setGarden(first.layout.v === 2);
+  chrome.showBar();
   chrome.markTemplate(first.template || templateOf(first.layout));
   chrome.setEdit(first.edit);
-  if (first.layout.v === 2) { chrome.markCam(state.cam); keepClear(); goCam(state.cam, true); }
+  chrome.markCam(state.cam);
+  keepClear();
+  goCam(state.cam, true);
   ui.layer.hidden = false;
   maybeEditor(first);
 
   addEventListener('keydown', (e) => {
     const a = actionFor(e, state.templates, { editing: app.editing });
     if (!a) return;
-    const garden = state.layout.v === 2;
     if (a.type === 'template') pick(a.id);
-    else if (a.type === 'cam') { if (garden) setCam(a.id, reduced()); }
-    else if (a.type === 'spin') { if (garden) toggleSpin(); }
-    else if (garden && ['ground', 'view', 'follow', 'escape', 'home'].includes(a.type)) navAction(a.type);
+    else if (a.type === 'cam') setCam(a.id, reduced());
+    else if (a.type === 'spin') toggleSpin();
+    else if (['ground', 'view', 'follow', 'escape', 'home'].includes(a.type)) navAction(a.type);
     else if (a.type === 'labels') toggleLabels();
   });
   // the url edited by hand or the back button

@@ -35,7 +35,7 @@ export function createNav(ctx, opts = {}) {
   const dom = ctx.stage.renderer && ctx.stage.renderer.domElement;
   const input = opts.input || (dom && typeof window !== 'undefined' ? createInput(dom)
     : { keys: new Set(), mouse: { x: 0, y: 0, dx: 0, dy: 0, buttons: 0, over: false }, wheel: 0, dbl: null, consume() {}, dispose() {} });
-  const st = { mode: 'sky', ctrl: null, prev: 'sky', tw: null, spin: false, view: 'third', preset: null, busy: false };
+  const st = { mode: 'sky', ctrl: null, prev: 'sky', tw: null, spin: false, view: 'third', preset: null, busy: false, paused: false };
 
   const emit = () => { if (ctx.onChange) ctx.onChange({ mode: st.mode, preset: st.preset }); };
   const userFree = ctx.onFree;
@@ -65,6 +65,7 @@ export function createNav(ctx, opts = {}) {
     get mode() { return st.mode; },
     get tweening() { return !!st.tw; },
     get spin() { return st.spin; },
+    get paused() { return st.paused; },
     get view() { return st.view; },
     ready: null,
 
@@ -101,6 +102,8 @@ export function createNav(ctx, opts = {}) {
       return true;
     },
 
+    // a paused manager leaves the camera alone (the build editor owns it) and drops what the input collected
+    pause(on) { st.paused = !!on; if (st.paused) input.consume(); },
     setSpin(on) { st.spin = !!on; if (st.mode === 'sky' && st.ctrl) st.ctrl.spin = st.spin; },
     toggleGround() { return api.setMode(st.mode === 'ground' ? 'sky' : 'ground'); },
     toggleView() { st.view = st.view === 'first' ? 'third' : 'first'; return api.setMode('ground', { view: st.view }); },
@@ -109,7 +112,7 @@ export function createNav(ctx, opts = {}) {
 
     update(dt) {
       const c = st.ctrl;
-      if (!c) { input.consume(); return; }
+      if (!c || st.paused) { input.consume(); return; }
       let r;
       try { r = c.update(ctx, dt, input); } catch (e) { console.error(e); r = 'back'; }
       input.consume();

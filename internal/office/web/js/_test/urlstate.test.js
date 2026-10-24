@@ -82,3 +82,10 @@ test('keys are ignored with modifiers, in text fields and while editing', () => 
   assert.equal(actionFor(key('q', { target: { tagName: 'DIV', isContentEditable: true } }), t), null);
   assert.equal(actionFor(key('q'), t, { editing: true }), null);
 });
+
+test('a template switch never keeps ground as the camera', async () => {
+  const { camAfterSwitch } = await import('../viewstate.js');
+  assert.equal(camAfterSwitch('ground'), 'sky');
+  assert.equal(camAfterSwitch('iso'), 'iso');
+  assert.equal(camAfterSwitch('sky'), 'sky');
+});

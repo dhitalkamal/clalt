@@ -23,10 +23,18 @@ export function moveIntent(keys, yaw) {
   return { vx: (fx * f + rx * s) * k, vz: (fz * f + rz * s) * k, moving: true, running };
 }
 
-// the treehouse stair from walk.js stairs: foot B on the ground, top T on the deck, rise in height
-export function stairFrame(st) {
+// a stairs descriptor: foot point, unit climb direction, length along the climb, tread width, the level the top
+// reaches and the rise in height. the garden treehouse and the hall stairs both provide one.
+// st here is {B, T, dir, rise, width?} as made by garden/walkgrid.js stairsOf or scene/stairs.js stairWorld
+export function stairDescOf(st) {
   const len = Math.hypot(st.T.x - st.B.x, st.T.z - st.B.z) || 1;
-  return { bx: st.B.x, bz: st.B.z, dx: st.dir[0], dz: st.dir[1], len, rise: st.rise };
+  return { foot: { x: st.B.x, z: st.B.z }, dir: [st.dir[0], st.dir[1]], len, width: st.width || 1, topLevel: 1, height: st.rise };
+}
+
+// the frame the walker uses: foot, heading, length and rise. takes a descriptor or the raw {B, T, dir, rise}
+export function stairFrame(st) {
+  const d = st.foot ? st : stairDescOf(st);
+  return { bx: d.foot.x, bz: d.foot.z, dx: d.dir[0], dz: d.dir[1], len: d.len, rise: d.height, width: d.width, top: d.topLevel };
 }
 
 // s along the stair from the foot, lat sideways (positive to the right of the climb)
@@ -56,4 +64,26 @@ export function pickSpawn(walkable, x, z, fallback, maxR = 6, step = 0.4) {
     if (best) return best;
   }
   return fallback;
+}
+
+const CLEAR = 0.8; // least distance from any agent or seat at the spawn
+
+// where ground mode starts: the nearest walkable point to (x, z) that keeps CLEAR from every avoid point, facing
+// (x, z). nothing within maxR gives the fallback (the door). yaw is used when the point is the spot itself
+export function spawnPoint(walkable, x, z, { avoid = [], fallback, yaw = 0, maxR = 6, step = 0.4 }) {
+  const door = { x: fallback.x, z: fallback.z, yaw, fallback: true };
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return door;
+  const ok = (px, pz) => walkable(px, pz) && avoid.every((a) => Math.hypot(a.x - px, a.z - pz) >= CLEAR);
+  const face = (px, pz) => (Math.hypot(x - px, z - pz) > 1e-3 ? Math.atan2(x - px, z - pz) : yaw);
+  if (ok(x, z)) return { x, z, yaw, fallback: false };
+  for (let r = step; r <= maxR; r += step) {
+    const n = Math.max(8, Math.ceil((2 * Math.PI * r) / step));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      const px = x + Math.cos(a) * r;
+      const pz = z + Math.sin(a) * r;
+      if (ok(px, pz)) return { x: px, z: pz, yaw: face(px, pz), fallback: false };
+    }
+  }
+  return door;
 }

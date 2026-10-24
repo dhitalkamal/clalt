@@ -11,8 +11,7 @@ const BLURB = {
   street: 'one winding street to a fountain',
 };
 
-const HALL_HINT = 'drag to orbit, right-drag to pan, wheel to zoom, Esc resets';
-const GARDEN_HINT = 'drag the map, right-drag rotate, wheel zoom, WASD pan, G ground, F follow, 6-9 views, Esc top';
+const HINT = 'drag pan, wheel zoom, WASD move, G ground, F follow, Esc top';
 
 function button(cls, label, onClick) {
   const b = el('button', cls, label);
@@ -78,16 +77,12 @@ export function createChrome(h) {
     disableSpin(why) { spin.disabled = true; spin.title = why; },
     setEdit(on) { makeDefault.hidden = !on; },
     setBusy(on) { makeDefault.disabled = on; },
-    // the camera bar replaces the old camera buttons in a garden. team lines and tags work in both
-    setGarden(on) {
+    // the camera bar and its hint show for every template. team lines and tags sit beside it
+    showBar() {
       panel.hidden = false;
-      bar.hidden = !on;
+      bar.hidden = false;
       const hint = document.getElementById('hint-text');
-      if (hint) hint.textContent = on ? GARDEN_HINT : HALL_HINT;
-      for (const id of ['b-top', 'b-front']) {
-        const b = document.getElementById(id);
-        if (b) b.hidden = on;
-      }
+      if (hint) hint.textContent = HINT;
     },
   };
 }

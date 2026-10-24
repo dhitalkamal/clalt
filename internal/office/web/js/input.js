@@ -1,9 +1,13 @@
 // pointer, wheel, keys and buttons: orbit, pan, zoom, hover card and the camera buttons
 import * as THREE from 'three';
-import { zoomAt, resetZoom, setPreset, orbit, pan } from './stage.js';
+import { zoomAt, resetZoom, orbit, pan } from './stage.js';
 import { app, stage, ui, canvas } from './app.js';
 import { regionInfo } from './regioncard.js';
-import { isGarden, goTo } from './garden/index.js';
+import { isGarden } from './garden/index.js';
+import { goCam } from './camseam.js';
+
+// the nav manager owns the camera of every template once it runs (nav/input.js reads the same events)
+const navOwns = () => isGarden() || !!stage.nav;
 
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -63,8 +67,7 @@ function onMove(e) {
   if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) down.moved = true;
   if (!down?.moved) return;
   app.dragging = true;
-  // the garden camera belongs to the nav manager (nav/input.js reads the same events)
-  if (isGarden()) return;
+  if (navOwns()) return;
   if (pointers.size >= 2) {
     const [a, c] = [...pointers.values()];
     const d = Math.hypot(a.x - c.x, a.y - c.y);
@@ -100,8 +103,8 @@ function clearSelection() {
   app.selected = null;
   app.selectedRegion = null;
   ui.showCard(null);
-  // a garden camera is moved by the nav manager (Esc is wired in viewctl), the hall goes back to its top view
-  if (!isGarden()) resetZoom(stage);
+  // a managed camera is moved by the nav manager (Esc is wired in viewctl), the plain orbit goes back to its top view
+  if (!navOwns()) resetZoom(stage);
 }
 
 export function bindInput() {
@@ -119,14 +122,12 @@ export function bindInput() {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    if (isGarden()) return;
+    if (navOwns()) return;
     zoomAt(stage, new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), Math.exp(e.deltaY * 0.0012));
   }, { passive: false });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
   const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
-  on('b-home', () => { if (isGarden()) goTo(stage, 'top'); else resetZoom(stage); });
-  on('b-top', () => setPreset(stage, 'top'));
-  on('b-front', () => setPreset(stage, 'front'));
+  on('b-home', () => { if (navOwns()) goCam('top'); else resetZoom(stage); });
   on('b-lines', (e) => { app.linesOn = !app.linesOn; e.currentTarget.classList.toggle('on', app.linesOn); });
   on('b-tags', (e) => { app.tagsAll = !app.tagsAll; e.currentTarget.classList.toggle('on', app.tagsAll); });
 }

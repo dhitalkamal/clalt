@@ -33,7 +33,7 @@ export function resize() {
   stage.camera.aspect = innerWidth / innerHeight;
   stage.camera.updateProjectionMatrix();
   if (app.layout && app.resizeImpl) app.resizeImpl();
-  else if (app.layout) frameRoom(stage, app.layout.W, app.layout.D, innerWidth / innerHeight);
+  else if (app.layout) frameRoom(stage, app.layout.W, app.layout.D, innerWidth / innerHeight, !!stage.nav);
 }
 
 export const render = () => stage.renderer.render(stage.scene, stage.camera);

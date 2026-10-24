@@ -1,11 +1,12 @@
 // the one place the page talks to the garden camera code (garden/cameras.js) and the navigation manager (nav/).
 // both load on first use, so a missing or failing renderer cannot stop the page from booting.
-// expected exports of garden/cameras.js: presetPose, setSpin, setSafe. nav/index.js exports createNav.
+// expected exports of garden/cameras.js: presetPose, setSpin, setSafe. nav/index.js exports createNav. garden and hall share it.
 import { stage, app } from './app.js';
+import { createNavHost } from './nav/host.js';
 
 let mod = null;
-let navP = null;
 let changeCb = () => {};
+let host = null;
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 async function cams() {
@@ -13,33 +14,26 @@ async function cams() {
   return mod;
 }
 
-// the manager, made once. its ctx reads the live garden (a template switch rebuilds app.layout and stage.rig)
-function getNav() {
-  if (!navP) {
-    navP = (async () => {
-      const [{ createNav }, c, fx] = await Promise.all([import('./nav/index.js'), cams(), import('./garden/stagefx.js')]);
-      const rig = () => stage.rig;
-      const ctx = {
-        stage, app,
-        get reducedMotion() { return reduced(); },
-        garden: {
-          get walk() { return app.layout && app.layout.walk; },
-          get bounds() { const b = rig() && rig().bb; return b ? { minX: b.x0, maxX: b.x1, minZ: b.z0, maxZ: b.z1 } : null; },
-          groundY: () => 0,
-        },
-        presetPose: (id) => rig() && c.presetPose(id, { bb: rig().bb, aspect: rig().aspect(), safe: rig().safe, eye: rig().eye }),
-        fitFog: (dist) => fx.fitFog(stage, dist),
-        onChange: (s) => changeCb(s),
-        onNotice: (m) => console.warn(m),
-      };
-      const nav = createNav(ctx);
-      await nav.ready;
-      stage.nav = nav;
-      return nav;
-    })().catch((e) => { console.error(e); return null; });
+// the host builds one manager per template: its ctx reads the live layout, garden or hall (nav/host.js)
+function getHost() {
+  if (!host) {
+    host = createNavHost({
+      stage, app,
+      load: async () => {
+        const [{ createNav }, c, fx] = await Promise.all([import('./nav/index.js'), cams(), import('./garden/stagefx.js')]);
+        return { createNav, presetPose: c.presetPose, fitFog: fx.fitFog };
+      },
+      reduced,
+      aspect: () => innerWidth / Math.max(1, innerHeight),
+    });
+    host.onChange((s) => changeCb(s));
   }
-  return navP;
+  return host;
 }
+const getNav = () => getHost().get();
+
+// a template switch: drop the manager so the next camera call builds one for the new layout
+export function resetNav() { getHost().reset(); }
 
 // the page hears about mode and preset changes: cb({mode, preset})
 export function onNavChange(cb) { changeCb = cb; }
@@ -71,6 +65,7 @@ export async function spinCam(on) {
 
 // the screen fractions the camera keeps free for the page chrome
 export async function safeCam(safe) {
+  getHost().setSafe(safe);
   const m = await cams();
   if (m.setSafe) m.setSafe(stage, safe);
 }

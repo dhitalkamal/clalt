@@ -32,7 +32,7 @@ a free one.
 
 - Drag to orbit the whole way round, right drag (or shift and drag) to pan, wheel
   to zoom, two fingers to pinch and pan on a touch screen.
-- Top view, Front view and Overview buttons (Esc goes back to the overview too).
+- The camera bar (keys 6 to 9, G ground, V view, F follow, P spin, Home and Esc) and the sky camera work the same in every template, the hall included. The Overview button goes back to the top view.
 - Hover a character for a card with the handle, project, model, state and
   account label. Click a room for the number of agents in it.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows

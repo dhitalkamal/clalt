@@ -2,6 +2,7 @@
 import { mountEditor } from './editor/index.js';
 import { app, stage } from './app.js';
 import { setPreset } from './stage.js';
+import { goCam } from './camseam.js';
 import { loadCatalog } from './catalog.js';
 import { applyLayout, cellToWorld, worldToCell } from './scene/apply.js';
 import { roomTypeFor } from './routing.js';
@@ -62,7 +63,7 @@ export async function startEditor(layout) {
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,
     camera: stage.camera, renderer: stage.renderer, templates, layouts, sessionCount: demand,
     get accounts() { return accounts(); },
-    onOpen: () => { app.editing = true; setPreset(stage, 'top'); },
+    onOpen: () => { app.editing = true; setPreset(stage, 'top'); goCam('top', true); },
     onClose: () => { app.editing = false; },
   });
 }

@@ -163,6 +163,9 @@ export async function applyLayout(layout) {
     makeAgent(s, true);
     for (const sub of s.subs) if (!sub.leaving) makeAgent(sub, true);
   }
-  if (!prev || prev.W !== L.W || prev.D !== L.D) frameRoom(stage, L.W, L.D, innerWidth / innerHeight);
-  else resize();
+  if (!prev || prev.W !== L.W || prev.D !== L.D) {
+    frameRoom(stage, L.W, L.D, innerWidth / innerHeight, !!stage.nav);
+    // a new hall size: the nav camera refits its top view
+    if (stage.nav) stage.nav.toPreset('top', { instant: true });
+  } else resize();
 }

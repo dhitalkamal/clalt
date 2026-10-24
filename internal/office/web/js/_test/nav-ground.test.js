@@ -34,6 +34,7 @@ test('W walks forward, shift runs faster, never ends in a blocked cell', () => {
   const g = createGround({ makeAvatar });
   const sp = walk.spawn;
   g.enter(ctx, { pos: [sp.x - 3, 8, sp.z], target: [sp.x, 0, sp.z] }, {});
+  g.state.yaw = Math.atan2(sp.x - g.state.x, sp.z - g.state.z) + Math.PI;
   const x0 = g.state.x;
   run(g, ctx, keys('KeyW'), 1);
   const walked = Math.abs(g.state.x - x0) + Math.abs(g.state.z - sp.z);

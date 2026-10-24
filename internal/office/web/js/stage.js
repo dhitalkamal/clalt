@@ -56,7 +56,8 @@ function floorPoint(stage, ndc, out) {
 }
 
 // fits the sun shadow box and the camera to the whole office for each preset, then starts in the top preset
-export function frameRoom(stage, W, D, aspect) {
+// keepView: the nav manager owns the camera, so only the sun, zoom limits and fit distances are refreshed
+export function frameRoom(stage, W, D, aspect, keepView = false) {
   const { camera, sun } = stage;
   const R = Math.max(W, D) * 0.8;
   sun.position.set(-R * 0.8, R * 1.1, -R * 0.2);
@@ -77,6 +78,7 @@ export function frameRoom(stage, W, D, aspect) {
   stage.base = { dist: stage.fitDist.top, target: new THREE.Vector3(0, 0.6, 0) };
   stage.bounds = { x: W / 2, z: D / 2 };
   stage.vel = { az: 0, el: 0 };
+  if (keepView) return;
   setPreset(stage, 'top');
   stage.scene.fog.near = stage.fitDist.top * 1.8;
   stage.scene.fog.far = stage.fitDist.top * 5.5;

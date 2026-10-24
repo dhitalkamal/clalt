@@ -3,7 +3,7 @@
 // node tests run without it.
 import { stairsOf } from '../garden/walkgrid.js';
 import { moveSlide } from './collide.js';
-import { forwardVec, clampPitch, moveIntent, stairFrame, stairCoord, stairHeight, pickSpawn } from './groundmath.js';
+import { forwardVec, clampPitch, moveIntent, stairFrame, stairDescOf, stairCoord, stairHeight, spawnPoint } from './groundmath.js';
 
 const EYE = 0.9;
 const BACK = 3.2;
@@ -12,7 +12,7 @@ const HEAD = 0.8;
 const TURN = 1.8; // radians per second on Q/E
 const LOOK_X = 0.005;
 const LOOK_Y = 0.004;
-const BAND = 0.55; // half width of the stair, a little wider than the treads
+const BAND_PAD = 0.05; // the stair band is half the tread width plus this
 const MOUTH = 0.6; // corridor past each end of the stair that stays open
 const ENTRY = 0.5; // how far up the first steps count as the stair mouth
 
@@ -21,6 +21,8 @@ export function createGround(opts = {}) {
   const s = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, level: 0, stairs: false };
   let walk = null;
   let fr = null;
+  let band = 0.55;
+  let top = 1;
   let avatar = null;
   let dead = false;
   let camSeen = false;
@@ -30,15 +32,15 @@ export function createGround(opts = {}) {
   const free = (x, z) => {
     if (!fr) return walk.walkable(x, z, s.level);
     const { s: a, lat } = stairCoord(fr, x, z);
-    const band = Math.abs(lat) <= BAND;
+    const inBand = Math.abs(lat) <= band;
     if (s.stairs) {
-      if (a >= 0 && a <= fr.len) return band;
-      if (band && a >= -MOUTH && a <= fr.len + MOUTH) return true;
-      return walk.walkable(x, z, a < 0 ? 0 : 1);
+      if (a >= 0 && a <= fr.len) return inBand;
+      if (inBand && a >= -MOUTH && a <= fr.len + MOUTH) return true;
+      return walk.walkable(x, z, a < 0 ? 0 : top);
     }
     if (walk.walkable(x, z, s.level)) return true;
     // the mouths count as walkable in the stair's own corridor so the disc fits the narrow ends
-    return s.level === 0 ? band && a >= -MOUTH && a <= ENTRY : band && a <= fr.len + MOUTH && a >= fr.len - ENTRY;
+    return s.level === 0 ? inBand && a >= -MOUTH && a <= ENTRY : inBand && a <= fr.len + MOUTH && a >= fr.len - ENTRY;
   };
 
   // after a move: step onto or off the stair and set the height
@@ -46,13 +48,13 @@ export function createGround(opts = {}) {
     const gy = groundY(s.x, s.z);
     if (fr) {
       const { s: a, lat } = stairCoord(fr, s.x, s.z);
-      const band = Math.abs(lat) <= BAND;
+      const inBand = Math.abs(lat) <= band;
       if (s.stairs) {
-        if (a < 0) { s.stairs = false; s.level = 0; } else if (a > fr.len) { s.stairs = false; s.level = 1; }
-      } else if (band && a >= 0 && a < fr.len) s.stairs = true; // the stair frame decides, not the grid (the landing overlaps the top steps)
+        if (a < 0) { s.stairs = false; s.level = 0; } else if (a > fr.len) { s.stairs = false; s.level = top; }
+      } else if (inBand && a >= 0 && a < fr.len) s.stairs = true; // the stair frame decides, not the grid (the landing overlaps the top steps)
       if (s.stairs) { s.y = stairHeight(fr, a); return; }
     }
-    s.y = s.level === 1 ? (fr ? fr.rise : 1.29) : gy;
+    s.y = s.level === top ? (fr ? fr.rise : 1.29) : gy;
   }
 
   const c = {
@@ -64,8 +66,12 @@ export function createGround(opts = {}) {
       if (o.view) view = o.view;
       walk = ctx.garden.walk;
       groundY = ctx.garden.groundY || (() => 0);
-      const st = walk.site ? stairsOf(walk.site) : null;
-      fr = st ? stairFrame(st) : null;
+      // the walk brings its own stairs descriptor (the hall), else it is read off the garden site
+      const gst = walk.site ? stairsOf(walk.site) : null;
+      const sd = walk.stairDesc !== undefined ? walk.stairDesc : gst && stairDescOf(gst);
+      fr = sd ? stairFrame(sd) : null;
+      band = fr ? fr.width / 2 + BAND_PAD : 0.55;
+      top = fr ? fr.top : 1;
       const ground = (x, z) => walk.walkable(x, z, 0);
       let wx = NaN;
       let wz = NaN;
@@ -79,8 +85,9 @@ export function createGround(opts = {}) {
         // the ground point under the screen centre: where the view ray meets y = 0
         if (ty < py) { const t = py / (py - ty); wx = px + (tx - px) * t; wz = pz + (tz - pz) * t; }
       }
-      const at = pickSpawn(ground, wx, wz, { x: walk.spawn.ap.x, z: walk.spawn.ap.z });
-      Object.assign(s, { x: at.x, z: at.z, yaw, pitch: 0, level: 0, stairs: false });
+      const avoid = ctx.garden.blockers ? ctx.garden.blockers() : [];
+      const at = spawnPoint(ground, wx, wz, { avoid, fallback: { x: walk.spawn.ap.x, z: walk.spawn.ap.z }, yaw });
+      Object.assign(s, { x: at.x, z: at.z, yaw: at.yaw, pitch: 0, level: 0, stairs: false });
       settle();
       this.setView(view);
       const make = opts.makeAvatar || ((cx) => import('./avatar.js').then((m) => m.createAvatar(cx)));

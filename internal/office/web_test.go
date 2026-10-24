@@ -113,9 +113,13 @@ func TestPageHasNoDemoControlsOrTestHooks(t *testing.T) {
 			t.Errorf("index.html still has the demo control %s", id)
 		}
 	}
-	for _, id := range []string{"b-top", "b-front", "b-home"} {
-		if !strings.Contains(page, id) {
-			t.Errorf("index.html lost the camera button %s", id)
+	// the camera bar replaced the old top and front buttons in every template
+	if !strings.Contains(page, "b-home") {
+		t.Errorf("index.html lost the overview button b-home")
+	}
+	for _, id := range []string{"b-top", "b-front"} {
+		if strings.Contains(page, id) {
+			t.Errorf("index.html still has the old camera button %s", id)
 		}
 	}
 	for _, f := range embedded(t) {

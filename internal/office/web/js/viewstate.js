@@ -13,6 +13,9 @@ export const CAMS = [
 // camera ids of older urls
 const ALIAS = { eye: 'ground', orbit: 'sky' };
 
+// the camera a new layout starts in: ground would drop the walker into a layout it has not seen
+export const camAfterSwitch = (cam) => (cam === 'ground' ? 'sky' : cam);
+
 const ORDER = ['hall', 'rows', 'village', 'river', 'street'];
 const STORE_KEY = 'clalt-office-template';
 const ID = /^[a-z0-9-]{1,40}$/;
