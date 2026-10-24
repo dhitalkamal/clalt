@@ -3,8 +3,12 @@ package cli
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/registry"
 	"github.com/dhitalkamal/clalt/internal/runcmd"
+	"github.com/dhitalkamal/clalt/internal/usage"
 )
 
 func TestTheSessionCommandsAreInTheCommandTable(t *testing.T) {
@@ -33,6 +37,9 @@ func TestHelpListsTheSessionCommands(t *testing.T) {
 }
 
 func TestSessionDepsDefaultToTheRealOnes(t *testing.T) {
+	// newEnv points HOME and XDG_CONFIG_HOME at a temp dir, so the real
+	// registry and attribution adapters never see the developer's sessions
+	newEnv(t)
 	a := &App{}
 	d := a.deps()
 
@@ -48,10 +55,23 @@ func TestSessionDepsDefaultToTheRealOnes(t *testing.T) {
 		t.Errorf("exe = %q, %v", exe, err)
 	}
 	if running, err := d.sessions(); err != nil || len(running) != 0 {
-		t.Errorf("sessions = %v, %v, want none until step 3a is wired in", running, err)
+		t.Errorf("sessions = %v, %v, want none in an empty home", running, err)
 	}
 	if id, ok := d.lastAccount("any"); ok || id != "" {
-		t.Errorf("lastAccount = %q, %v, want unknown until step 3a is wired in", id, ok)
+		t.Errorf("lastAccount = %q, %v, want unknown in an empty home", id, ok)
+	}
+
+	// one record and one log line in the temp home prove the adapters are real
+	addRecord(t, registry.Record{Handle: "dddd111122223333", Account: "work", ClaudeSessionID: "sess-1"})
+	line := usage.SessionAccount{Ts: time.Now(), SessionID: "sess-1", Account: "work"}
+	if err := usage.AppendSessionAccount(config.SessionAccountsPath(), line); err != nil {
+		t.Fatal(err)
+	}
+	if running, err := d.sessions(); err != nil || len(running) != 1 || running[0].Handle != "dddd111122223333" {
+		t.Errorf("sessions = %v, %v, want the planted record", running, err)
+	}
+	if id, ok := d.lastAccount("sess-1"); !ok || id != "work" {
+		t.Errorf("lastAccount = %q, %v, want work", id, ok)
 	}
 	if a.deps() != d {
 		t.Error("the deps are made again on every call")
