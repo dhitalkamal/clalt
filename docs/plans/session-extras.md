@@ -283,8 +283,7 @@ test written first and seen failing.
 
 ## Open questions for the user
 
-1. About a third of the transcript lines here are sdk-cli sessions (headless runs, Kiro
-   Crew). claude's own picker hides them; the brief says every conversation, so this
+1. About a third of the transcript lines here are sdk-cli sessions (headless runs). claude's own picker hides them; the brief says every conversation, so this
    lists them and carries entrypoint in the JSON. Hide them by default?
 2. tmux before kitty when both are set (D13). Right?
 3. Resume with no known account is an error until step 4's picker (D10). Enough?

@@ -1,7 +1,7 @@
 # clalt v2 step 3a: session registry and feed
 
 Implements the first half of step 3 of docs/plans/clalt-v2.md. Steps 3b (dashboard on
-real data), 4 (move, auto-switch), 5 (alerts, resume, jump) and 6 (crew) consume it
+real data), 4 (move, auto-switch) and 5 (alerts, resume, jump) consume it
 through small interfaces of their own, so the names below are the contract.
 
 ## Scope

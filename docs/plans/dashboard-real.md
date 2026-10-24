@@ -12,8 +12,7 @@ docs/plans/clalt-v2.md. Branch feat/dashboard-real, off develop at 7699db9. The 
 3. Known issues: the 5 second wait at the start of every command, the test that hangs on
    a terminal, design/tui-mock.html, and docs/dashboard.md for the new dashboard.
 
-Not here: the session registry, the feed, the hooks and cmd_run.go (step 3a), Kiro Crew
-gateways (step 6), moves (step 4), per-session usage attribution, an incremental
+Not here: the session registry, the feed, the hooks and cmd_run.go (step 3a), moves (step 4), per-session usage attribution, an incremental
 transcript cache. Where one of them is needed there is an interface with a default that
 returns nothing. A wiring pass after step 3a merges connects them.
 

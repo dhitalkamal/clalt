@@ -3,16 +3,12 @@
 Approved 2026-10-19. Builds on PR #6 (dashboard v2 on demo data, merged). Replaces
 the PR 2 and PR 3 sections of docs/plans/dashboard-v2.md.
 
-Note: step 6 (Kiro Crew gateways) was dropped on 2026-10-23 and removed from clalt.
-
 ## Goal
 
 Run and manage many claude sessions at once across several accounts, see them and
-reach them, and move a conversation to another account mid-task. Kiro Crew, with its
-Claude backend, covers background, scheduled and phone work. Both share the same
-accounts.
+reach them, and move a conversation to another account mid-task.
 
-## Verified on this Mac (claude 2.1.296, Kiro Crew 0.7.2)
+## Verified on this Mac (claude 2.1.296)
 
 - CLAUDE_CONFIG_DIR keys claude's login to that directory (claude docs).
 - claude keeps the account identity (email, org, plan type) in <config dir>/.claude.json.
@@ -23,9 +19,6 @@ accounts.
   conversation started under another account.
 - A profile with no login refuses to run ("Not logged in"). There is no silent fallback
   to another login.
-- Kiro Crew runs Claude Code through claude-agent-acp on the user's own login, with no
-  Kiro credits. A gateway started with CLAUDE_CONFIG_DIR uses that profile, so one gateway
-  per account works.
 
 ## Decisions
 
@@ -76,23 +69,7 @@ PR #6's Source and Actions ports get real adapters for:
 - profiles;
 - `claude auth status --json`;
 - the feed;
-- the usage ledger;
-- Kiro Crew gateways.
-
-### Kiro Crew
-
-- One gateway per account, started by `clalt crew start <account>`. Each gets the
-  account's CLAUDE_CONFIG_DIR, its own KIROCREW_HOME and port, and its own KIRO_HOME.
-- Defaults:
-  - agent.acp_backend and agent.member_acp_backend set to claude;
-  - haiku for background and subagent roles;
-  - Kiro steering not injected.
-- Later: a kirocrew.plugins plugin that picks or switches the account per session inside
-  one gateway.
-- Known gaps:
-  - Reasoning text is not shown.
-  - Tool calls already allowed by claude settings bypass Kiro's approval gate.
-  - The opus and sonnet picker maps to Bedrock-style model ids.
+- the usage ledger.
 
 ## Build order
 
@@ -110,9 +87,7 @@ PR #6's Source and Actions ports get real adapters for:
    to profiles); the dashboard on real data.
 4. Move, auto-switch, account rules.
 5. Needs-you alerts, resume anything, launch and jump.
-6. Kiro Crew gateways per account, run by clalt.
-
-Later: a Kiro Crew plugin for per-session accounts.
+6. Kiro Crew gateways: dropped on 2026-10-23
 
 Each step gets its own kickoff plan block before code, test-first, in small PRs.
 
@@ -134,5 +109,3 @@ Each step gets its own kickoff plan block before code, test-first, in small PRs.
   required, and each account's terms should be checked before auto-switch is enabled.
 - bubbletea v2.1.0 can stall its renderer when an exec returns at once. Resolve claude
   with exec.LookPath before returning a command.
-- Kiro Crew moves fast (0.7 to 0.10 within weeks). `clalt crew` pins and checks the
-  version it supports.

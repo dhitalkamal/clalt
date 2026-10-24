@@ -2,7 +2,7 @@
 
 PR 1 shipped as PR #6. The PR 2 and PR 3 sections below are superseded by
 docs/plans/clalt-v2.md (2026-10-19): thin profiles instead of per-account
-configs, a session wrapper, account switching and Kiro Crew gateways.
+configs, a session wrapper, and account switching.
 
 Approved 2026-10-15 on branch feat/dashboard-v2. Replaces the internal/tui
 dashboard with a focus-panes dashboard built on Bubble Tea v2 and Lip Gloss v2,
