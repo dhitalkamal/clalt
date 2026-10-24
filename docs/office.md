@@ -4,7 +4,7 @@
 account is a character at a desk, every subagent is a character too. It is a
 viewer: nothing on the page starts, stops or changes a session.
 
-    clalt office [--port N] [--no-open]
+    clalt office [--port N] [--no-open] [--edit]
 
 It prints a link, opens it in your default browser, and runs until you press
 Ctrl-C. `--no-open` only prints the link. `--port N` picks the port, by default
@@ -38,6 +38,41 @@ a free one.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows
   every tag, not only the ones of the main agents.
 
+## Build mode
+
+`clalt office --edit` lets you change the floor plan from the page: move rooms
+and furniture, then save. Without `--edit` the server has no write routes at
+all: with the run's token they answer 404, without it 401 like every route.
+
+- A layout is one json file in `~/.config/clalt/office/layouts/<name>.json`.
+  The active one is named in `~/.config/clalt/office/active.json`. With no valid
+  active layout the default one is shown, and a bad file is logged to
+  `office.log` and skipped, never a crash.
+- The built-in templates live inside the binary and are read only. Saving while
+  one is active writes a copy named `<name>-custom` and switches to it.
+- Writes need the run's token, the header `X-Clalt-Edit: 1`, an `Origin` that is
+  this server, a json content type, and a body under 512 KB. A page of another
+  site cannot meet that.
+
+From the command line, which needs no running office:
+
+    clalt office layout list
+    clalt office layout use <name>
+    clalt office layout export <name> [file] [--force]
+    clalt office layout import <file> [--name n] [--force]
+    clalt office layout reset
+
+`reset` points the active layout back at the default one and deletes nothing.
+`export` writes json to stdout, or to a file that must not exist yet unless you
+pass `--force`.
+
+Sharing layouts is safe because every file is treated as untrusted. Import,
+load and save decode strictly (unknown keys are refused), check the size, the
+colours, every number against the floor and the catalog of furniture, and
+refuse anything that looks like a url. A layout holds no code, no links and no
+paths, and the page shows its text as text. An import that fails says why and
+changes nothing.
+
 ## Privacy
 
 - The page is served from your machine only. The server listens on `127.0.0.1`
@@ -50,8 +85,9 @@ a free one.
   read the page or the data, and a request that names another host (a DNS
   rebinding attempt) is refused. Anyone who has the link while the office runs
   can look, so do not paste it in a chat.
-- The page only reads. Only GET requests are answered, and only the embedded
-  page files and one snapshot.
+- The page only reads, unless you start it with `--edit`. Only GET requests
+  are answered, and only the embedded page files, the snapshot and the active
+  layout. With `--edit` three more routes accept layout changes, see build mode.
 - What the snapshot holds: the account ids and labels, the 5h and 7d limit
   percentages and reset times, and per session its handle, account, the name of
   its project folder (not the path), the model, its state, a short reason when it
@@ -61,7 +97,7 @@ a free one.
   account label that looks like an email address is cut at the at sign, so the
   page never shows an address.
 - Nothing is written to disk except errors, one line each, in
-  `~/.config/clalt/logs/office.log`. The token is never logged.
+  `~/.config/clalt/logs/office.log`, and layouts you save in build mode. The token is never logged.
 
 ## Where the data comes from
 

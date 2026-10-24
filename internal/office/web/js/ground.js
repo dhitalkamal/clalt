@@ -53,18 +53,28 @@ export function buildGround(layout) {
   plaza.position.set((px0 + px1) / 2, -0.075, (pz0 + pz1) / 2);
   plaza.receiveShadow = true;
   g.add(plaza);
+  // the path runs from the door straight out through the plaza edge on whichever side the door is
   const pathLen = 14;
-  const path = new THREE.Mesh(new THREE.BoxGeometry(pathLen, 0.05, 0.9), mat(0xf0e4cc));
-  path.position.set(px0 - pathLen / 2 + 1, -0.07, door.z);
+  const sideways = door.side === 'left' || door.side === 'right';
+  const edge = { left: px0, right: px1, back: pz0, front: pz1 }[door.side];
+  const sign = door.out[0] + door.out[1];
+  const mid = edge + sign * (pathLen / 2 - 1);
+  const path = new THREE.Mesh(new THREE.BoxGeometry(sideways ? pathLen : 0.9, 0.05, sideways ? 0.9 : pathLen), mat(0xf0e4cc));
+  path.position.set(sideways ? mid : door.th.x, -0.07, sideways ? door.th.z : mid);
   path.receiveShadow = true;
   g.add(path);
-  g.add(bench(px0 + 1.6, door.z - 1.5));
+  const bx = sideways ? edge + sign * 1.6 : door.th.x - 1.5;
+  const bz = sideways ? door.th.z - 1.5 : edge + sign * 1.6;
+  const benchSeat = bench(bx, bz);
+  benchSeat.rotation.y = sideways ? Math.PI / 2 : 0;
+  g.add(benchSeat);
   const pts = [];
   for (let i = 0; i < 10; i++) pts.push([px0 + 0.5 + i * ((px1 - px0 + 6) / 9) - 3, pz0 - 2.2 - (i % 3) * 1.6]);
   for (let i = 0; i < 6; i++) pts.push([px0 - 2.6 - (i % 2) * 1.8, pz0 + 1 + i * ((pz1 - pz0) / 5)]);
   for (let i = 0; i < 6; i++) pts.push([px1 + 1.8 + (i % 2) * 1.8, pz0 + 1 + i * ((pz1 - pz0) / 5)]);
   pts.forEach(([x, z], i) => {
-    if (Math.abs(z - door.z) < 1.3 && x < px0) return; // keep the path clear
+    // keep the path clear
+    if (sideways ? Math.abs(z - door.th.z) < 1.3 && (sign < 0 ? x < px0 : x > px1) : Math.abs(x - door.th.x) < 1.3 && (sign < 0 ? z < pz0 : z > pz1)) return;
     g.add(tree(x, z, 1 + (i % 4) * 0.18, i));
   });
   g.traverse((o) => { if (o.isMesh && !o.userData.keep) o.castShadow = o !== grass && o !== plaza && o !== path; });

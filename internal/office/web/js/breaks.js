@@ -33,7 +33,7 @@ export function installBreaks(Agent) {
     const other = this.spot && this.env.occupant(this.spot.partner);
     if (!other || other.act !== 'pong') return 0;
     const T = 1.6;
-    const ph = ((t + (this.spot.name === 'pongA' ? 0 : T / 2)) % T) / T;
+    const ph = ((t + (this.spot.name < this.spot.partner ? 0 : T / 2)) % T) / T;
     if (ph > 0.18) return 0;
     const x = ph / 0.18;
     return Math.sin(Math.PI * x);

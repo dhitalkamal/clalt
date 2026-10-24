@@ -46,27 +46,56 @@ function zSprite() {
   return sp;
 }
 
-// a cat that wanders the corridor, naps on a bean bag now and then, and a robot vacuum that stays in the empty front floor
+// the largest open rectangle of ground floor outside every room and clear of furniture, in cells, or null
+export function openRect(L) {
+  const g = L.grids[0];
+  const free = (x, z) => g.open[z * g.w + x] === 1 && !L.layout.rooms.some((r) => (r.level || 0) === 0 && x >= r.x && x < r.x + r.w && z >= r.z && z < r.z + r.d);
+  const heights = new Array(g.w).fill(0);
+  let best = null;
+  for (let z = 0; z < g.d; z++) {
+    for (let x = 0; x < g.w; x++) heights[x] = free(x, z) ? heights[x] + 1 : 0;
+    for (let x = 0; x < g.w; x++) {
+      let h = Infinity;
+      for (let x2 = x; x2 < g.w && heights[x2] > 0; x2++) {
+        h = Math.min(h, heights[x2]);
+        const area = (x2 - x + 1) * h;
+        if (!best || area > best.area) best = { area, x, z: z - h + 1, w: x2 - x + 1, d: h };
+      }
+    }
+  }
+  return best && best.area >= 4 ? best : null;
+}
+
+// a cat that wanders the open floor and naps on a bean bag now and then, and a robot vacuum that drives a loop
+// inside the largest empty rectangle. both stay out of the way when the layout has no empty floor.
 export function buildLife(L) {
   const group = new THREE.Group();
+  const open = openRect(L);
+  const tick = () => {};
+  if (!open) return { group, tick };
   const cat = makeCat();
   group.add(cat);
   const zs = zSprite();
   group.add(zs);
-  const xMin = L.lobby.wx1 + 0.5;
-  const xMax = L.annexX0 - 0.5;
-  const catZ = L.lane0 + 0.25;
-  const bag = L.P.bags[1];
+  const X0 = L.X(open.x) + 0.25;
+  const X1 = L.X(open.x + open.w) - 0.25;
+  const Z0 = L.Z(open.z) + 0.25;
+  const Z1 = L.Z(open.z + open.d) - 0.25;
+  const catZ = (Z0 + Z1) / 2;
+  const bagSpot = (L.groups.bag || [])[1] || (L.groups.bag || [])[0];
   const bagTop = 0.3;
-  // route to the bean bag and back, all through open floor
-  const toBag = [{ x: L.laneX, z: catZ }, { x: L.laneX, z: L.FZ - 0.5 }, { x: bag.x + 0.5, z: L.FZ - 0.5 }, { x: bag.x + 0.5, z: bag.z + 0.2 }, { x: bag.x + 0.12, z: bag.z, y: bagTop }];
-  const c = { x: xMin + 0.5, z: catZ, y: 0, tx: xMin + 1.5, pause: 0, dir: 1, mode: 'wander', next: 40, wp: 0, route: null, sleepEnd: 0 };
+  // the way to the bean bag and back, found over the walkable grid
+  let toBag = null;
+  if (bagSpot) {
+    const home = L.node(0, { x: X0 + 0.5, z: catZ });
+    toBag = L.path(home, bagSpot.node).map((p) => ({ x: p.x, z: p.z, y: 0 }));
+    toBag.push({ x: bagSpot.x, z: bagSpot.z, y: bagTop });
+  }
+  const c = { x: X0 + 0.5, z: catZ, y: 0, tx: X0 + 1.5, pause: 0, mode: 'wander', next: 40, wp: 0, sleepEnd: 0 };
   cat.position.set(c.x, 0, c.z);
   const vac = makeVacuum();
   group.add(vac);
-  const area = { x0: L.lobby.wx1 + 0.5, x1: Math.max(L.lobby.wx1 + 2.5, L.annexX0 - 1.5), z0: L.spacesBottom + 0.5, z1: L.zmin + L.D - 0.5 };
-  // the vacuum drives a fixed loop of straight legs with eased corners, inside the empty rectangle
-  const loop = [[area.x0, area.z0], [area.x1, area.z0], [area.x1, area.z1], [area.x0, area.z1]];
+  const loop = [[X0, Z0], [Math.max(X0 + 0.5, X1), Z0], [Math.max(X0 + 0.5, X1), Math.max(Z0 + 0.5, Z1)], [X0, Math.max(Z0 + 0.5, Z1)]];
   const legLen = loop.map((p, i) => Math.hypot(loop[(i + 1) % 4][0] - p[0], loop[(i + 1) % 4][1] - p[1]));
   const total = legLen.reduce((a, b) => a + b, 0);
   const place = (dist) => {
@@ -82,47 +111,41 @@ export function buildLife(L) {
     }
     return { x: loop[0][0], z: loop[0][1], yaw: 0 };
   };
-  const legsRest = (cat2, k) => cat2.userData.legs.forEach((l) => { l.scale.y = k; });
-  const tick = (dt, t) => {
-    const walkTo = (tx, tz, ty = 0, speed = 0.25) => {
-      const dx = tx - c.x;
-      const dz = tz - c.z;
-      const dist = Math.hypot(dx, dz);
-      const step = speed * dt;
-      if (dist <= step) { c.x = tx; c.z = tz; c.y = ty; return true; }
-      c.x += (dx / dist) * step; c.z += (dz / dist) * step;
-      c.y += (ty - c.y) * Math.min(1, step / Math.max(dist, 0.05));
-      cat.rotation.y += (Math.atan2(dx, dz) - Math.PI / 2 - cat.rotation.y + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-      return false;
-    };
+  const walkTo = (tx, tz, ty, speed, dt) => {
+    const dx = tx - c.x;
+    const dz = tz - c.z;
+    const dist = Math.hypot(dx, dz);
+    const step = speed * dt;
+    if (dist <= step) { c.x = tx; c.z = tz; c.y = ty; return true; }
+    c.x += (dx / dist) * step; c.z += (dz / dist) * step;
+    c.y += (ty - c.y) * Math.min(1, step / Math.max(dist, 0.05));
+    return false;
+  };
+  const tickLife = (dt, t) => {
     let walking = false;
     if (c.mode === 'wander') {
       if (c.pause > 0) c.pause -= dt;
       else {
         walking = true;
-        if (walkTo(c.tx, catZ)) { walking = false; c.pause = 3; c.tx = xMin + ((Math.sin(t * 1.7) * 0.5 + 0.5) * Math.max(0.5, xMax - xMin)); }
+        if (walkTo(c.tx, catZ, 0, 0.25, dt)) { walking = false; c.pause = 3; c.tx = X0 + ((Math.sin(t * 1.7) * 0.5 + 0.5) * Math.max(0.5, X1 - X0)); }
         cat.rotation.y = c.tx > c.x ? 0 : Math.PI;
       }
-      if (t > c.next) { c.mode = 'toBag'; c.wp = 0; }
-    } else if (c.mode === 'toBag') {
+      if (toBag && t > c.next) { c.mode = 'toBag'; c.wp = 0; }
+    } else if (c.mode === 'toBag' || c.mode === 'back') {
       walking = true;
+      const out = c.mode === 'toBag';
       const w = toBag[c.wp];
-      if (walkTo(w.x, w.z, w.y || 0)) { c.wp++; if (c.wp >= toBag.length) { c.mode = 'sleep'; c.sleepEnd = t + 26; } }
-      const nw = toBag[Math.min(c.wp, toBag.length - 1)];
-      cat.rotation.y = Math.atan2(nw.z - c.z, nw.x - c.x) * -1 + Math.PI / 2 * 0;
-    } else if (c.mode === 'sleep') {
-      if (t > c.sleepEnd) { c.mode = 'back'; c.wp = toBag.length - 1; }
-    } else {
-      walking = true;
-      const w = toBag[c.wp];
-      if (walkTo(w.x, w.z, w.y || 0)) { c.wp--; if (c.wp < 0) { c.mode = 'wander'; c.next = t + 55; c.y = 0; } }
-      const nw = toBag[Math.max(c.wp, 0)];
-      cat.rotation.y = Math.atan2(nw.z - c.z, nw.x - c.x) * -1;
-    }
+      if (walkTo(w.x, w.z, w.y, 0.25, dt)) {
+        c.wp += out ? 1 : -1;
+        if (out && c.wp >= toBag.length) { c.mode = 'sleep'; c.sleepEnd = t + 26; c.wp = toBag.length - 1; }
+        if (!out && c.wp < 0) { c.mode = 'wander'; c.next = t + 55; c.y = 0; }
+      }
+      const nw = toBag[Math.max(0, Math.min(toBag.length - 1, c.wp))];
+      cat.rotation.y = -Math.atan2(nw.z - c.z, nw.x - c.x);
+    } else if (t > c.sleepEnd) c.mode = 'back';
     cat.position.set(c.x, c.y, c.z);
     const sleeping = c.mode === 'sleep';
-    legsRest(cat, sleeping ? 0.25 : 1);
-    cat.userData.legs.forEach((l, i) => { l.rotation.z = walking ? Math.sin(t * 9 + (i % 2) * Math.PI) * 0.5 : 0; });
+    cat.userData.legs.forEach((l, i) => { l.scale.y = sleeping ? 0.25 : 1; l.rotation.z = walking ? Math.sin(t * 9 + (i % 2) * Math.PI) * 0.5 : 0; });
     cat.userData.tail.rotation.y = sleeping ? 1.1 : Math.sin(t * 2.2) * 0.5;
     cat.scale.y = sleeping ? 0.8 : 1;
     zs.visible = sleeping;
@@ -131,5 +154,5 @@ export function buildLife(L) {
     vac.position.set(v.x, 0, v.z);
     vac.rotation.y = v.yaw;
   };
-  return { group, tick };
+  return { group, tick: tickLife };
 }

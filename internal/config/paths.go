@@ -61,6 +61,9 @@ func SessionAccountsPath() string { return filepath.Join(ClaltDir(), "session-ac
 // running session and the limits of each account.
 func FeedDir() string { return filepath.Join(ClaltDir(), "feed") }
 
+// OfficeDir holds the office layouts and the name of the active one.
+func OfficeDir() string { return filepath.Join(ClaltDir(), "office") }
+
 // LogsDir holds clalt's own log files, such as the errors of the hooks.
 func LogsDir() string { return filepath.Join(ClaltDir(), "logs") }
 

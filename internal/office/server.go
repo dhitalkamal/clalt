@@ -12,6 +12,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
 const (
@@ -31,6 +34,10 @@ type Config struct {
 	Hosts    []string
 	Snapshot func() (Snapshot, error)
 	Logf     func(format string, args ...any)
+	// Edit turns on the layout write routes. without it the server has none.
+	Edit bool
+	// Layouts is where layouts live, nil serves the default one and nothing else.
+	Layouts *layout.Store
 }
 
 type handler struct {
@@ -38,6 +45,9 @@ type handler struct {
 	hosts map[string]bool
 	web   fs.FS
 	csp   string
+	store *layout.Store
+	// mu makes a layout write one step: check, save, switch.
+	mu sync.Mutex
 }
 
 var importMap = regexp.MustCompile(`(?s)<script type="importmap">(.*?)</script>`)
@@ -68,7 +78,10 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := &handler{cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page)}
+	h := &handler{cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page), store: cfg.Layouts}
+	if h.store == nil {
+		h.store = layout.NewStore("", cfg.Logf)
+	}
 	for _, host := range cfg.Hosts {
 		h.hosts[strings.ToLower(host)] = true
 	}
@@ -92,6 +105,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
+	if isEditRoute(r) {
+		h.editRoute(w, r)
+		return
+	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		hd.Set("Allow", "GET, HEAD")
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -110,6 +127,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/api/snapshot" {
 		h.snapshot(w)
+		return
+	}
+	if r.URL.Path == "/api/layout" {
+		h.layoutGet(w)
 		return
 	}
 	h.file(w, r)

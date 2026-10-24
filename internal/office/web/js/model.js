@@ -36,19 +36,10 @@ export function makeSession(snap, account) {
   };
 }
 
-// seat is the lowest free index in the sub's space. review holds 8 and meeting 4, then they overflow to open.
+// space starts as the room type the sub's type prefers, the seat planner sets the room it really got
 export function makeSub(session, allSubs, snap) {
   const type = snap.type || 'agent';
-  let space = spaceFor(type);
-  const free = (sp) => {
-    const used = new Set(allSubs.filter((s) => s.space === sp).map((s) => s.seatIndex));
-    let i = 0;
-    while (used.has(i)) i++;
-    return i;
-  };
-  if (space === 'review' && free('review') >= 8) space = 'open';
-  if (space === 'meeting' && free('meeting') >= 4) space = 'open';
   const id = session.id + '/' + snap.id;
   return { id, role: 'sub', seed: hash(id), account: session.account, state: 'busy', leaving: false,
-    session, type, task: snap.label || '', space, seatIndex: free(space), startedAt: Date.parse(snap.startedAt) || 0 };
+    session, type, task: snap.label || '', space: spaceFor(type), startedAt: Date.parse(snap.startedAt) || 0 };
 }

@@ -39,12 +39,10 @@ class Move {
   }
 
   startWalkIn() {
-    const r = this.slot.node.route;
     const first = this.L.path(this.L.spawn, this.slot.node);
     this.detach();
     this.place(first[0], Math.atan2(first[1].x - first[0].x, first[1].z - first[0].z));
-    this.follow('in', () => this.L.path(this.L.spawn, this.slot.node), () => this.sit());
-    void r;
+    this.follow('in', () => this.L.path(this.L.spawn, this.slot.node), () => this.arrive());
   }
 
   startOut() {
@@ -92,6 +90,21 @@ class Move {
 
   startBack() {
     this.follow('back', () => this.withY([this.slot.chair, ...this.slot.stand]).reverse(), () => this.sit());
+  }
+
+  // what an agent does when it gets to its place: sit at its desk, or stand where it was put
+  arrive() {
+    if (this.slot.kind === 'stand') this.standHere();
+    else this.sit();
+  }
+
+  standHere() {
+    const p = this.withY([this.slot.stand[this.slot.stand.length - 1]])[0];
+    this.detach();
+    this.place(p, this.slot.rotY + STAND_YAW);
+    this.mode = 'standing';
+    this.curNode = this.slot.node;
+    this.play('idle', 0.01);
   }
 
   sit() {

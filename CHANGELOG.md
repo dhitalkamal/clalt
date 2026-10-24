@@ -22,6 +22,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   or emails. See docs/office.md. The binary grows by about 9 MB for the page,
   the models and net/http.
 
+- `clalt office --edit` is build mode: the page can save the office floor plan
+  as a layout json in `~/.config/clalt/office/layouts`. Without `--edit` the
+  server has no write routes. Writes need the run token, an `X-Clalt-Edit`
+  header and the server's own origin. Layouts are validated on every load, save
+  and import (strict keys, 512 KB, colours, geometry, no urls), so sharing one
+  is safe. `clalt office layout list|use|export|import|reset` manages them. The
+  built-in default template is read only. See docs/office.md.
+
 ### Removed
 
 - `clalt crew` and the Kiro Crew gateway support, including the dashboard

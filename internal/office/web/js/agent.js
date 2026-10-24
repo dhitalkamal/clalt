@@ -59,7 +59,7 @@ export class Agent {
       if (this.s.state === 'needs-you' && slot.stand) this.startStand();
       else if (this.s.state === 'idle' && this.planOffer && t >= this.nextBreakAt) this.startBreak();
     }
-    if (this.mode === 'standing' && this.s.state !== 'needs-you') this.startBack();
+    if (this.mode === 'standing' && this.s.state !== 'needs-you' && slot.kind !== 'stand') this.startBack();
     if (this.mode === 'leisure') this.tickLeisure(t);
     if (this.mode === 'walking') this.stepPath(dt);
 

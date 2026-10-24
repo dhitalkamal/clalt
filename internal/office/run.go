@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
 // Options is how the office runs. Port 0 picks a free one. Open is
@@ -21,6 +23,9 @@ type Options struct {
 	Out      io.Writer
 	Snapshot func() (Snapshot, error)
 	Logf     func(format string, args ...any)
+	// Edit allows layout changes from the page, see Config.
+	Edit    bool
+	Layouts *layout.Store
 }
 
 // Instance is a running server.
@@ -55,7 +60,7 @@ func Start(opt Options) (*Instance, error) {
 	port := ln.Addr().(*net.TCPAddr).Port
 	h, err := NewHandler(Config{
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
-		Snapshot: opt.Snapshot, Logf: opt.Logf,
+		Snapshot: opt.Snapshot, Logf: opt.Logf, Edit: opt.Edit, Layouts: opt.Layouts,
 	})
 	if err != nil {
 		ln.Close()
@@ -101,6 +106,9 @@ func Run(ctx context.Context, opt Options) error {
 		out = io.Discard
 	}
 	fmt.Fprintf(out, "clalt office is running on this machine only. open:\n\n  %s\n\nthe link carries a token made for this run. press Ctrl-C to stop.\n", inst.URL)
+	if opt.Edit {
+		fmt.Fprintln(out, "edit mode is on: the page can change and save layouts. every change needs the token and this origin.")
+	}
 	if !opt.NoOpen {
 		open := opt.Open
 		if open == nil {

@@ -1,0 +1,793 @@
+{
+  "v": 1,
+  "name": "default",
+  "title": "Default office",
+  "grid": 0.5,
+  "size": {
+    "w": 48,
+    "d": 20
+  },
+  "walls": {
+    "color": "#ffffff"
+  },
+  "floorColor": "#bb9676",
+  "door": {
+    "side": "left",
+    "at": 18
+  },
+  "deck": {
+    "x": 28,
+    "z": 1,
+    "w": 16,
+    "d": 8
+  },
+  "stairs": {
+    "x": 44,
+    "z": 9,
+    "dir": "n"
+  },
+  "rooms": [
+    {
+      "id": "lobby",
+      "type": "lobby",
+      "level": 0,
+      "x": 0,
+      "z": 7,
+      "w": 4,
+      "d": 13,
+      "label": "Lobby"
+    },
+    {
+      "id": "cabins",
+      "type": "cabins",
+      "level": 0,
+      "x": 2,
+      "z": 1,
+      "w": 24,
+      "d": 4,
+      "label": "Cabins"
+    },
+    {
+      "id": "research",
+      "type": "research",
+      "level": 0,
+      "x": 4,
+      "z": 7,
+      "w": 9,
+      "d": 11,
+      "label": "Research"
+    },
+    {
+      "id": "open",
+      "type": "workspace",
+      "level": 0,
+      "x": 14,
+      "z": 7,
+      "w": 9,
+      "d": 11,
+      "label": "Open workspace"
+    },
+    {
+      "id": "cafe",
+      "type": "cafe",
+      "level": 0,
+      "x": 28,
+      "z": 10,
+      "w": 8,
+      "d": 6,
+      "label": "Cafe"
+    },
+    {
+      "id": "play",
+      "type": "play",
+      "level": 0,
+      "x": 36,
+      "z": 10,
+      "w": 8,
+      "d": 6,
+      "label": "Play area"
+    },
+    {
+      "id": "review",
+      "type": "review",
+      "level": 1,
+      "x": 28,
+      "z": 1,
+      "w": 8,
+      "d": 8,
+      "label": "Review room"
+    },
+    {
+      "id": "meeting",
+      "type": "meeting",
+      "level": 1,
+      "x": 36,
+      "z": 1,
+      "w": 8,
+      "d": 8,
+      "label": "Meeting room"
+    }
+  ],
+  "furniture": [
+    {
+      "id": "f1",
+      "item": "reception",
+      "level": 0,
+      "x": 3,
+      "z": 13,
+      "rot": 270
+    },
+    {
+      "id": "f2",
+      "item": "water-cooler",
+      "level": 0,
+      "x": 2,
+      "z": 7,
+      "rot": 270
+    },
+    {
+      "id": "f3",
+      "item": "umbrella-stand",
+      "level": 0,
+      "x": 2,
+      "z": 18,
+      "rot": 0
+    },
+    {
+      "id": "f4",
+      "item": "plant",
+      "level": 0,
+      "x": 3,
+      "z": 19,
+      "rot": 0
+    },
+    {
+      "id": "f5",
+      "item": "sprout",
+      "level": 0,
+      "x": 3,
+      "z": 6,
+      "rot": 0
+    },
+    {
+      "id": "f6",
+      "item": "clock",
+      "level": 0,
+      "x": 0,
+      "z": 11,
+      "rot": 90
+    },
+    {
+      "id": "f7",
+      "item": "notice-board",
+      "level": 0,
+      "x": 0,
+      "z": 13,
+      "rot": 90
+    },
+    {
+      "id": "f8",
+      "item": "lamp-floor",
+      "level": 0,
+      "x": 0,
+      "z": 15,
+      "rot": 90
+    },
+    {
+      "id": "f9",
+      "item": "lamp-floor",
+      "level": 0,
+      "x": 47,
+      "z": 0,
+      "rot": 0
+    },
+    {
+      "id": "f10",
+      "item": "plant",
+      "level": 0,
+      "x": 0,
+      "z": 0,
+      "rot": 0
+    },
+    {
+      "id": "f11",
+      "item": "cabin",
+      "level": 0,
+      "x": 2,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f12",
+      "item": "cabin",
+      "level": 0,
+      "x": 6,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f13",
+      "item": "cabin",
+      "level": 0,
+      "x": 10,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f14",
+      "item": "cabin",
+      "level": 0,
+      "x": 14,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f15",
+      "item": "cabin",
+      "level": 0,
+      "x": 18,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f16",
+      "item": "cabin",
+      "level": 0,
+      "x": 22,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f17",
+      "item": "tv-cabinet",
+      "level": 0,
+      "x": 4,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f18",
+      "item": "pin-board",
+      "level": 0,
+      "x": 6,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f19",
+      "item": "graph-screen",
+      "level": 0,
+      "x": 8,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f20",
+      "item": "printer-table",
+      "level": 0,
+      "x": 11,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f21",
+      "item": "desk",
+      "level": 0,
+      "x": 5,
+      "z": 8,
+      "rot": 0
+    },
+    {
+      "id": "f22",
+      "item": "desk",
+      "level": 0,
+      "x": 5,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f23",
+      "item": "desk",
+      "level": 0,
+      "x": 5,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f24",
+      "item": "desk",
+      "level": 0,
+      "x": 9,
+      "z": 8,
+      "rot": 0
+    },
+    {
+      "id": "f25",
+      "item": "desk",
+      "level": 0,
+      "x": 9,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f26",
+      "item": "desk",
+      "level": 0,
+      "x": 9,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f27",
+      "item": "divider",
+      "level": 0,
+      "x": 6,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f28",
+      "item": "divider",
+      "level": 0,
+      "x": 6,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f29",
+      "item": "divider",
+      "level": 0,
+      "x": 10,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f30",
+      "item": "divider",
+      "level": 0,
+      "x": 10,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f31",
+      "item": "plant-small",
+      "level": 0,
+      "x": 14,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f32",
+      "item": "tv-cabinet",
+      "level": 0,
+      "x": 18,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f33",
+      "item": "plant-small",
+      "level": 0,
+      "x": 22,
+      "z": 7,
+      "rot": 0
+    },
+    {
+      "id": "f34",
+      "item": "fern",
+      "level": 0,
+      "x": 14,
+      "z": 17,
+      "rot": 0
+    },
+    {
+      "id": "f35",
+      "item": "lamp-floor",
+      "level": 0,
+      "x": 22,
+      "z": 17,
+      "rot": 0
+    },
+    {
+      "id": "f36",
+      "item": "desk",
+      "level": 0,
+      "x": 15,
+      "z": 8,
+      "rot": 0
+    },
+    {
+      "id": "f37",
+      "item": "desk",
+      "level": 0,
+      "x": 15,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f38",
+      "item": "desk",
+      "level": 0,
+      "x": 15,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f39",
+      "item": "desk",
+      "level": 0,
+      "x": 19,
+      "z": 8,
+      "rot": 0
+    },
+    {
+      "id": "f40",
+      "item": "desk",
+      "level": 0,
+      "x": 19,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f41",
+      "item": "desk",
+      "level": 0,
+      "x": 19,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f42",
+      "item": "divider",
+      "level": 0,
+      "x": 16,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f43",
+      "item": "divider",
+      "level": 0,
+      "x": 16,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f44",
+      "item": "divider",
+      "level": 0,
+      "x": 20,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f45",
+      "item": "divider",
+      "level": 0,
+      "x": 20,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f46",
+      "item": "rug",
+      "level": 0,
+      "x": 29,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f47",
+      "item": "coffee-bar",
+      "level": 0,
+      "x": 29,
+      "z": 10,
+      "rot": 0
+    },
+    {
+      "id": "f48",
+      "item": "plant",
+      "level": 0,
+      "x": 28,
+      "z": 10,
+      "rot": 0
+    },
+    {
+      "id": "f49",
+      "item": "menu-board",
+      "level": 0,
+      "x": 35,
+      "z": 10,
+      "rot": 0
+    },
+    {
+      "id": "f50",
+      "item": "high-table",
+      "level": 0,
+      "x": 28,
+      "z": 13,
+      "rot": 0
+    },
+    {
+      "id": "f51",
+      "item": "high-table",
+      "level": 0,
+      "x": 32,
+      "z": 13,
+      "rot": 0
+    },
+    {
+      "id": "f52",
+      "item": "pendant",
+      "level": 0,
+      "x": 29,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f53",
+      "item": "pendant",
+      "level": 0,
+      "x": 33,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f54",
+      "item": "rug",
+      "level": 0,
+      "x": 38,
+      "z": 12,
+      "rot": 0
+    },
+    {
+      "id": "f55",
+      "item": "ping-pong",
+      "level": 0,
+      "x": 38,
+      "z": 13,
+      "rot": 0
+    },
+    {
+      "id": "f56",
+      "item": "pendant",
+      "level": 0,
+      "x": 40,
+      "z": 14,
+      "rot": 0
+    },
+    {
+      "id": "f57",
+      "item": "bean-bag-red",
+      "level": 0,
+      "x": 36,
+      "z": 10,
+      "rot": 0
+    },
+    {
+      "id": "f58",
+      "item": "bean-bag-blue",
+      "level": 0,
+      "x": 38,
+      "z": 11,
+      "rot": 0
+    },
+    {
+      "id": "f59",
+      "item": "arcade",
+      "level": 0,
+      "x": 42,
+      "z": 10,
+      "rot": 270
+    },
+    {
+      "id": "f60",
+      "item": "arcade",
+      "level": 0,
+      "x": 42,
+      "z": 11,
+      "rot": 270
+    },
+    {
+      "id": "f61",
+      "item": "plant",
+      "level": 0,
+      "x": 43,
+      "z": 15,
+      "rot": 0
+    },
+    {
+      "id": "f62",
+      "item": "sprout",
+      "level": 0,
+      "x": 36,
+      "z": 15,
+      "rot": 0
+    },
+    {
+      "id": "f63",
+      "item": "pergola",
+      "level": 0,
+      "x": 28,
+      "z": 10,
+      "rot": 0
+    },
+    {
+      "id": "f64",
+      "item": "rack",
+      "level": 0,
+      "x": 29,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f65",
+      "item": "rack",
+      "level": 0,
+      "x": 30,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f66",
+      "item": "rug-round",
+      "level": 1,
+      "x": 30,
+      "z": 3,
+      "rot": 0
+    },
+    {
+      "id": "f67",
+      "item": "round-table",
+      "level": 1,
+      "x": 31,
+      "z": 4,
+      "rot": 0
+    },
+    {
+      "id": "f68",
+      "item": "table-seat",
+      "level": 1,
+      "x": 30,
+      "z": 4,
+      "rot": 0
+    },
+    {
+      "id": "f69",
+      "item": "table-seat",
+      "level": 1,
+      "x": 30,
+      "z": 5,
+      "rot": 0
+    },
+    {
+      "id": "f70",
+      "item": "table-seat",
+      "level": 1,
+      "x": 33,
+      "z": 4,
+      "rot": 0
+    },
+    {
+      "id": "f71",
+      "item": "table-seat",
+      "level": 1,
+      "x": 33,
+      "z": 5,
+      "rot": 0
+    },
+    {
+      "id": "f72",
+      "item": "table-seat",
+      "level": 1,
+      "x": 31,
+      "z": 3,
+      "rot": 0
+    },
+    {
+      "id": "f73",
+      "item": "table-seat",
+      "level": 1,
+      "x": 32,
+      "z": 3,
+      "rot": 0
+    },
+    {
+      "id": "f74",
+      "item": "table-seat",
+      "level": 1,
+      "x": 31,
+      "z": 6,
+      "rot": 0
+    },
+    {
+      "id": "f75",
+      "item": "table-seat",
+      "level": 1,
+      "x": 32,
+      "z": 6,
+      "rot": 0
+    },
+    {
+      "id": "f76",
+      "item": "pages-table",
+      "level": 1,
+      "x": 29,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f77",
+      "item": "plant",
+      "level": 1,
+      "x": 35,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f78",
+      "item": "rug-large",
+      "level": 1,
+      "x": 36,
+      "z": 4,
+      "rot": 0
+    },
+    {
+      "id": "f79",
+      "item": "whiteboard",
+      "level": 1,
+      "x": 39,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f80",
+      "item": "plant",
+      "level": 1,
+      "x": 36,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f81",
+      "item": "coffee-pot-table",
+      "level": 1,
+      "x": 43,
+      "z": 1,
+      "rot": 0
+    },
+    {
+      "id": "f82",
+      "item": "desk",
+      "level": 1,
+      "x": 36,
+      "z": 2,
+      "rot": 0
+    },
+    {
+      "id": "f83",
+      "item": "desk",
+      "level": 1,
+      "x": 36,
+      "z": 5,
+      "rot": 0
+    },
+    {
+      "id": "f84",
+      "item": "desk",
+      "level": 1,
+      "x": 40,
+      "z": 2,
+      "rot": 0
+    },
+    {
+      "id": "f85",
+      "item": "desk",
+      "level": 1,
+      "x": 40,
+      "z": 5,
+      "rot": 0
+    }
+  ]
+}

@@ -33,8 +33,7 @@ function pickRegion(x, y) {
 
 function regionCard(r) {
   const staff = [...app.agents.values()].filter((a) => a.mode !== 'away' && a.rig.position.x > r.x0 && a.rig.position.x < r.x1 && a.rig.position.z > r.z0 && a.rig.position.z < r.z1).length;
-  const acct = r.kind === 'wing' ? app.accounts.get(r.id) : null;
-  return { title: r.kind === 'cabin' ? 'Cabin' : r.kind === 'wing' ? `${acct ? acct.label : r.id} wing` : r.id, staff };
+  return { title: r.label || r.type || r.id, staff };
 }
 
 const endPointer = (e) => {

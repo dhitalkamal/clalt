@@ -41,10 +41,12 @@ class Build {
     const stool = makeStool(this.tint, this.s.seed % 3);
     this.seat.add(stool);
     rig.add(this.seat);
+    // an agent without a seat stands: no stool, desk or monitor
+    if (slot.kind === 'stand') this.seat.remove(stool);
     this.holder = new THREE.Group();
     this.holder.position.z = slot.kind === 'round' ? 0.3 : 0;
     rig.add(this.holder);
-    if (slot.kind !== 'round') {
+    if (slot.kind === 'desk') {
       const desk = furniture('desk');
       desk.rotation.y = Math.PI;
       rig.add(desk);
@@ -61,6 +63,7 @@ class Build {
     this.buildKeyboard(dh);
     this.detail = deskDetails(this.s.seed, dh, slot.kind === 'round');
     this.holder.add(this.detail);
+    if (slot.kind === 'stand') this.holder.visible = false;
     rig.traverse((o) => { o.userData.agent = this; });
   }
 

@@ -64,7 +64,8 @@ func TestEveryEmbeddedGLBIsLoadedByThePage(t *testing.T) {
 	}
 }
 
-var importRe = regexp.MustCompile(`from '\./([a-zA-Z]+)\.js'`)
+// relative imports, also from and into sub folders such as js/scene and js/editor
+var importRe = regexp.MustCompile(`from '\.\.?/(?:[a-zA-Z]+/)*([a-zA-Z]+)\.js'`)
 
 func TestEveryJSModuleIsImportedByAnotherAndStaysUnder300Lines(t *testing.T) {
 	imported := map[string]bool{"main": true}

@@ -1,6 +1,5 @@
 // turns a snapshot into the roster the scene shows: new sessions and subagents walk in,
 // finished ones walk out, state changes are picked up by the agents on their own.
-import { setAccountOrder } from './layout.js';
 import { planBreaks } from './planner.js';
 import { app, ui, relayout, makeAgent, refreshLabels } from './app.js';
 import { MAX_SESSIONS, MAX_SUBS, makeSession, makeSub, modelName, tintFor } from './model.js';
@@ -78,7 +77,6 @@ export function applySnapshot(snap) {
   const orderKey = order.join(',');
   const reorder = orderKey !== lastOrder;
   lastOrder = orderKey;
-  setAccountOrder(order);
   order.forEach(tintFor);
   app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || a.id, limits: a.limits }]));
   ui.accounts = app.accounts;

@@ -1,9 +1,12 @@
 import { loadAll } from './assets.js';
-import { ui, relayout, resize, render } from './app.js';
+import { ui, resize, render } from './app.js';
 import { step } from './step.js';
 import { bindInput, updateHover } from './input.js';
 import { startPoll } from './poll.js';
 import { applySnapshot } from './sync.js';
+import { loadLayout } from './layoutload.js';
+import { applyLayout } from './scene/apply.js';
+import { startEditor } from './editorhook.js';
 
 const loadingEl = document.getElementById('loading');
 
@@ -35,13 +38,16 @@ function onError(e) {
 async function boot() {
   const bar = document.getElementById('loadbar');
   await loadAll((p) => { bar.style.width = p * 100 + '%'; });
+  const { layout, edit } = await loadLayout();
+  await applyLayout(layout);
   loadingEl.hidden = true;
   bindInput();
-  relayout();
   resize();
   addEventListener('resize', resize);
   startPoll((snap) => { try { applySnapshot(snap); } catch (e) { console.error(e); ui.setNotice('the page could not read the snapshot'); } }, onError);
   loop();
+  // the editor exists only when clalt office runs with --edit
+  if (edit) startEditor(layout).catch((e) => { console.error(e); ui.setNotice('the editor could not start: ' + e.message); });
 }
 
 boot().catch((e) => { console.error(e); loadingEl.textContent = 'load failed: ' + e.message; });

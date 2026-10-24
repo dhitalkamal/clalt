@@ -2,7 +2,9 @@
 import * as THREE from 'three';
 import { tickCamera } from './stage.js';
 import { planBreaks } from './planner.js';
-import { app, stage, ui, world, relayout, lampTick } from './app.js';
+import { app, stage, ui, world, relayout } from './app.js';
+import { lampTick } from './scene/apply.js';
+import { syncDim } from './dim.js';
 import { ACCOUNT_TINT } from './model.js';
 
 // a finished agent is dropped once it has walked out of the door and shrunk away
@@ -41,7 +43,8 @@ function updateLines() {
       }
       const p = line.geometry.attributes.position;
       const from = a.flair.position;
-      const to = s.cabin ? new THREE.Vector3(s.cabin.cx, 0.9, s.cabin.cz) : main.flair.position;
+      const focus = main.slot.focus;
+      const to = focus ? new THREE.Vector3(focus.x, 0.9, focus.z) : main.flair.position;
       p.setXYZ(0, from.x, from.y - 0.05, from.z);
       p.setXYZ(1, to.x, to.y, to.z);
       p.needsUpdate = true;
@@ -54,26 +57,27 @@ function updateLines() {
   }
 }
 
-// ping-pong ball: a rally while both players are at the table, otherwise it rests near the net
+// ping-pong balls: a rally while both players are at the table, otherwise it rests near the net
 function pongBall() {
-  const ball = app.layout.pongBall;
-  if (!ball) return;
-  const A = app.occupant('pongA');
-  const B = app.occupant('pongB');
-  if (A && B && A.act === 'pong' && B.act === 'pong') {
-    const T = 1.6;
-    const ph = (app.time % T) / T;
-    const dir = ph < 0.5 ? ph * 2 : 2 - ph * 2;
-    ball.position.x = -0.95 + 1.9 * dir;
-    ball.position.y = 0.45 + Math.sin(dir * Math.PI) * 0.2 - 0.1;
-    ball.position.z = 0;
-  } else ball.position.set(0.15, 0.385, 0.1);
+  for (const p of app.pongs) {
+    const A = app.occupant(p.a);
+    const B = app.occupant(p.b);
+    if (A && B && A.act === 'pong' && B.act === 'pong') {
+      const T = 1.6;
+      const ph = (app.time % T) / T;
+      const dir = ph < 0.5 ? ph * 2 : 2 - ph * 2;
+      p.ball.position.x = -0.95 + 1.9 * dir;
+      p.ball.position.y = 0.45 + Math.sin(dir * Math.PI) * 0.2 - 0.1;
+      p.ball.position.z = 0;
+    } else p.ball.position.set(0.15, 0.385, 0.1);
+  }
 }
 
 export function step(dt) {
   app.time += dt;
   dropGone();
   planBreaks(app);
+  syncDim();
   const near = stage.view.dist < stage.base.dist * 0.7;
   tickCamera(stage, app.dragging);
   for (const [id, a] of app.agents) {
@@ -82,7 +86,7 @@ export function step(dt) {
       app.glance = { x: p.x, z: p.z, start: app.time, dur: 2.4 };
     }
     a.prevState = a.s.state;
-    if (a.s.leaving && !a.wasLeaving && a.s.space === 'review') app.printer?.userData.print(app.time);
+    if (a.s.leaving && !a.wasLeaving && a.s.space === 'review') app.printers[0]?.userData.print(app.time);
     a.wasLeaving = a.s.leaving;
     a.update(dt, app.time, app.layout.slots.get(id), app.layout, app);
     // main tags always, subagent tags when zoomed in, hovered, or the toggle is on
