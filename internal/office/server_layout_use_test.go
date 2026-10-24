@@ -18,7 +18,7 @@ func TestListAndUse(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil || rec.Code != 200 {
 		t.Fatalf("%d %v %s", rec.Code, err, rec.Body)
 	}
-	if list.Active != "default" || len(list.Layouts) != 2 || !list.Layouts[1].Builtin || list.Layouts[1].Name != "loft" {
+	if list.Active != layout.DefaultActive || len(list.Layouts) != 2 || !list.Layouts[1].Builtin || list.Layouts[1].Name != "loft" {
 		t.Errorf("list %+v", list)
 	}
 

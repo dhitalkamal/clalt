@@ -16,34 +16,38 @@ type activeFile struct {
 	Name string `json:"name"`
 }
 
-// ActiveName is the name in active.json, or the default one when the file is
-// missing or bad (a bad one is logged).
+// ActiveName is the name in active.json, or DefaultActive when the file is
+// missing or bad (a bad one is logged). it is a template or a saved layout.
 func (s *Store) ActiveName() string {
 	if s.Root == "" {
-		return DefaultName
+		return DefaultActive
 	}
 	raw, err := fsutil.ReadFile(filepath.Join(s.Root, "active.json"))
 	if errors.Is(err, fs.ErrNotExist) {
-		return DefaultName
+		return DefaultActive
 	}
 	if err != nil {
 		s.logf("active layout unreadable: %v", err)
-		return DefaultName
+		return DefaultActive
 	}
 	var a activeFile
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&a); err != nil || !ValidName(a.Name) {
 		s.logf("active.json is not valid, using the default layout")
-		return DefaultName
+		return DefaultActive
 	}
 	return a.Name
 }
 
 // Active is the layout to show. it never fails: a missing or invalid one is
-// logged and the default is used.
+// logged and the default is used. a template name has no file here (the
+// server generates it), so it answers the hall.
 func (s *Store) Active() Layout {
 	name := s.ActiveName()
+	if IsTemplate(name) {
+		return s.Default()
+	}
 	l, err := s.Load(name)
 	if err == nil {
 		return l
@@ -55,10 +59,13 @@ func (s *Store) Active() Layout {
 	return Minimal()
 }
 
-// SetActive makes a layout the active one. it must load.
+// SetActive makes a template or a stored layout the active one. a layout must
+// load.
 func (s *Store) SetActive(name string) error {
-	if _, err := s.Load(name); err != nil {
-		return err
+	if !IsTemplate(name) {
+		if _, err := s.Load(name); err != nil {
+			return err
+		}
 	}
 	if s.Root == "" {
 		return errors.New("no layouts folder")
@@ -85,7 +92,7 @@ func (s *Store) Default() Layout {
 // catalog and never fails validation.
 func Minimal() Layout {
 	return Layout{
-		V: Version, Name: DefaultName, Title: "Default office", Grid: GridSize,
+		V: V1, Name: DefaultName, Title: "Default office", Grid: GridSize,
 		Size: Size{W: 20, D: 12}, Walls: Walls{Color: "#e9e4dc"}, FloorColor: "#d9b88f",
 		Door:      Door{Side: "front", At: 2},
 		Rooms:     []Room{{ID: "lobby", Type: "lobby", W: 8, D: 6, Label: "Lobby"}},

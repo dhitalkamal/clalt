@@ -18,7 +18,7 @@ func TestValidateRules(t *testing.T) {
 		mod  func(l *Layout)
 		want string
 	}{
-		{"version", func(l *Layout) { l.V = 2 }, "version"},
+		{"version", func(l *Layout) { l.V = 3 }, "version"},
 		{"bad name", func(l *Layout) { l.Name = "../x" }, "name"},
 		{"upper name", func(l *Layout) { l.Name = "Mine" }, "name"},
 		{"long name", func(l *Layout) { l.Name = strings.Repeat("a", 41) }, "name"},

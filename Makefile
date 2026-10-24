@@ -12,13 +12,19 @@ ifneq ($(strip $(VERSION)),)
 LDFLAGS += -X $(VERSION_PKG).Version=$(VERSION)
 endif
 
-.PHONY: build test vet fmt fmtcheck check install cross clean
+.PHONY: build test testjs vet fmt fmtcheck check install cross clean
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test:
 	go test ./...
+
+# node tests of the office page; skipped with a message when node is missing
+testjs:
+	@if command -v node >/dev/null 2>&1; then \
+		node --test internal/office/web/js/_test/*.test.js internal/office/web/js/editor/_tests/*.mjs; \
+	else echo "testjs: node not found, skipping the office page tests"; fi
 
 vet:
 	go vet ./...
@@ -30,7 +36,7 @@ fmtcheck:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "unformatted:"; echo "$$out"; exit 1; fi
 
 # run everything CI would
-check: fmtcheck vet test build
+check: fmtcheck vet test testjs build
 
 install: build
 	mkdir -p $(INSTALL_DIR)

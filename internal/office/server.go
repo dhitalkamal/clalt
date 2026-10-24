@@ -38,6 +38,11 @@ type Config struct {
 	Edit bool
 	// Layouts is where layouts live, nil serves the default one and nothing else.
 	Layouts *layout.Store
+	// Generator builds the garden templates, nil serves the hall for all of them.
+	Generator Generator
+	// Template is the template shown first in this run instead of the one in
+	// active.json, which it does not touch. empty means the active one.
+	Template string
 }
 
 type handler struct {
@@ -46,8 +51,10 @@ type handler struct {
 	web   fs.FS
 	csp   string
 	store *layout.Store
-	// mu makes a layout write one step: check, save, switch.
+	// mu makes a layout write one step: check, save, switch. it also guards start.
 	mu sync.Mutex
+	// start is Config.Template until a write from the page picks another layout.
+	start string
 }
 
 var importMap = regexp.MustCompile(`(?s)<script type="importmap">(.*?)</script>`)
@@ -78,7 +85,10 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	h := &handler{cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page), store: cfg.Layouts}
+	if cfg.Template != "" && !layout.IsTemplate(cfg.Template) {
+		return nil, errors.New("office: unknown start template " + cfg.Template)
+	}
+	h := &handler{start: cfg.Template, cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page), store: cfg.Layouts}
 	if h.store == nil {
 		h.store = layout.NewStore("", cfg.Logf)
 	}
@@ -130,7 +140,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/api/layout" {
-		h.layoutGet(w)
+		h.layoutGet(w, r)
 		return
 	}
 	h.file(w, r)

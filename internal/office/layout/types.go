@@ -3,8 +3,11 @@
 // file is untrusted input, so everything here refuses instead of repairing.
 package layout
 
-// Version is the only layout format there is.
-const Version = 1
+// Version is the newest layout format, V1 is the hall format that still loads.
+const (
+	Version = 2
+	V1      = 1
+)
 
 // limits of the format, in cells unless said otherwise.
 const (
@@ -33,6 +36,13 @@ type Layout struct {
 	Stairs     *Stairs `json:"stairs"`
 	Rooms      []Room  `json:"rooms"`
 	Furniture  []Furn  `json:"furniture"`
+
+	// v2 (garden) fields, unused by a v1 layout and the other way round
+	Template  string     `json:"template,omitempty"`
+	Site      *Site      `json:"site,omitempty"`
+	Pavilions []Pavilion `json:"pavilions,omitempty"`
+	Overflow  []Spot     `json:"overflow,omitempty"`
+	Eye       *Eye       `json:"eye,omitempty"`
 }
 
 // Size is the ground floor in cells.

@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import { zoomAt, resetZoom, setPreset, orbit, pan } from './stage.js';
 import { app, stage, ui, canvas } from './app.js';
+import { regionInfo } from './regioncard.js';
+import { isGarden, goTo } from './garden/index.js';
 
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -32,8 +34,8 @@ function pickRegion(x, y) {
 }
 
 function regionCard(r) {
-  const staff = [...app.agents.values()].filter((a) => a.mode !== 'away' && a.rig.position.x > r.x0 && a.rig.position.x < r.x1 && a.rig.position.z > r.z0 && a.rig.position.z < r.z1).length;
-  return { title: r.label || r.type || r.id, staff };
+  const agents = [...app.agents.values()].map((a) => ({ id: a.s.id, label: a.isMain ? a.s.handle : a.s.type, x: a.rig.position.x, y: a.rig.position.y, z: a.rig.position.z, away: a.mode === 'away' }));
+  return regionInfo(r, app.layoutJson, ui.accounts, agents);
 }
 
 const endPointer = (e) => {
@@ -61,6 +63,8 @@ function onMove(e) {
   if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) down.moved = true;
   if (!down?.moved) return;
   app.dragging = true;
+  // the garden camera belongs to the nav manager (nav/input.js reads the same events)
+  if (isGarden()) return;
   if (pointers.size >= 2) {
     const [a, c] = [...pointers.values()];
     const d = Math.hypot(a.x - c.x, a.y - c.y);
@@ -96,7 +100,8 @@ function clearSelection() {
   app.selected = null;
   app.selectedRegion = null;
   ui.showCard(null);
-  resetZoom(stage);
+  // a garden camera is moved by the nav manager (Esc is wired in viewctl), the hall goes back to its top view
+  if (!isGarden()) resetZoom(stage);
 }
 
 export function bindInput() {
@@ -114,11 +119,12 @@ export function bindInput() {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
+    if (isGarden()) return;
     zoomAt(stage, new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), Math.exp(e.deltaY * 0.0012));
   }, { passive: false });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
   const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
-  on('b-home', () => resetZoom(stage));
+  on('b-home', () => { if (isGarden()) goTo(stage, 'top'); else resetZoom(stage); });
   on('b-top', () => setPreset(stage, 'top'));
   on('b-front', () => setPreset(stage, 'front'));
   on('b-lines', (e) => { app.linesOn = !app.linesOn; e.currentTarget.classList.toggle('on', app.linesOn); });

@@ -73,7 +73,7 @@ func TestOfficeLayoutImportListUseExportReset(t *testing.T) {
 	if e.run("office", "layout", "reset") != 0 {
 		t.Fatal(e.errOut.String())
 	}
-	if got := layout.NewStore(config.OfficeDir(), nil).ActiveName(); got != "default" {
+	if got := layout.NewStore(config.OfficeDir(), nil).ActiveName(); got != layout.DefaultActive {
 		t.Errorf("active after reset = %q", got)
 	}
 	if _, err := os.Stat(filepath.Join(config.OfficeDir(), "layouts", "mine.json")); err != nil {
@@ -152,6 +152,7 @@ func TestOfficeLayoutUseAndExportRefuseUnknownNames(t *testing.T) {
 	}
 }
 
+// the default is the generated garden (rows) now that the generator is wired in.
 func TestOfficeEditFlag(t *testing.T) {
 	for _, edit := range []bool{false, true} {
 		e := newEnv(t)
@@ -166,7 +167,7 @@ func TestOfficeEditFlag(t *testing.T) {
 		if edit {
 			want = `"edit":true`
 		}
-		if code != 200 || !strings.Contains(body, want) || !strings.Contains(body, `"name":"default"`) {
+		if code != 200 || !strings.Contains(body, want) || !strings.Contains(body, `"name":"rows"`) {
 			t.Errorf("edit=%v: %d %s", edit, code, body)
 		}
 		req, _ := http.NewRequest("GET", base+"/api/layouts", nil)
@@ -180,5 +181,27 @@ func TestOfficeEditFlag(t *testing.T) {
 			t.Errorf("edit=%v: GET /api/layouts = %d", edit, resp.StatusCode)
 		}
 		stop()
+	}
+}
+
+func TestOfficeLayoutListShowsTemplatesAndUseTakesThem(t *testing.T) {
+	e := newEnv(t)
+	if e.run("office", "layout", "list") != 0 {
+		t.Fatal(e.errOut.String())
+	}
+	out := e.out.String()
+	for _, want := range []string{"rows", "village", "river", "street", "hall", "template"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("list misses %q:\n%s", want, out)
+		}
+	}
+	if !strings.Contains(out, "* rows") {
+		t.Errorf("the default template is not marked active:\n%s", out)
+	}
+	if e.run("office", "layout", "use", "river") != 0 {
+		t.Fatalf("use river: %s", e.errOut)
+	}
+	if got := layout.NewStore(config.OfficeDir(), nil).ActiveName(); got != "river" {
+		t.Errorf("active = %q", got)
 	}
 }

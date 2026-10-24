@@ -26,6 +26,10 @@ type Options struct {
 	// Edit allows layout changes from the page, see Config.
 	Edit    bool
 	Layouts *layout.Store
+	// Generator builds the garden templates, Template is the one shown first,
+	// see Config.
+	Generator Generator
+	Template  string
 }
 
 // Instance is a running server.
@@ -61,6 +65,7 @@ func Start(opt Options) (*Instance, error) {
 	h, err := NewHandler(Config{
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Edit: opt.Edit, Layouts: opt.Layouts,
+		Generator: opt.Generator, Template: opt.Template,
 	})
 	if err != nil {
 		ln.Close()

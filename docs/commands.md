@@ -179,7 +179,7 @@ section of their own. They take and show labels like the other commands.
 
 ## Office
 
-`clalt office [--port N] [--no-open] [--edit]` opens a live 3D office of your
+`clalt office [--port N] [--no-open] [--edit] [--template <id>]` opens a live 3D office of your
 agents in the browser, on this machine only and watch only (`--edit` adds build
 mode). `clalt office layout list|use|export|import|reset` manages the floor
 plans. Both are described in [office.md](office.md).

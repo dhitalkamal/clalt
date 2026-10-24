@@ -86,7 +86,8 @@ func TestOfficeIsInTheCommandTableAndTheHelp(t *testing.T) {
 }
 
 func TestOfficeRefusesBadFlags(t *testing.T) {
-	for _, args := range [][]string{{"--bogus"}, {"--port"}, {"--port", "abc"}, {"--port", "70000"}, {"--port", "-1"}, {"extra"}} {
+	for _, args := range [][]string{{"--bogus"}, {"--port"}, {"--port", "abc"}, {"--port", "70000"}, {"--port", "-1"}, {"extra"},
+		{"--template"}, {"--template", "castle"}, {"--template="}, {"--template", "default"}} {
 		e := newEnv(t)
 		if code := e.run(append([]string{"office"}, args...)...); code != 2 || !strings.Contains(e.errOut.String(), "clalt office") {
 			t.Errorf("%v: exit %d, err %q", args, code, e.errOut.String())
@@ -189,4 +190,38 @@ func TestOfficeShowsTheSubagentsTheFeedFileHolds(t *testing.T) {
 	if !strings.Contains(body, `"subagents":[{"id":"a1","type":"Explore","label":"map it","state":"running"`) {
 		t.Errorf("snapshot has no subagents: %s", body)
 	}
+}
+
+func TestOfficeTemplateFlagPicksTheStartTemplateWithoutWritingActive(t *testing.T) {
+	e := newEnv(t)
+	url, stop := startOffice(t, e, func(string) error { return nil }, "--no-open", "--template", "village")
+	base, token, _ := strings.Cut(url, "/?t=")
+	code, body := fetch(t, base+"/api/layout", token)
+	var r struct {
+		Active    string
+		Templates []struct{ ID, Title string }
+	}
+	if err := json.Unmarshal([]byte(body), &r); err != nil || code != 200 {
+		t.Fatalf("%d %v %s", code, err, body)
+	}
+	if r.Active != "village" || len(r.Templates) != 5 {
+		t.Errorf("reply = %s", body)
+	}
+	if code := stop(); code != 0 {
+		t.Errorf("exit %d: %s", code, e.errOut.String())
+	}
+	if _, err := os.Stat(filepath.Join(config.OfficeDir(), "active.json")); err == nil {
+		t.Error("--template wrote active.json")
+	}
+}
+
+func TestOfficeTemplateFlagAcceptsTheEqualsForm(t *testing.T) {
+	e := newEnv(t)
+	url, stop := startOffice(t, e, func(string) error { return nil }, "--no-open", "--template=hall")
+	base, token, _ := strings.Cut(url, "/?t=")
+	_, body := fetch(t, base+"/api/layout", token)
+	if !strings.Contains(body, `"active":"hall"`) {
+		t.Errorf("reply = %s", body)
+	}
+	stop()
 }

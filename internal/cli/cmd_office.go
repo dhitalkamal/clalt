@@ -17,13 +17,15 @@ import (
 	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
-const officeUsage = "clalt office [--port N] [--no-open] [--edit]"
+const officeUsage = "clalt office [--port N] [--no-open] [--edit] [--template <id>]"
 
 // officeArgs are the flags of clalt office.
 type officeArgs struct {
 	port   int
 	noOpen bool
 	edit   bool
+	// template is the starting template of this run, empty for the active one
+	template string
 }
 
 func parseOfficeArgs(args []string) (officeArgs, error) {
@@ -31,7 +33,20 @@ func parseOfficeArgs(args []string) (officeArgs, error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		val, hasVal := strings.CutPrefix(arg, "--port=")
+		tmpl, hasTmpl := strings.CutPrefix(arg, "--template=")
 		switch {
+		case arg == "--template" || hasTmpl:
+			if arg == "--template" {
+				i++
+				if i >= len(args) {
+					return out, usageError{"--template needs a template id", officeUsage}
+				}
+				tmpl = args[i]
+			}
+			if !layout.IsTemplate(tmpl) {
+				return out, usageError{"--template must be one of " + templateIDs(), officeUsage}
+			}
+			out.template = tmpl
 		case arg == "--no-open":
 			out.noOpen = true
 		case arg == "--edit":
@@ -56,6 +71,15 @@ func parseOfficeArgs(args []string) (officeArgs, error) {
 		}
 	}
 	return out, nil
+}
+
+// templateIDs is the template list for a message: rows, village, ...
+func templateIDs() string {
+	ids := make([]string, len(layout.Templates))
+	for i, t := range layout.Templates {
+		ids[i] = t.ID
+	}
+	return strings.Join(ids, ", ")
 }
 
 func officeLogPath() string { return filepath.Join(config.LogsDir(), "office.log") }
@@ -103,11 +127,20 @@ func (a *App) cmdOffice(args []string) error {
 		defer stop()
 	}
 	src := a.officeSources()
+	// every snapshot also feeds the garden generators their desk needs
+	gen := office.NewGardenFeed(a.clock)
 	return cleanedOrNil(office.Run(ctx, office.Options{
-		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Edit: opt.edit,
-		Layouts:  layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
-		Snapshot: func() (office.Snapshot, error) { return office.Build(src) },
-		Logf:     officeLogf(dashboardLogger(officeLogPath())),
+		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Edit: opt.edit, Template: opt.template,
+		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
+		Generator: gen,
+		Snapshot: func() (office.Snapshot, error) {
+			snap, err := office.Build(src)
+			if err == nil {
+				gen.Observe(snap)
+			}
+			return snap, err
+		},
+		Logf: officeLogf(dashboardLogger(officeLogPath())),
 	}))
 }
 

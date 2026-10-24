@@ -116,6 +116,9 @@ func (s *Store) parse(name string, raw []byte) (Layout, error) {
 	if l.Name != name {
 		return Layout{}, fmt.Errorf("layout %s holds a layout named %q", name, l.Name)
 	}
+	if l.Template != "" {
+		return Layout{}, fmt.Errorf("layout %s names a template, which is never stored", name)
+	}
 	if err := Validate(l, s.catalog()); err != nil {
 		return Layout{}, err
 	}
@@ -155,7 +158,10 @@ func (s *Store) Save(l Layout) error {
 	if err := Validate(l, s.catalog()); err != nil {
 		return err
 	}
-	if s.IsBuiltin(l.Name) {
+	if l.Template != "" {
+		return errors.New("a layout that names a template is generated, never stored")
+	}
+	if s.IsBuiltin(l.Name) || IsTemplate(l.Name) {
 		return ErrBuiltin
 	}
 	if s.Root == "" {
@@ -189,7 +195,7 @@ func (s *Store) Delete(name string) error {
 			return err
 		}
 	}
-	if s.IsBuiltin(name) {
+	if s.IsBuiltin(name) || IsTemplate(name) {
 		return ErrBuiltin
 	}
 	return ErrNotFound

@@ -24,6 +24,16 @@ func ValidName(s string) bool { return nameRe.MatchString(s) && !reserved.MatchS
 // Validate checks every rule of the format against the catalog. it returns
 // the first problem, written for the person who made the layout.
 func Validate(l Layout, cat Catalog) error {
+	switch l.V {
+	case Version:
+		return validateV2(l)
+	case V1:
+	default:
+		return fmt.Errorf("unsupported layout version %d, this clalt reads versions %d and %d", l.V, V1, Version)
+	}
+	if l.Template != "" || l.Site != nil || len(l.Pavilions) > 0 || len(l.Overflow) > 0 || l.Eye != nil {
+		return errors.New("a version 1 layout cannot hold version 2 fields (template, site, pavilions, overflow, eye)")
+	}
 	if err := validateHead(l); err != nil {
 		return err
 	}
@@ -42,8 +52,6 @@ func Validate(l Layout, cat Catalog) error {
 // validateHead is everything above the room list.
 func validateHead(l Layout) error {
 	switch {
-	case l.V != Version:
-		return fmt.Errorf("unsupported layout version %d, this clalt reads version %d", l.V, Version)
 	case !ValidName(l.Name):
 		return errors.New("name must be 1 to 40 characters of a-z, 0-9 and -, and not a reserved device name such as con or nul")
 	case l.Grid != GridSize:
@@ -127,3 +135,6 @@ func text(what, s string, max int) error {
 	}
 	return nil
 }
+
+// CheckLabel reports whether s is a label Validate accepts as is.
+func CheckLabel(s string) error { return text("label", s, MaxLabel) }

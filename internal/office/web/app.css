@@ -7,6 +7,15 @@ html, body { margin: 0; height: 100%; background: #e6eff3; overflow: hidden; col
   background: var(--panel); backdrop-filter: blur(6px); box-shadow: 0 2px 12px rgba(60,50,40,.16); border: 1px solid rgba(255,255,255,.8); }
 .space { width: auto; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; opacity: .92; }
 .space .n { opacity: .6; margin-left: 6px; }
+/* the crowded form of an account card: one line, name and busiest window */
+.zpct { display: none; margin-left: 8px; font-weight: 700; }
+.zone.compact { width: auto; padding: 3px 9px; border-radius: 999px; }
+.zone.compact .bar { display: none; }
+.zone.compact .zname { display: flex; align-items: baseline; margin: 0; white-space: nowrap; }
+.zone.compact .zpct { display: inline; }
+.zpct.red { color: #c0392b; }
+.zpct.amber { color: #b9770e; }
+.zpct.green { color: #1e8e5a; }
 #card .crown { font-size: 10px; background: #f2c14b; color: #3b2a00; border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: middle; }
 #card .task { max-width: 220px; display: inline-block; }
 button.on { background: rgba(242,181,60,.5); border-color: var(--amber); }

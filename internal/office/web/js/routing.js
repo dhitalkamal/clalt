@@ -1,8 +1,10 @@
-// signatures: planSeats(layout, roster, catalog?, prev?) and breakSpots(layout, catalog?).
+// signatures: planSeats(layout, roster, catalog?, prev?, garden?) and breakSpots(layout, catalog?, garden?).
+// garden is {seats, overflow} for v2 layouts; setGardenSource (routing/garden.js) supplies it when omitted.
 // catalog is [{id, footprint, tags}]; without it each furniture item's own tags and footprint are
 // used and one console.warn is logged per layout object.
 // seat planning for the office page: which agent sits where, and where idle agents take a break.
-// pure functions over a layout json (v1), no dom, no three.js.
+// pure functions over a layout json (v1, and v2 through routing/garden.js), no dom, no three.js.
+import { planGarden, gardenBreakSpots } from './routing/garden.js';
 import { catalogIndex, spotsWithTags, blockedCells, freeCells, doorCell } from './routing/spatial.js';
 
 const warned = new WeakSet();
@@ -48,7 +50,9 @@ const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
 // prev is the last returned plan: agents keep a still valid seat or standing cell so nobody
 // shuffles between polls. mains are placed before subs, each group in key order, so the result
 // does not depend on roster order.
-export function planSeats(layout, roster, catalog, prev) {
+export function planSeats(layout, roster, catalog, prev, garden) {
+  // v2 layouts plan on the seat list of the garden renderer; garden is {seats, overflow} or comes from setGardenSource
+  if (layout.v === 2) return planGarden(layout, roster, prev, garden);
   checkCatalog(catalog, layout);
   const by = catalogIndex(catalog);
   const seats = spotsWithTags(layout, by, ['seat']);
@@ -112,7 +116,8 @@ function placeStanding(layout, by, loose, prev, plan) {
 // spots are tagged furniture (seat, play, break) in cafe and play rooms; a room with none offers
 // a few free floor cells; with neither room type the lobby floor is used so idle agents still have
 // somewhere to stand.
-export function breakSpots(layout, catalog) {
+export function breakSpots(layout, catalog, garden) {
+  if (layout.v === 2) return gardenBreakSpots(layout, garden);
   checkCatalog(catalog, layout);
   const by = catalogIndex(catalog);
   const tagged = spotsWithTags(layout, by, ['seat', 'play', 'break']);
@@ -135,3 +140,5 @@ export function breakSpots(layout, catalog) {
   }
   return { cafe, play, all };
 }
+
+export { setGardenSource } from './routing/garden.js';

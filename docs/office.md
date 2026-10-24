@@ -4,7 +4,7 @@
 account is a character at a desk, every subagent is a character too. It is a
 viewer: nothing on the page starts, stops or changes a session.
 
-    clalt office [--port N] [--no-open] [--edit]
+    clalt office [--port N] [--no-open] [--edit] [--template <id>]
 
 It prints a link, opens it in your default browser, and runs until you press
 Ctrl-C. `--no-open` only prints the link. `--port N` picks the port, by default
@@ -38,6 +38,47 @@ a free one.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows
   every tag, not only the ones of the main agents.
 
+## Templates
+
+The office starts as a garden campus: pavilions on a lawn with paths, water and
+trees. There are five templates:
+
+| id        | what it is                                                       |
+| --------- | ---------------------------------------------------------------- |
+| `rows`    | cabins in rows along the back, the default                       |
+| `village` | pavilions on a ring around a green with a pond and the cafe      |
+| `river`   | cabins along the west bank of a river                            |
+| `street`  | one winding street from the gate to a fountain plaza             |
+| `hall`    | the old single hall, kept as it was                              |
+
+The four gardens are generated from your accounts and the desks they need, so
+the campus grows with them. `hall` is the built-in layout and never changes.
+
+- `clalt office --template <id>` starts with that template for this run. It
+  writes nothing: `active.json` stays as it was.
+- On the page you can switch templates while watching. That is a read
+  (`GET /api/layout?template=<id>`), the page remembers the pick, and no file
+  is written. Making a template the saved default is a write like any other:
+  `clalt office layout use <id>` or, with `--edit`, the page.
+- `clalt office layout list` shows the templates next to your layouts.
+  `active.json` may name a template or a saved layout. With nothing set the
+  active one is `rows`.
+- A generated layout is never stored. If a template cannot be generated the hall
+  is shown and the reason goes to `office.log`.
+
+## Layout formats
+
+Version 1 is the hall (rooms and furniture on a grid) and keeps loading.
+Version 2 is the garden: a site (island outline, grass, river, ponds, paths,
+bridges, props, trees), pavilions with a type, a position and a rotation, and
+overflow spots. A file holds the keys of its own version only, the other
+version's keys are refused. Every number is finite and inside 200, pavilions
+stay inside the island and do not overlap each other, the river or a pond, and
+there is exactly one lobby. The pavilion sizes come from
+`internal/office/layout/data/footprints.json`. A layout that names a template is
+generated and cannot be saved. Editing version 2 layouts in build mode is not
+there yet, build mode edits version 1 layouts.
+
 ## Build mode
 
 `clalt office --edit` lets you change the floor plan from the page: move rooms
@@ -46,7 +87,7 @@ all: with the run's token they answer 404, without it 401 like every route.
 
 - A layout is one json file in `~/.config/clalt/office/layouts/<name>.json`.
   The active one is named in `~/.config/clalt/office/active.json`. With no valid
-  active layout the default one is shown, and a bad file is logged to
+  active layout the default template (`rows`) is shown, and a bad file is logged to
   `office.log` and skipped, never a crash.
 - The built-in templates live inside the binary and are read only. Saving while
   one is active writes a copy named `<name>-custom` and switches to it.
@@ -62,7 +103,8 @@ From the command line, which needs no running office:
     clalt office layout import <file> [--name n] [--force]
     clalt office layout reset
 
-`reset` points the active layout back at the default one and deletes nothing.
+`use` takes a template id too. `reset` points the active layout back at the
+default one (`rows`) and deletes nothing.
 `export` writes json to stdout, or to a file that must not exist yet unless you
 pass `--force`.
 

@@ -94,7 +94,8 @@ clalt budget [name]        show or set per-account spend caps
 clalt usage [name]         local usage stats
 clalt dashboard            full-screen dashboard of accounts, sessions and usage
 clalt dashboard --demo     the dashboard on made-up data, touches no account
-clalt office               live 3D office of your agents in the browser (local, watch only)
+clalt office               live 3D garden campus of your agents in the browser
+                           (local, watch only; --template rows|village|river|street|hall)
 clalt version              print build version (--json for machine-readable)
 ```
 

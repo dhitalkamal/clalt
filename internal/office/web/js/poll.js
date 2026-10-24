@@ -19,11 +19,13 @@ export async function fetchSnapshot() {
 
 // calls onSnapshot for each good answer and onError for each failure. a failure waits 1 s, then 2 s and so on
 // up to 30 s before the next try, and a good answer starts over. a refused token stops the polling for good.
-export function startPoll(onSnapshot, onError) {
+// onTick, when given, runs after each good snapshot: the layout watcher rides on this cadence.
+export function startPoll(onSnapshot, onError, onTick) {
   let fails = 0;
   const tick = async () => {
     try {
       onSnapshot(await fetchSnapshot());
+      if (onTick) onTick();
       fails = 0;
     } catch (e) {
       onError(e);

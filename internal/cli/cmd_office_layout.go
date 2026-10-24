@@ -44,10 +44,10 @@ func (a *App) cmdOfficeLayout(args []string) error {
 		if len(rest) > 0 {
 			return usageError{"reset takes no arguments", officeLayoutUsage}
 		}
-		if err := store.SetActive(layout.DefaultName); err != nil {
+		if err := store.SetActive(layout.DefaultActive); err != nil {
 			return err
 		}
-		fmt.Fprintln(a.Out, "active layout is the default again. no layout file was deleted.")
+		fmt.Fprintln(a.Out, "active layout is the default again (rows). no layout file was deleted.")
 		return nil
 	case "export":
 		return a.layoutExport(store, rest)
@@ -80,6 +80,13 @@ func (a *App) layoutList(store *layout.Store) error {
 			kind = "built-in"
 		}
 		fmt.Fprintf(a.Out, "%s %-24s %-9s %s\n", mark, i.Name, kind, i.Title)
+	}
+	for _, t := range layout.Templates {
+		mark := " "
+		if t.ID == active {
+			mark = "*"
+		}
+		fmt.Fprintf(a.Out, "%s %-24s %-9s %s\n", mark, t.ID, "template", t.Title)
 	}
 	return nil
 }

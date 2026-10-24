@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { el, clear, age } from './dom.js';
 import { MAX_SESSIONS } from './model.js';
+import { fitLabels } from './labelfit.js';
 
 const $ = (id) => document.getElementById(id);
 const tmp = new THREE.Vector3();
@@ -18,7 +19,12 @@ function bar(name, win) {
 }
 
 export function renderWing(div, label, limits) {
-  div.append(el('div', 'zname', label), bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
+  // zpct is what the compact one-line card shows in place of the bars: the busiest window
+  const used = [limits && limits.fiveHour, limits && limits.sevenDay].filter(Boolean).map((w) => Math.round(w.usedPct));
+  const worst = used.length ? Math.max(...used) : null;
+  const zname = el('div', 'zname', label);
+  zname.append(el('span', 'zpct ' + (worst === null ? '' : barClass(worst)), worst === null ? '?' : worst + '%'));
+  div.append(zname, bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
 }
 
 const dl = (rows) => {
@@ -80,19 +86,48 @@ export class UI {
         it.render(rec.el);
         rec.key = it.key;
         rec.cls = it.cls;
+        rec.size = null;
       }
       rec.pos = it;
     }
   }
 
+  // full and compact sizes of a label in css px, measured once per content
+  sizes(rec) {
+    if (rec.size) return rec.size;
+    const node = rec.el;
+    node.classList.remove('compact');
+    const size = { w: node.offsetWidth, h: node.offsetHeight };
+    if (rec.cls === 'zone') {
+      node.classList.add('compact');
+      size.cw = node.offsetWidth;
+      size.ch = node.offsetHeight;
+      node.classList.remove('compact');
+    }
+    rec.size = size;
+    return size;
+  }
+
   place() {
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
-    for (const { el: node, pos } of this.labels.values()) {
-      tmp.set(pos.x, pos.y, pos.z).project(this.camera);
-      const sc = Math.min(1, w / 1300);
-      node.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * w}px, ${(-tmp.y * 0.5 + 0.5) * h}px) translate(-50%, -100%) scale(${sc})`;
-      node.style.opacity = tmp.z < 1 ? 1 : 0;
+    const sc = Math.min(1, w / 1300);
+    const items = [];
+    for (const [id, rec] of this.labels) {
+      tmp.set(rec.pos.x, rec.pos.y, rec.pos.z).project(this.camera);
+      rec.sx = (tmp.x * 0.5 + 0.5) * w;
+      rec.sy = (-tmp.y * 0.5 + 0.5) * h;
+      rec.front = tmp.z < 1;
+      if (!rec.front) continue;
+      const z = this.sizes(rec);
+      items.push({ id, x: rec.sx, y: rec.sy, w: z.w * sc, h: z.h * sc, cw: z.cw ? z.cw * sc : 0, ch: z.ch ? z.ch * sc : 0, pri: rec.cls === 'zone' ? 1 : 0 });
+    }
+    const fit = fitLabels(items);
+    for (const [id, rec] of this.labels) {
+      const f = (rec.front && fit.get(id)) || { dy: 0, compact: false };
+      rec.el.classList.toggle('compact', f.compact);
+      rec.el.style.transform = `translate(${rec.sx}px, ${rec.sy + f.dy}px) translate(-50%, -100%) scale(${sc})`;
+      rec.el.style.opacity = rec.front ? 1 : 0;
     }
   }
 
@@ -109,7 +144,7 @@ export class UI {
   }
 
   showRegion(info, x, y) {
-    this.fill('r:' + info.title + info.staff, (c) => c.append(el('div', 'h', info.title), dl([['agents here', String(info.staff)]])), x, y);
+    this.fill('r:' + info.title + JSON.stringify(info.rows), (c) => c.append(el('div', 'h', info.title), dl(info.rows)), x, y);
   }
 
   showCard(agent, x, y) {

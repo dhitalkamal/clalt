@@ -71,8 +71,11 @@ func set(k, v string) func(*http.Request)    { return func(r *http.Request) { r.
 func noCookie(r *http.Request)               { r.Header.Del("Cookie") }
 
 type reply struct {
-	Edit   bool
-	Layout layout.Layout
+	Edit      bool
+	Layout    layout.Layout
+	Templates []layout.Template
+	Rev       string
+	Active    string
 }
 
 func decodeReply(t *testing.T, rec *httptest.ResponseRecorder) reply {
@@ -161,7 +164,7 @@ func TestWritesNeedEveryGuard(t *testing.T) {
 		if rec := e.send("POST", "/api/layout/use", `{"name":"loft"}`, mod); rec.Code != 403 {
 			t.Errorf("%s: POST use = %d, want 403", name, rec.Code)
 		}
-		if e.store.ActiveName() != "default" {
+		if e.store.ActiveName() != layout.DefaultActive {
 			t.Errorf("%s: the active layout changed", name)
 		}
 		if _, err := e.store.Load("mine"); err == nil {
@@ -210,6 +213,9 @@ func TestPutRefusesBadLayouts(t *testing.T) {
 
 func TestPutOverABuiltInSavesACustomCopyAndSwitchesToIt(t *testing.T) {
 	e := newLayoutEnv(t, true)
+	if err := e.store.SetActive("default"); err != nil {
+		t.Fatal(err)
+	}
 	l := layout.Minimal()
 	l.Title = "Changed"
 	l.Name = "ignored-name"

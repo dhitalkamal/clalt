@@ -14,13 +14,6 @@ import (
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
-// layoutReply is what the layout routes answer: whether the page may edit, and
-// the layout.
-type layoutReply struct {
-	Edit   bool          `json:"edit"`
-	Layout layout.Layout `json:"layout"`
-}
-
 // editHeader must be sent with every write. a page of another origin cannot
 // set it without a preflight, and the server answers no preflight.
 const editHeader = "X-Clalt-Edit"
@@ -36,24 +29,6 @@ func isEditRoute(r *http.Request) bool {
 		return true
 	}
 	return false
-}
-
-// layoutGet answers with the active layout, in watch mode too.
-func (h *handler) layoutGet(w http.ResponseWriter) {
-	h.reply(w, layoutReply{Edit: h.cfg.Edit, Layout: h.store.Active()})
-}
-
-func (h *handler) reply(w http.ResponseWriter, v any) {
-	raw, err := json.Marshal(v)
-	if err != nil {
-		h.logf("layout encoding failed: %v", err)
-		http.Error(w, "layout failed", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Length", strconv.Itoa(len(raw)))
-	_, _ = w.Write(raw)
 }
 
 // editRoute is the order of the guards: the token, then whether there is a
@@ -91,9 +66,9 @@ func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	if want == http.MethodPut {
+		h.mu.Lock()
+		defer h.mu.Unlock()
 		h.layoutPut(w, body)
 		return
 	}
@@ -155,9 +130,10 @@ func (h *handler) layoutList(w http.ResponseWriter) {
 		return
 	}
 	h.reply(w, struct {
-		Active  string        `json:"active"`
-		Layouts []layout.Info `json:"layouts"`
-	}{h.store.ActiveName(), infos})
+		Active    string            `json:"active"`
+		Layouts   []layout.Info     `json:"layouts"`
+		Templates []layout.Template `json:"templates"`
+	}{h.activeName(), infos, layout.Templates})
 }
 
 // customName is the name a copy of a built-in template is saved under.
@@ -169,17 +145,30 @@ func customName(name string) string {
 	return name + suffix
 }
 
-// layoutPut saves the body as the active layout. a built-in template is never
-// written: the copy is saved as "<name>-custom" and made active.
+// layoutPut saves the body as the active layout. a built-in or generated
+// template is never written: the copy is saved as "<name>-custom" and made
+// active. a layout that names a template is refused, templates are generated.
 func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
 	l, err := layout.Decode(body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	active := h.store.ActiveName()
+	if l.Template != "" {
+		http.Error(w, "a layout that names a template is generated, never stored", http.StatusBadRequest)
+		return
+	}
+	active := h.activeNameLocked()
 	l.Name = active
-	if h.store.IsBuiltin(active) {
+	switch {
+	case layout.IsTemplate(active):
+		// a hall (v1) edit never lands on a garden template's name
+		base := active
+		if l.V != layout.Version {
+			base = layout.HallTemplate
+		}
+		l.Name = customName(base)
+	case h.store.IsBuiltin(active):
 		l.Name = customName(active)
 	}
 	if err := h.store.Check(l); err != nil {
@@ -188,6 +177,11 @@ func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
 	}
 	if h.store.IsBuiltin(l.Name) {
 		http.Error(w, layout.ErrBuiltin.Error(), http.StatusBadRequest)
+		return
+	}
+	// a stored layout keeps its format: v1 over v2 (or back) would destroy it
+	if old, err := h.store.Load(l.Name); err == nil && old.V != l.V {
+		http.Error(w, "layout "+l.Name+" is format v"+strconv.Itoa(old.V)+", this edit is v"+strconv.Itoa(l.V)+"; it was not overwritten", http.StatusConflict)
 		return
 	}
 	if err := h.store.Save(l); err != nil {
@@ -202,7 +196,8 @@ func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
 			return
 		}
 	}
-	h.reply(w, layoutReply{Edit: true, Layout: l})
+	h.start = ""
+	h.replyLayout(w, true, l.Name, l, revOf(l))
 }
 
 // layoutUse makes a stored layout the active one.
@@ -216,20 +211,36 @@ func (h *handler) layoutUse(w http.ResponseWriter, body []byte) {
 		http.Error(w, "body must be {\"name\": \"<layout name>\"}", http.StatusBadRequest)
 		return
 	}
-	l, err := h.store.Load(req.Name)
-	switch {
-	case errors.Is(err, layout.ErrNotFound):
-		http.Error(w, "no such layout", http.StatusNotFound)
-		return
-	case err != nil:
-		h.logf("layout %s does not load: %v", req.Name, err)
-		http.Error(w, "that layout is not valid", http.StatusBadRequest)
-		return
+	var l layout.Layout
+	rev := ""
+	// h.mu covers the switch only, a template is generated after it is let go
+	h.mu.Lock()
+	if !layout.IsTemplate(req.Name) {
+		var err error
+		l, err = h.store.Load(req.Name)
+		switch {
+		case errors.Is(err, layout.ErrNotFound):
+			h.mu.Unlock()
+			http.Error(w, "no such layout", http.StatusNotFound)
+			return
+		case err != nil:
+			h.mu.Unlock()
+			h.logf("layout %s does not load: %v", req.Name, err)
+			http.Error(w, "that layout is not valid", http.StatusBadRequest)
+			return
+		}
+		rev = revOf(l)
 	}
 	if err := h.store.SetActive(req.Name); err != nil {
+		h.mu.Unlock()
 		h.logf("switching to layout %s failed: %v", req.Name, err)
 		http.Error(w, "switch failed", http.StatusInternalServerError)
 		return
 	}
-	h.reply(w, layoutReply{Edit: true, Layout: l})
+	h.start = ""
+	h.mu.Unlock()
+	if layout.IsTemplate(req.Name) {
+		l, rev = h.resolve(req.Name)
+	}
+	h.replyLayout(w, true, req.Name, l, rev)
 }

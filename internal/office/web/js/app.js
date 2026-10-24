@@ -24,7 +24,7 @@ export const app = {
   sessions: [], agents: new Map(), layout: null, layoutJson: null, catalog: null, shell: null, statics: null, dynamic: null, hover: null,
   time: 0, looks: 0, lines: new Map(), linesOn: false, tagsAll: false, ticks: [], printers: [], pongs: [], life: null, hotRef: { until: 0 },
   glance: null, pairCycle: 0, selected: null, selectedRegion: null, selectPos: { x: 0, y: 0 }, dragging: false, accounts: new Map(), hidden: 0,
-  seatPlan: null, editing: false, relayoutImpl: null,
+  seatPlan: null, editing: false, relayoutImpl: null, labelsImpl: null, resizeImpl: null,
   occupant(name) { for (const a of this.agents.values()) if (a.mode === 'leisure' && a.curSpot === name) return a; return null; },
 };
 
@@ -32,7 +32,8 @@ export function resize() {
   stage.renderer.setSize(innerWidth, innerHeight, false);
   stage.camera.aspect = innerWidth / innerHeight;
   stage.camera.updateProjectionMatrix();
-  if (app.layout) frameRoom(stage, app.layout.W, app.layout.D, innerWidth / innerHeight);
+  if (app.layout && app.resizeImpl) app.resizeImpl();
+  else if (app.layout) frameRoom(stage, app.layout.W, app.layout.D, innerWidth / innerHeight);
 }
 
 export const render = () => stage.renderer.render(stage.scene, stage.camera);
@@ -41,6 +42,8 @@ export const render = () => stage.renderer.render(stage.scene, stage.camera);
 export function refreshLabels() {
   const L = app.layout;
   if (!L) return;
+  // a garden draws its own labels
+  if (app.labelsImpl) { app.labelsImpl(); return; }
   const labels = [];
   for (const w of app.dynamic ? app.dynamic.wings : []) {
     const info = app.accounts.get(w.account) || { label: w.account, limits: null };

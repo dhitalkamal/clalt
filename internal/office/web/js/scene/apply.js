@@ -15,13 +15,16 @@ import { makeBuilder, placeItem } from './items.js';
 import { buildDynamic } from './dynamic.js';
 import { levels, cellToWorld as c2w, worldToCell as w2c } from './geom.js';
 import { assignSeats } from './seats.js';
+import { applyGarden, teardownGarden, cellToWorld as gardenCellToWorld, worldToCell as gardenWorldToCell } from '../garden/index.js';
 
 export { levels };
 const lights = [];
 const DEFAULT_SIZE = { w: 48, d: 20 };
 
-export const cellToWorld = (level, x, z) => c2w((app.layoutJson || { size: DEFAULT_SIZE }).size, level, x, z);
-export const worldToCell = (level, p) => w2c((app.layoutJson || { size: DEFAULT_SIZE }).size, level, p);
+// a garden (layout v2) has no cells: its positions are world units already, so both turn into identity
+const garden = () => app.layoutJson && app.layoutJson.v === 2;
+export const cellToWorld = (level, x, z) => (garden() ? gardenCellToWorld(level, x, z) : c2w((app.layoutJson || { size: DEFAULT_SIZE }).size, level, x, z));
+export const worldToCell = (level, p) => (garden() ? gardenWorldToCell(level, p) : w2c((app.layoutJson || { size: DEFAULT_SIZE }).size, level, p));
 
 const OPACITY = { lobby: 0.22, cafe: 0.22, play: 0.22 };
 
@@ -109,8 +112,25 @@ function refreshSeats() {
   refreshLabels();
 }
 
-// a new layout: everything is rebuilt and the agents sit down again in their new seats
+// takes the hall out of the scene, for a v2 layout that draws the garden instead
+function clearHall() {
+  for (const id of [...app.agents.keys()]) removeAgent(id);
+  drop(app.shell);
+  drop(app.statics && app.statics.group);
+  drop(app.life && app.life.group);
+  drop(app.dynamic && app.dynamic.group);
+  Object.assign(app, { shell: null, statics: null, life: null, dynamic: null, layout: null, seatPlan: null, ticks: [], printers: [], pongs: [] });
+  setLamps([]);
+}
+
+// a new layout: everything is rebuilt and the agents sit down again in their new seats.
+// v2 layouts are the garden campus (garden/index.js), v1 layouts are the hall below
 export async function applyLayout(layout) {
+  if (layout && layout.v === 2) {
+    clearHall();
+    return applyGarden(layout);
+  }
+  teardownGarden();
   const catalog = await loadCatalog();
   const L = compile(layout, catalog);
   const prev = app.layout;
