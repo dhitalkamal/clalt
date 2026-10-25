@@ -107,6 +107,7 @@ export function planGarden(layout, roster, prev, garden) {
 
   // keep previous desks that still exist and still fit
   for (const a of agents) {
+    if (plan.has(a.key)) continue;
     const old = prev?.get(a.key);
     const s = old?.kind === 'seat' ? byDesk.get(old.seat) : null;
     if (s && !claimed.has(old.seat) && fits(a, s)) { claimed.add(old.seat); plan.set(a.key, seatEntry(s)); }

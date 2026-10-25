@@ -18,8 +18,25 @@ export function replanPath(L, pos, dest) {
 // another seat, another kind of place, or a stand spot that moved
 export function slotMoved(a, b) {
   if (!a || !b || a === b) return false;
-  if (a.itemId !== b.itemId || a.kind !== b.kind || a.side !== b.side) return true;
+  if (a.itemId !== b.itemId || a.kind !== b.kind || a.side !== b.side || a.seatKind !== b.seatKind) return true;
   return !a.itemId && (Math.hypot(a.x - b.x, a.z - b.z) > 0.05 || a.level !== b.level);
+}
+
+// what a rebuild or re-plan does with one agent: keep, remap (re-point at the new layout), walk (fresh rig, walks
+// to the new seat), hide (intern without a stool, no character), drop (not in the roster). rec is the roster record.
+// leaving and ended agents have no plan slot, so they stay untouched (a stale one is dropped).
+export function carryAction(a, ns, rec, L) {
+  const stale = a.L !== L;
+  const gone = !!(a.s.leaving || a.s.state === 'ended');
+  if (!ns) {
+    if (gone) return stale ? 'drop' : 'keep';
+    if (!rec) return 'drop';
+    if (rec.intern === true || rec.kind === 'intern') return 'hide';
+    return 'drop';
+  }
+  if (!slotMoved(a.slot, ns)) return stale ? 'remap' : 'keep';
+  if (gone || a.mode === 'away') return 'remap';
+  return rec ? 'walk' : 'drop';
 }
 
 // where the character is in the world (a seated one rides in the seat group, so use the chair)

@@ -56,3 +56,20 @@ test('hidden interns get no slot and a badge, the others get slots', async () =>
   assert.equal([...slots.keys()].filter((k) => k.startsWith('s1/a')).length, 3);
   for (const sl of slots.values()) assert.ok(Number.isFinite(sl.x) && Number.isFinite(sl.z));
 });
+
+// a rebuild carries the old plan: a member listed on a workspace desk in it still gets its team desk, and its interns
+// follow onto the stools (they were in the lobby while the campus had no team pavilion)
+test('a carried plan does not keep a team member off its team desk', () => {
+  const L = fixture(TEAM[0]);
+  const seats = gardenSeats(L);
+  const ids = memberIds(L);
+  const old = seats.find((s) => s.kind === 'desk' && s.type === 'workspace');
+  assert.ok(old, 'fixture has a workspace desk');
+  const prev = new Map([['team:' + ids[0], { kind: 'seat', seat: old.id, level: 0, x: 0, z: 0 }]]);
+  const roster = [{ key: 'team:' + ids[0], kind: 'team', team: ids[0], type: ids[0], state: 'busy' },
+    { key: 's1/i0', kind: 'intern', team: ids[0], owner: 's1', account: 'a', type: ids[0], state: 'busy' }];
+  const plan = planSeats(L, roster, null, prev, { seats, overflow: gardenOverflow(L) });
+  const byId = new Map(seats.map((s) => [s.id, s]));
+  assert.equal(byId.get(plan.get('team:' + ids[0]).seat).type, 'team');
+  assert.equal(plan.get('s1/i0').kind, 'seat');
+});
