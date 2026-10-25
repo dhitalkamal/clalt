@@ -29,7 +29,7 @@ func NewGardenFeed(now func() time.Time) *GardenFeed {
 }
 
 // Observe reads the needs off one snapshot: a cabin per account sized by its
-// live main sessions, the workspace by the subagents that are not Explore,
+// live main sessions, the team pavilions by the snapshot's team list, the workspace by the subagents that are not Explore,
 // Plan or review types, research by the Explore ones.
 func (g *GardenFeed) Observe(s Snapshot) {
 	var accounts []garden.Account
@@ -54,6 +54,9 @@ func (g *GardenFeed) Observe(s Snapshot) {
 				needs.WorkspaceDesks++
 			}
 		}
+	}
+	for _, m := range s.Team {
+		needs.TeamIDs = append(needs.TeamIDs, m.ID)
 	}
 	g.tracker.Observe(g.now(), accounts, needs)
 }

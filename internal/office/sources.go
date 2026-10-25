@@ -76,5 +76,6 @@ type Sources struct {
 	Sessions  SessionSource
 	Limits    LimitSource
 	Subagents SubagentSource
+	Team      TeamSource
 	Now       func() time.Time
 }

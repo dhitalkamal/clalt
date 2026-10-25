@@ -63,7 +63,7 @@ class Build {
     this.buildKeyboard(dh);
     this.detail = deskDetails(this.s.seed, dh, slot.kind === 'round');
     this.holder.add(this.detail);
-    if (slot.kind === 'stand') this.holder.visible = false;
+    if (slot.kind === 'stand' || slot.seatKind === 'stool') this.holder.visible = false;
     rig.traverse((o) => { o.userData.agent = this; });
   }
 
@@ -164,7 +164,7 @@ class Build {
     this.ring = makeRing(this.tint);
     this.ring.position.y = 0.42 * K;
     f.add(this.ring);
-    this.tag = this.isMain ? textSprite('claude', this.tint, this.s.project) : textSprite(this.s.type, this.tint);
+    this.tag = this.isMain ? textSprite('claude', this.tint, this.s.project) : textSprite(this.s.role === 'team' ? this.s.name : this.s.type, this.tint);
     this.tag.position.y = TAG_Y;
     f.add(this.tag);
     if (!bubbleTex) { bubbleTex = bubbleTexture(); bubbleTex.userData.shared = true; }

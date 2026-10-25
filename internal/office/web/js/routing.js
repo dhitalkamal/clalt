@@ -5,6 +5,7 @@
 // seat planning for the office page: which agent sits where, and where idle agents take a break.
 // pure functions over a layout json (v1, and v2 through routing/garden.js), no dom, no three.js.
 import { planGarden, gardenBreakSpots } from './routing/garden.js';
+import { RANK, badgeCounts, placeHallInterns } from './routing/team.js';
 import { catalogIndex, spotsWithTags, blockedCells, freeCells, doorCell } from './routing/spatial.js';
 
 const warned = new WeakSet();
@@ -25,6 +26,7 @@ export function roomTypeFor(type) {
 
 // can this agent use a room of this layout: its own room kind, or the workspace as overflow
 function usable(agent, room) {
+  if (agent.kind === 'team') return room.type === 'workspace' || room.type === 'research';
   if (room.type === 'workspace') return true;
   if (agent.kind === 'main') return room.type === 'cabins' && (!room.account || room.account === agent.account);
   return room.type === roomTypeFor(agent.type);
@@ -33,6 +35,8 @@ function usable(agent, room) {
 // seats in preference order for one agent: primary rooms first (cabins restricted to the
 // agent's account before open ones), then workspace seats
 function chainFor(agent, seats) {
+  // team members: workspace desks first, then research desks
+  if (agent.kind === 'team') return ['workspace', 'research'].flatMap((t) => seats.filter((s) => s.room.type === t));
   const primary = agent.kind === 'main' ? 'cabins' : roomTypeFor(agent.type);
   const own = seats.filter((s) => s.room.type === primary && usable(agent, s.room));
   if (primary === 'cabins') own.sort((a, b) => (b.room.account === agent.account ? 1 : 0) - (a.room.account === agent.account ? 1 : 0));
@@ -61,7 +65,10 @@ export function planSeats(layout, roster, catalog, prev, garden) {
   const plan = new Map();
   const first = new Map();
   for (const a of roster) if (!first.has(a.key)) first.set(a.key, a);
-  const agents = [...first.values()].sort((a, b) => (a.kind === b.kind ? byKey(a, b) : a.kind === 'main' ? -1 : 1));
+  const order = new Map(roster.map((a, i) => [a.key, i]));
+  const all = [...first.values()].sort((a, b) => (a.kind === b.kind ? (a.kind === 'team' ? order.get(a.key) - order.get(b.key) : byKey(a, b)) : (RANK[a.kind] ?? 2) - (RANK[b.kind] ?? 2)));
+  const interns = all.filter((a) => a.kind === 'intern');
+  const agents = all.filter((a) => a.kind !== 'intern');
 
   // keep previous seats that still exist and are still allowed
   for (const a of agents) {
@@ -75,13 +82,15 @@ export function planSeats(layout, roster, catalog, prev, garden) {
   const loose = [];
   for (const a of agents) {
     if (plan.has(a.key)) continue;
-    const ck = a.kind === 'main' ? 'main:' + a.account : 'sub:' + roomTypeFor(a.type);
+    const ck = a.kind === 'main' ? 'main:' + a.account : a.kind === 'team' ? 'team' : 'sub:' + roomTypeFor(a.type);
     if (!chains.has(ck)) chains.set(ck, { list: chainFor(a, seats), at: 0 });
     const c = chains.get(ck);
     while (c.at < c.list.length && claimed.has(c.list[c.at].id)) c.at++;
     if (c.at < c.list.length) { const s = c.list[c.at]; claimed.add(s.id); plan.set(a.key, planned(s)); } else loose.push(a);
   }
 
+  // interns stand beside their member's desk, the rest of them join the lobby crowd
+  loose.push(...placeHallInterns(layout, by, interns, plan, prev));
   placeStanding(layout, by, loose, prev, plan);
   return plan;
 }
@@ -141,4 +150,5 @@ export function breakSpots(layout, catalog, garden) {
   return { cafe, play, all };
 }
 
+export { badgeCounts };
 export { setGardenSource } from './routing/garden.js';

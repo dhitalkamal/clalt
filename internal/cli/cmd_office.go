@@ -105,8 +105,19 @@ func (a *App) officeSources() office.Sources {
 		Registry: registry.Registry{Dir: config.SessionsDir()},
 		Feed:     feed.Store{Dir: config.FeedDir()},
 		Accounts: officeAccounts{app: a},
+		Team:     office.NewTeamFiles(userAgentsDir(), a.clock),
 		Now:      a.clock,
 	})
+}
+
+// userAgentsDir is the agents folder of the claude home, found the way the
+// account folders find it. empty when there is no home.
+func userAgentsDir() string {
+	home := config.SharedClaudeDir()
+	if home == "" {
+		return ""
+	}
+	return filepath.Join(home, "agents")
 }
 
 // cmdOffice serves the live 3D office on loopback and opens it in the browser.

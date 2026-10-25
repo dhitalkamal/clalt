@@ -22,6 +22,7 @@ type Needs struct {
 	CabinDesks     map[string]int
 	WorkspaceDesks int
 	ResearchDesks  int
+	TeamIDs        []string
 }
 
 // held is one desk count with its pending change.
@@ -71,6 +72,7 @@ type cached struct {
 type Tracker struct {
 	mu       sync.Mutex
 	accounts []Account
+	team     []string
 	cabin    map[string]*held
 	ws, rs   *held
 	version  int
@@ -89,6 +91,9 @@ func (t *Tracker) Observe(now time.Time, accounts []Account, needs Needs) {
 	defer t.mu.Unlock()
 	changed := !slices.Equal(t.accounts, accounts)
 	t.accounts = slices.Clone(accounts)
+	// a changed team list applies at once, like an account change
+	changed = !slices.Equal(t.team, needs.TeamIDs) || changed
+	t.team = slices.Clone(needs.TeamIDs)
 	keep := map[string]bool{}
 	for _, a := range accounts {
 		keep[a.ID] = true
@@ -123,7 +128,7 @@ func observePool(h **held, now time.Time, v int) bool {
 
 // input is the generator input for what is applied now.
 func (t *Tracker) input() Input {
-	in := Input{Accounts: slices.Clone(t.accounts), CabinDesks: map[string]int{}, WorkspaceDesks: MinWorkspaceDesks, ResearchDesks: MinResearchDesks}
+	in := Input{Accounts: slices.Clone(t.accounts), CabinDesks: map[string]int{}, WorkspaceDesks: MinWorkspaceDesks, ResearchDesks: MinResearchDesks, TeamIDs: slices.Clone(t.team)}
 	for id, h := range t.cabin {
 		in.CabinDesks[id] = h.val
 	}

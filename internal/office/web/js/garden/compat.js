@@ -12,7 +12,7 @@ const GROUP_OF = { order: 'counter', sip: 'table', pong: 'pong', read: 'bag' };
 
 // rig position of a seat: desks are the desk centre, round seats put the rig one chair offset toward the table
 function rigOf(seat) {
-  if (seat.kind !== 'round' && seat.kind !== 'review' && seat.kind !== 'meeting') return { x: seat.x, z: seat.z };
+  if (seat.kind !== 'round' && seat.kind !== 'review' && seat.kind !== 'meeting' && seat.kind !== 'stool') return { x: seat.x, z: seat.z };
   const t = rad(seat.rot);
   return { x: seat.x + Math.sin(t) * SEAT_OFF, z: seat.z + Math.cos(t) * SEAT_OFF };
 }
@@ -38,6 +38,13 @@ export function compileGarden(layout) {
       const pav = pavById.get(seat.pavilionId);
       slot = { kind: 'desk', side: seat.side, y: 0, x: seat.x, z: seat.z, rotY: t, chair: at(0, -SEAT_OFF), node, stand: [at(laneX, -SEAT_OFF)],
         corr: walk.node(0, node.ap, []), focus: seat.type === 'cabin' && pav ? { x: pav.x, z: pav.z } : null };
+    } else if (seat.kind === 'stool') {
+      // an intern stool on the ground: a round slot at level 0, the agent hides its monitor for seatKind stool
+      const rig = rigOf(seat);
+      const node = walk.nodeForSeat(seat);
+      const out = { x: seat.x - Math.sin(t) * 0.5, z: seat.z - Math.cos(t) * 0.5 };
+      slot = { kind: 'round', side: 1, y: 0, x: rig.x, z: rig.z, rotY: t, chair: { x: seat.x, z: seat.z }, node, stand: [out],
+        corr: walk.node(0, node.ap, []), focus: null };
     } else {
       // review and meeting seats: the agent's rig sits one chair offset toward the table
       const rig = rigOf(seat);

@@ -48,7 +48,7 @@ export function planBreaks(app, force = false) {
   for (const a of agents) for (const s of (a.plan?.steps || a.planOffer?.steps || [])) reserved.add(s.spot);
   const free = (n) => !reserved.has(n);
   const take = (plan) => { for (const s of plan.steps) reserved.add(s.spot); };
-  const ready = agents.filter((a) => a.s.state === 'idle' && !a.s.leaving && !a.plan && !a.planOffer && a.slot.kind !== 'stand'
+  const ready = agents.filter((a) => a.s.state === 'idle' && a.s.role !== 'team' && !a.s.leaving && !a.plan && !a.planOffer && a.slot.kind !== 'stand'
     && (force ? a.mode !== 'away' : a.mode === 'seated' && app.time >= a.nextBreakAt));
   const offered = [];
   while (ready.length >= 2) {

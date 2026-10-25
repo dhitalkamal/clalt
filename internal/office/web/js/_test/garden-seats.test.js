@@ -27,7 +27,7 @@ test('seat ids are unique and carry pavilion and account', () => {
     assert.ok(cabin.account && cabin.pavilionId.startsWith('cabin-'));
     for (const s of seats) {
       assert.ok(Number.isFinite(s.x) && Number.isFinite(s.z) && Number.isFinite(s.rot), s.id);
-      assert.ok(['desk', 'cafe', 'play', 'review', 'meeting', 'lobby'].includes(s.kind));
+      assert.ok(['desk', 'cafe', 'play', 'review', 'meeting', 'lobby', 'stool'].includes(s.kind));
     }
   }
 });

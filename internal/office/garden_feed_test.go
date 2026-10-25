@@ -1,6 +1,7 @@
 package office
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -105,5 +106,27 @@ func TestGardenFeedAccountOrderAndUnknownSessions(t *testing.T) {
 func TestGardenFeedBeforeFirstSnapshot(t *testing.T) {
 	if _, _, err := NewGardenFeed(time.Now).Layout("street"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGardenFeedPassesTeamIDs(t *testing.T) {
+	g := NewGardenFeed(time.Now)
+	snap := snapWith([]AccountOut{{ID: "work", Label: "WORK"}})
+	for _, id := range []string{"general-purpose", "explore", "plan"} {
+		snap.Team = append(snap.Team, TeamOut{ID: id})
+	}
+	g.Observe(snap)
+	l, _, err := g.Layout("rows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var members []string
+	for _, p := range l.Pavilions {
+		if p.Type == "team" {
+			members = append(members, p.Members...)
+		}
+	}
+	if got := strings.Join(members, ","); got != "general-purpose,explore,plan" {
+		t.Errorf("team pavilion members %q", got)
 	}
 }

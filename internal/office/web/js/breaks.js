@@ -1,5 +1,6 @@
 // break plans, handoffs and the small moments, as methods mixed into Agent.
 // everything is driven by timers (actStart / actEnd) and eased envelopes, nothing is random per frame.
+import { handoffOwner } from './handoff.js';
 const SIT_Y = 0.12;
 
 export function installBreaks(Agent) {
@@ -128,7 +129,7 @@ export function installBreaks(Agent) {
 
   // a finished subagent walks to its main agent's cabin door, hands over a paper, then leaves through the lobby
   P.startHandoff = function startHandoff() {
-    const main = this.env.agents.get(this.s.session.id);
+    const main = this.env.agents.get(handoffOwner(this.s));
     if (!main || main.s.leaving || main.s.state === 'ended' || !main.slot.corr) { this.startOut(); return; }
     this.leaveChair();
     this.carryPaper = true;

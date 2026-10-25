@@ -3,8 +3,9 @@
 import { renderWing } from '../ui.js';
 import { toWorld, sizeOf } from './footprints.js';
 import { TH_X } from './local.js';
+import { badgeItems } from './badge.js';
 
-const PILL = { research: 'Research', workspace: 'Open workspace', lobby: 'Lobby', cafe: 'Cafe', play: 'Play' };
+const PILL = { research: 'Research', workspace: 'Open workspace', team: 'Team', lobby: 'Lobby', cafe: 'Cafe', play: 'Play' };
 
 // agents per pavilion, and per treehouse side
 function counts(L) {
@@ -40,9 +41,10 @@ export function gardenLabels(L, accounts) {
       out.push(pill(p.id + ':review', 'Review', used.get(p.id + ':review') || 0, rx, 3.0, rz), pill(p.id + ':meeting', 'Meeting', used.get(p.id + ':meeting') || 0, mx, 3.0, mz));
     } else {
       const [x, z] = at(0, -d / 2);
-      const n = p.type === 'research' || p.type === 'workspace' ? used.get(p.id) || 0 : null;
+      const n = p.type === 'research' || p.type === 'workspace' || p.type === 'team' ? used.get(p.id) || 0 : null;
       out.push(pill(p.id, p.label && p.type !== 'cabin' ? p.label : PILL[p.type] || p.type, n, x, p.type === 'lobby' ? 1.0 : p.type === 'play' ? 1.0 : 1.7, z));
     }
   }
+  out.push(...badgeItems(L.seats));
   return out;
 }

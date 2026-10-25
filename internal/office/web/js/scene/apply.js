@@ -2,12 +2,13 @@
 // this file is the seam the editor and the page entry call.
 import * as THREE from 'three';
 import { loadCatalog } from '../catalog.js';
-import { app, world, stage, ui, drop, resize, refreshLabels, makeAgent, removeAgent } from '../app.js';
+import { app, world, stage, ui, drop, resize, refreshLabels, makeAgent, removeAgent, syncHidden } from '../app.js';
 import { frameRoom } from '../stage.js';
 import { buildGround } from '../ground.js';
 import { buildLife } from '../life.js';
 import { SPACE_TINT, flat } from '../zones.js';
 import { tintFor } from '../model.js';
+import { findRecord, agentRecords } from '../roster.js';
 import { compile } from './plan.js';
 import { buildShell } from './shell.js';
 import { buildDeck } from './deck.js';
@@ -73,20 +74,13 @@ export function lampTick(t) {
   for (let i = 0; i < lights.length; i++) lights[i].intensity = 1.4 + Math.sin(t * 1.1 + i) * 0.05;
 }
 
-const recordOf = (key) => {
-  for (const s of app.sessions) {
-    if (s.id === key) return s;
-    const sub = s.subs.find((x) => x.id === key);
-    if (sub) return sub;
-  }
-  return null;
-};
+const recordOf = (key) => findRecord(app.sessions, app.members, key);
 
 // re-plans seats for the current roster, rebuilds the roster layer and re-creates agents whose rig no longer fits
 function refreshSeats() {
   const L = app.layout;
   if (!L) return;
-  const { slots, plan } = assignSeats(L, app.sessions, app.catalog, app.seatPlan);
+  const { slots, plan } = assignSeats(L, app.sessions, app.catalog, app.seatPlan, app.members);
   app.seatPlan = plan;
   L.slots = slots;
   const occ = new Map();
@@ -101,6 +95,7 @@ function refreshSeats() {
   world.add(app.dynamic.group);
   const sway = [...(app.statics ? app.statics.b.sway : []), ...app.dynamic.sway];
   app.ticks = [...(app.statics ? app.statics.b.ticks : []), (t) => { for (const s of sway) s.obj.rotation.z = Math.sin(t * 0.8 + s.phase) * 0.03; }];
+  syncHidden(slots);
   for (const [id, a] of [...app.agents]) {
     const ns = slots.get(id);
     if (ns && (a.slot.kind !== ns.kind || a.slot.side !== ns.side)) {
@@ -159,11 +154,7 @@ export async function applyLayout(layout) {
   app.dimmed = null;
   app.relayoutImpl = refreshSeats;
   refreshSeats();
-  for (const s of app.sessions) {
-    if (s.leaving) continue;
-    makeAgent(s, true);
-    for (const sub of s.subs) if (!sub.leaving) makeAgent(sub, true);
-  }
+  for (const rec of agentRecords(app.sessions, app.members)) makeAgent(rec, true);
   if (!prev || prev.W !== L.W || prev.D !== L.D) {
     frameRoom(stage, L.W, L.D, innerWidth / innerHeight, !!stage.nav);
     // a new hall size: the nav camera refits its top view

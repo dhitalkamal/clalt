@@ -2,4 +2,5 @@
  "play": {"w": 5.0, "d": 4.0}, "treehouse": {"w": 9.6, "d": 4.2},
  "cabin": {"col": 2.1, "row": 2.8, "pad": 0.0},
  "research": {"col": 2.1, "row": 3.5, "pad": 0.2},
- "workspace": {"col": 2.1, "row": 3.5, "pad": 0.2}}
+ "workspace": {"col": 2.1, "row": 3.5, "pad": 0.2},
+ "team": {"col": 2.1, "row": 3.5, "pad": 0.2}}

@@ -1,6 +1,7 @@
 // seat planning for layout v2 (garden campus). pure functions over the seat list the renderer builds,
 // no dom, no three.js. coordinates are world units, entries carry world: true so callers do not
 // treat them as grid cells.
+import { RANK } from './team.js';
 
 // where the seat list comes from. the page registers gardenSeats here at boot; tests pass a source in.
 let source = null;
@@ -16,11 +17,47 @@ const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
 // which seat kind and pavilion type a subagent type wants
 function wantOf(agent) {
   if (agent.kind === 'main') return { type: 'cabin', kind: 'desk' };
+  // a team member without a team desk (older layout) falls back to the workspace
+  if (agent.kind === 'team') return { type: 'workspace', kind: 'desk' };
   const t = String(agent.type || '').toLowerCase();
   if (t === 'explore') return { type: 'research', kind: 'desk' };
   if (t === 'plan') return { type: 'treehouse', kind: 'meeting' };
   if (/review|test|hunter|analy/.test(t)) return { type: 'treehouse', kind: 'review' };
   return { type: 'workspace', kind: 'desk' };
+}
+
+// the desk of a team member: the seat tagged with its id, else the desk at its index in members
+function teamDesk(layout, seats, id) {
+  for (const p of layout.pavilions || []) {
+    if (p.type !== 'team' || !Array.isArray(p.members)) continue;
+    const i = p.members.indexOf(id);
+    if (i < 0) continue;
+    const desks = seats.filter((s) => s.pavilionId === p.id && s.kind === 'desk');
+    return desks.find((s) => s.member === id) || desks[i] || null;
+  }
+  return null;
+}
+
+// interns sit on the stools of their member's team desk (seats of kind stool carrying the member id).
+// beyond the stools they are hidden and counted in the badge. a member without a team desk or stools: fallback.
+function placeInterns(interns, seats, plan, prev, claimed, fallback) {
+  const stoolsOf = new Map();
+  for (const s of seats) if (s.kind === 'stool') { if (!stoolsOf.has(s.member)) stoolsOf.set(s.member, []); stoolsOf.get(s.member).push(s); }
+  const onDesk = (a) => {
+    const m = plan.get('team:' + a.team);
+    return m && m.kind === 'seat' && (stoolsOf.get(a.team) || []).length > 0 && seats.some((s) => seatKey(s) === m.seat && s.type === 'team');
+  };
+  const rest = [];
+  for (const a of interns) {
+    if (!onDesk(a)) { fallback(a); continue; }
+    const old = prev?.get(a.key);
+    const s = old?.kind === 'seat' ? stoolsOf.get(a.team).find((x) => seatKey(x) === old.seat) : null;
+    if (s && !claimed.has(seatKey(s))) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); } else rest.push(a);
+  }
+  for (const a of rest) {
+    const s = stoolsOf.get(a.team).find((x) => !claimed.has(seatKey(x)));
+    if (s) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); } else plan.set(a.key, { kind: 'hidden', badgeFor: a.team, member: 'team:' + a.team });
+  }
 }
 
 const resolve = (layout, garden) => {
@@ -44,20 +81,29 @@ function anchorOf(agent, want, layout) {
 // roster state "arriving" sends an agent to the lobby first.
 export function planGarden(layout, roster, prev, garden) {
   const { seats, overflow } = resolve(layout, garden);
-  const desks = seats.filter((s) => s.kind !== 'lobby' && s.kind !== 'cafe' && s.kind !== 'play');
+  const desks = seats.filter((s) => s.kind !== 'lobby' && s.kind !== 'cafe' && s.kind !== 'play' && s.kind !== 'stool');
   const lobby = seats.filter((s) => s.kind === 'lobby');
   const byDesk = new Map(desks.map((s) => [seatKey(s), s]));
   const spots = new Map(overflow.map((o) => [spotKey(o), o]));
   const lobbyBy = new Map(lobby.map((s) => [seatKey(s), s]));
   const first = new Map();
   for (const a of roster) if (!first.has(a.key)) first.set(a.key, a);
-  const agents = [...first.values()].sort((a, b) => (a.kind === b.kind ? byKey(a, b) : a.kind === 'main' ? -1 : 1));
+  const everyone = [...first.values()].sort((a, b) => (a.kind === b.kind ? byKey(a, b) : (RANK[a.kind] ?? 2) - (RANK[b.kind] ?? 2)));
+  const interns = everyone.filter((a) => a.kind === 'intern');
+  const agents = everyone.filter((a) => a.kind !== 'intern');
   const fits = (a, s) => {
     const w = wantOf(a);
     return s.type === w.type && s.kind === w.kind && (a.kind !== 'main' || s.account === a.account);
   };
   const plan = new Map();
   const claimed = new Set();
+
+  // team members sit at the desk of their place in the members list of a team pavilion
+  for (const a of agents) {
+    if (a.kind !== 'team') continue;
+    const s = teamDesk(layout, seats, a.team);
+    if (s && !claimed.has(seatKey(s))) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); }
+  }
 
   // keep previous desks that still exist and still fit
   for (const a of agents) {
@@ -91,6 +137,7 @@ export function planGarden(layout, roster, prev, garden) {
     if (a.state === 'arriving' && toLobby(a)) continue;
     if (!toDesk(a) && !toSpot(a) && !toLobby(a)) loose.push(a);
   }
+  placeInterns(interns, seats, plan, prev, claimed, (a) => (toLobby(a) || toSpot(a)) || loose.push(a));
   const home = (layout.pavilions || []).find((p) => p.type === 'lobby') || (layout.pavilions || [])[0] || { x: 0, z: 0 };
   const pool = lobby.length ? lobby.map((s) => ({ x: s.x, z: s.z, rot: s.rot, y: s.y })) : [{ x: home.x, z: home.z + 1.5, rot: 0, y: 0 }];
   loose.forEach((a, i) => plan.set(a.key, standEntry(pool[i % pool.length], home.id || null, null)));

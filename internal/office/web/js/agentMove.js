@@ -23,7 +23,7 @@ class Move {
   place(p, yaw) {
     this.model.position.set(p.x, p.y ?? this.slot.y, p.z);
     this.model.rotation.set(0, yaw, 0);
-    this.model.scale.setScalar(CHAR_SCALE);
+    this.model.scale.setScalar(this.charScale || CHAR_SCALE);
   }
 
   resetBones() { for (const n of ['head', 'torso']) this.bones[n].quaternion.copy(this.base[n]); }
@@ -111,9 +111,9 @@ class Move {
   sit() {
     this.mode = 'seated';
     this.seat.add(this.model);
-    this.model.position.set(0, SEAT_Y, -0.03);
+    this.model.position.set(0, this.seatY || SEAT_Y, -0.03);
     this.model.rotation.set(0, 0, 0);
-    this.model.scale.setScalar(CHAR_SCALE);
+    this.model.scale.setScalar(this.charScale || CHAR_SCALE);
     this.play('sit', 0.2);
     this.curNode = this.slot.node;
     if (this.cupHeld) this.cup.visible = true;

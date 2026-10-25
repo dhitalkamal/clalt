@@ -6,6 +6,8 @@ import { createStage, frameRoom } from './stage.js';
 import { Agent } from './agent.js';
 import { UI, renderWing } from './ui.js';
 import { disposeTree } from './dispose.js';
+import { pickLook } from './looks.js';
+import { agentRecords } from './roster.js';
 
 // takes a built group out of the world and frees what it held
 export function drop(group) {
@@ -21,7 +23,7 @@ export const world = new THREE.Group();
 stage.scene.add(world);
 
 export const app = {
-  sessions: [], agents: new Map(), layout: null, layoutJson: null, catalog: null, shell: null, statics: null, dynamic: null, hover: null,
+  sessions: [], members: [], team: [], badges: new Map(), agents: new Map(), layout: null, layoutJson: null, catalog: null, shell: null, statics: null, dynamic: null, hover: null,
   time: 0, looks: 0, lines: new Map(), linesOn: false, tagsAll: false, ticks: [], printers: [], pongs: [], life: null, hotRef: { until: 0 },
   glance: null, pairCycle: 0, selected: null, selectedRegion: null, selectPos: { x: 0, y: 0 }, dragging: false, accounts: new Map(), hidden: 0,
   seatPlan: null, editing: false, relayoutImpl: null, labelsImpl: null, resizeImpl: null,
@@ -69,12 +71,16 @@ export function relayout() {
   if (app.relayoutImpl) app.relayoutImpl();
 }
 
-const nextLook = () => CHARACTERS[(app.looks++ * 5) % CHARACTERS.length];
+// a look comes from the record id, so it is the same for the whole session and after a reload
+const lookOf = (s) => pickLook(s.id, CHARACTERS);
 
 // instant puts the agent in its seat already, for what was running before the page opened
 export function makeAgent(s, instant) {
   const slot = app.layout.slots.get(s.id);
-  const a = new Agent(s, world, slot, nextLook());
+  // an intern past the stools has no slot: no character until a stool frees up
+  if (!slot) { s.hid = true; return null; }
+  s.hid = false;
+  const a = new Agent(s, world, slot, lookOf(s));
   a.L = app.layout;
   a.env = app;
   app.agents.set(s.id, a);
@@ -96,4 +102,15 @@ export function removeAgent(id) {
   if (!a) return;
   a.dispose();
   app.agents.delete(id);
+}
+
+// agents lose their character when the plan hides them (no slot) and get one back when a slot frees up
+export function syncHidden(slots) {
+  for (const id of [...app.agents.keys()]) {
+    if (slots.has(id)) continue;
+    const rec = [...app.sessions, ...app.sessions.flatMap((x) => x.subs), ...app.members].find((r) => r.id === id);
+    if (rec) rec.hid = true;
+    removeAgent(id);
+  }
+  for (const rec of agentRecords(app.sessions, app.members)) if (rec.hid && slots.has(rec.id) && !app.agents.has(rec.id)) makeAgent(rec, false);
 }

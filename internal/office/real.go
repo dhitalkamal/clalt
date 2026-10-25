@@ -13,6 +13,7 @@ type Real struct {
 	Registry registry.Registry
 	Feed     feed.Store
 	Accounts AccountSource
+	Team     TeamSource
 	Now      func() time.Time
 }
 
@@ -25,7 +26,7 @@ func RealSources(r Real) Sources {
 	if r.Now == nil {
 		r.Now = time.Now
 	}
-	return Sources{Accounts: r.Accounts, Sessions: r, Limits: r, Subagents: r, Now: r.Now}
+	return Sources{Accounts: r.Accounts, Sessions: r, Limits: r, Subagents: r, Team: r.Team, Now: r.Now}
 }
 
 // Sessions lists the sessions whose wrapper is alive, with what the feed says

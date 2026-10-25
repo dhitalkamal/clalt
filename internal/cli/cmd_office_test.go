@@ -225,3 +225,47 @@ func TestOfficeTemplateFlagAcceptsTheEqualsForm(t *testing.T) {
 	}
 	stop()
 }
+
+func TestOfficeTeamHoldsTheBuiltinsAndTheCustomAgentFolders(t *testing.T) {
+	e := newEnv(t)
+	e.signIn("work", "me@example.com")
+	id := e.account("work").Name
+	home, proj := t.TempDir(), t.TempDir()
+	t.Setenv("CLAUDE_CONFIG_DIR", home)
+	agent := func(dir, name string) {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		doc := "---\nname: " + name + "\ndescription: does " + name + "\n---\nSECRET-BODY\n"
+		if err := os.WriteFile(filepath.Join(dir, name+".md"), []byte(doc), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	agent(filepath.Join(home, "agents"), "user-helper")
+	agent(filepath.Join(proj, ".claude", "agents"), "proj-helper")
+	reg := registry.Registry{Dir: config.SessionsDir()}
+	if err := reg.Create(registry.Record{Handle: "0123456789abcdef", Account: id, Cwd: proj, WrapperPID: os.Getpid(), PID: os.Getpid(), StartedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	url, stop := startOffice(t, e, nil, "--no-open")
+	base, token, _ := strings.Cut(url, "/?t=")
+	_, body := fetch(t, base+"/api/snapshot", token)
+	stop()
+	var snap struct {
+		Team []struct{ ID, Source, Desc string }
+	}
+	if err := json.Unmarshal([]byte(body), &snap); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, m := range snap.Team {
+		got = append(got, m.ID+":"+m.Source)
+	}
+	want := "general-purpose:builtin explore:builtin plan:builtin user-helper:user proj-helper:project"
+	if strings.Join(got, " ") != want {
+		t.Errorf("team %v, want %s", got, want)
+	}
+	if strings.Contains(body, "SECRET-BODY") || strings.Contains(body, proj) {
+		t.Errorf("the snapshot leaks a body or a path: %s", body)
+	}
+}

@@ -1,6 +1,8 @@
 package garden
 
 import (
+	"slices"
+
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
@@ -59,8 +61,8 @@ func genRows(p plan) layout.Layout {
 	topWidth := thX + tw - startX
 
 	// mid band: research, workspace, cafe, play flow left to right in lines
-	items := append(append(append([]layout.Pavilion{}, p.research...), p.workspace...),
-		layout.Pavilion{ID: "cafe", Type: "cafe"}, layout.Pavilion{ID: "play", Type: "play"})
+	items := slices.Concat(p.research, p.workspace, p.team,
+		[]layout.Pavilion{{ID: "cafe", Type: "cafe"}, {ID: "play", Type: "play"}})
 	limit := max(topWidth, 30)
 	for i := 0; i < len(items); {
 		x, lineD, j := startX, 0.0, i

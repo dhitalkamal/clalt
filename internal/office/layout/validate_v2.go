@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 )
 
 // limits of the v2 format. every number is finite and inside +-MaxCoord, a
@@ -12,6 +13,7 @@ const (
 	MaxCoord     = 200.0
 	MaxRot       = 360.0
 	MaxPavilions = 64
+	MaxMembers   = 64
 	maxBasePts   = 512
 	maxLine      = 256
 	maxLand      = 16
@@ -30,6 +32,10 @@ var (
 	propTypes = map[string]bool{"bench": true, "bed": true, "lamp": true, "fountain": true, "standing-table": true, "sign": true}
 	nearTypes = map[string]bool{"workspace": true, "cafe": true, "play": true, "lobby": true}
 )
+
+// memberRe is an agent id on a team pavilion: the lowercase type, a plugin
+// prefix included.
+var memberRe = regexp.MustCompile(`^[a-z0-9:-]{1,64}$`)
 
 // num says whether v is a finite number inside +-lim. the range test runs
 // before any arithmetic on the value.
@@ -311,11 +317,42 @@ func validatePavilionFields(p Pavilion) error {
 	} else if p.Account != "" {
 		return fmt.Errorf("pavilion %s is not a cabin and cannot name an account", p.ID)
 	}
+	if err := validateMembers(p); err != nil {
+		return err
+	}
 	if _, _, ok := Footprint(p.Type, p.Cols, p.Rows); !ok {
 		if HasDesks(p.Type) {
 			return fmt.Errorf("pavilion %s needs cols and rows of 1 to %d", p.ID, MaxDesks)
 		}
 		return fmt.Errorf("pavilion %s (%s) has no cols or rows", p.ID, p.Type)
+	}
+	return nil
+}
+
+// validateMembers checks the agent ids of a team pavilion: only team
+// pavilions have them, one per desk at most, each id seen once.
+func validateMembers(p Pavilion) error {
+	if len(p.Members) == 0 {
+		return nil
+	}
+	if p.Type != "team" {
+		return fmt.Errorf("pavilion %s is not a team and cannot list members", p.ID)
+	}
+	if len(p.Members) > MaxMembers {
+		return fmt.Errorf("pavilion %s has too many members (at most %d)", p.ID, MaxMembers)
+	}
+	if len(p.Members) > p.Cols*p.Rows*2 {
+		return fmt.Errorf("pavilion %s has more members than desks (%d)", p.ID, p.Cols*p.Rows*2)
+	}
+	seen := map[string]bool{}
+	for _, m := range p.Members {
+		if !memberRe.MatchString(m) {
+			return fmt.Errorf("pavilion %s member %q must be 1 to 64 characters of a-z, 0-9, - and :", p.ID, m)
+		}
+		if seen[m] {
+			return fmt.Errorf("pavilion %s lists member %q twice (duplicate)", p.ID, m)
+		}
+		seen[m] = true
 	}
 	return nil
 }

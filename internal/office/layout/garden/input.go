@@ -3,6 +3,8 @@ package garden
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
@@ -21,6 +23,7 @@ type Input struct {
 	CabinDesks     map[string]int
 	WorkspaceDesks int
 	ResearchDesks  int
+	TeamIDs        []string
 }
 
 // limits and minimums of the plan.
@@ -33,6 +36,8 @@ const (
 	maxPoolDesks      = 128
 	maxLabel          = 40
 	maxRowsPerPav     = 4
+	MaxTeam           = 24
+	teamPerPav        = 8
 )
 
 // plan is the pavilions to place, sized but not yet positioned.
@@ -41,6 +46,7 @@ type plan struct {
 	cabins    []layout.Pavilion
 	research  []layout.Pavilion
 	workspace []layout.Pavilion
+	team      []layout.Pavilion
 }
 
 // fitCabin picks cols and rows for a cabin: two desks wide, up to four rows,
@@ -93,9 +99,44 @@ func normalize(in Input) (plan, error) {
 			Label: cleanLabel(a.Label, a.ID, i+1), Cols: cols, Rows: rows,
 		})
 	}
+	team, err := teamPavilions(in.TeamIDs)
+	if err != nil {
+		return plan{}, err
+	}
+	p.team = team
 	p.workspace = pool("workspace", max(MinWorkspaceDesks, min(in.WorkspaceDesks, maxPoolDesks)))
 	p.research = pool("research", max(MinResearchDesks, min(in.ResearchDesks, maxPoolDesks)))
 	return p, nil
+}
+
+var teamIDRe = regexp.MustCompile(`^[a-z0-9:-]{1,64}$`)
+
+// teamPavilions checks the agent ids and groups them, eight to a pavilion in
+// the given order. a pavilion of m members has two columns and enough rows
+// for one desk each, so the last one can be smaller.
+func teamPavilions(ids []string) ([]layout.Pavilion, error) {
+	if len(ids) > MaxTeam {
+		return nil, fmt.Errorf("garden: %d team members, at most %d", len(ids), MaxTeam)
+	}
+	seen := map[string]bool{}
+	for _, id := range ids {
+		if !teamIDRe.MatchString(id) {
+			return nil, fmt.Errorf("garden: team id %q must be 1 to 64 characters of a-z, 0-9, - and :", id)
+		}
+		if seen[id] {
+			return nil, fmt.Errorf("garden: duplicate team id %q", id)
+		}
+		seen[id] = true
+	}
+	var out []layout.Pavilion
+	for i := 0; i < len(ids); i += teamPerPav {
+		m := slices.Clone(ids[i:min(i+teamPerPav, len(ids))])
+		out = append(out, layout.Pavilion{
+			ID: fmt.Sprintf("team-%d", len(out)+1), Type: "team",
+			Cols: 2, Rows: (len(m) + 3) / 4, Members: m,
+		})
+	}
+	return out, nil
 }
 
 func pool(kind string, n int) []layout.Pavilion {

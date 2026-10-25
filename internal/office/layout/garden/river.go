@@ -3,6 +3,7 @@ package garden
 import (
 	"errors"
 	"math"
+	"slices"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
@@ -127,7 +128,7 @@ func buildRiver(p plan, w, d float64) (*scene, bool) {
 		pv.X, pv.Z = x, zc
 		return pv, ok
 	}
-	for _, pv := range append(append([]layout.Pavilion{}, p.workspace...), p.research...) {
+	for _, pv := range slices.Concat(p.workspace, p.team, p.research) {
 		pv, ok := place(pv, "tr", 0)
 		if !ok {
 			return s, false

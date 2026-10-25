@@ -14,14 +14,37 @@ const deg = (v) => Math.round(v * 1e6) / 1e6;
 export const facing = (x, z, fx, fz) => deg((Math.atan2(fx - x, fz - z) * 180) / Math.PI);
 
 function deskSeats(p) {
-  return deskCells(p).map((c) => {
+  const team = p.type === 'team';
+  const members = team ? (Array.isArray(p.members) ? p.members : []) : null;
+  const out = [];
+  deskCells(p).forEach((c, i) => {
+    // a team desk exists only for a member: members[i] sits at the i-th cell in desk order
+    if (team && i >= members.length) return;
     const [x, z] = toWorld(p, c.lx, c.lz);
     // the lane to the chair runs between two desks: east in the world for even columns, west for odd. the south
     // line of a paired row is turned round, so its local east is the world's west
     const lane = (c.col % 2 === 0 ? 1 : -1) * (c.line ? -1 : 1);
     const tag = c.line ? `${c.row}b` : `${c.row}${p.type === 'cabin' ? '' : 'a'}`;
-    return { id: `${p.id}:desk-${p.type === 'cabin' ? c.row : tag}-${c.col}`, pavilionId: p.id, type: p.type, account: p.type === 'cabin' ? p.account : null,
+    const desk = { id: `${p.id}:desk-${p.type === 'cabin' ? c.row : tag}-${c.col}`, pavilionId: p.id, type: p.type, account: p.type === 'cabin' ? p.account : null,
       y: 0, x, z, rot: (p.rot || 0) + (c.line ? 180 : 0), kind: 'desk', col: c.col, row: c.row, cols: c.cols, line: c.line, lane, side: lane };
+    if (team) desk.member = members[i];
+    out.push(desk);
+    if (team) out.push(...stoolSeats(p, c, desk));
+  });
+  return out;
+}
+
+// three intern stools on the outer side of a team desk (away from the shared lane), in a short column facing
+// the desk. the outer side is -dir in the pavilion frame, dir being the pavilion-local lane direction
+const STOOL_X = 0.8;
+const STOOL_DZ = [-0.45, 0, 0.45];
+
+function stoolSeats(p, c, desk) {
+  const dir = c.col % 2 === 0 ? 1 : -1;
+  return STOOL_DZ.map((dz, index) => {
+    const [x, z] = toWorld(p, c.lx - dir * STOOL_X, c.lz + dz);
+    return { id: `${desk.id}:stool-${index}`, pavilionId: p.id, type: p.type, account: null, y: 0, x, z, rot: facing(x, z, desk.x, desk.z),
+      kind: 'stool', member: desk.member, index, desk: desk.id };
   });
 }
 

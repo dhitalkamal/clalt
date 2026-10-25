@@ -13,7 +13,9 @@ function dropGone() {
     if (!(a.s.leaving && a.mode === 'away' && a.scale < 0.02)) continue;
     a.dispose();
     app.agents.delete(id);
-    if (a.isMain) {
+    if (a.s.role === 'team') {
+      app.members.splice(app.members.indexOf(a.s), 1);
+    } else if (a.isMain) {
       if (!a.s.subs.length) app.sessions.splice(app.sessions.indexOf(a.s), 1);
     } else {
       const m = a.s.session;
@@ -21,6 +23,17 @@ function dropGone() {
       if (m.leaving && !m.subs.length && !app.agents.has(m.id)) app.sessions.splice(app.sessions.indexOf(m), 1);
     }
     relayout();
+  }
+}
+
+// leaving runs that never had a character (mapped onto a member, or hidden interns) are dropped without a walk
+function dropUnseen() {
+  for (const m of [...app.sessions]) {
+    for (const x of [...m.subs]) {
+      if (!x.leaving || app.agents.has(x.id)) continue;
+      m.subs.splice(m.subs.indexOf(x), 1);
+      if (m.leaving && !m.subs.length && !app.agents.has(m.id)) app.sessions.splice(app.sessions.indexOf(m), 1);
+    }
   }
 }
 
@@ -76,6 +89,7 @@ function pongBall() {
 export function step(dt) {
   app.time += dt;
   dropGone();
+  dropUnseen();
   planBreaks(app);
   syncDim();
   const near = stage.view.dist < stage.base.dist * 0.7;
@@ -90,7 +104,9 @@ export function step(dt) {
     a.prevState = a.s.state;
     if (a.s.leaving && !a.wasLeaving && a.s.space === 'review') app.printers[0]?.userData.print(app.time);
     a.wasLeaving = a.s.leaving;
-    a.update(dt, app.time, app.layout.slots.get(id), app.layout, app);
+    const slot = app.layout.slots.get(id);
+    if (!slot) continue;
+    a.update(dt, app.time, slot, app.layout, app);
     // main tags always, subagent tags when zoomed in, hovered, or the toggle is on
     a.tag.visible = a.isMain || app.tagsAll || near || a === app.hover;
   }

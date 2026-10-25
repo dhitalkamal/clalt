@@ -5,6 +5,7 @@ import { installBuild } from './agentBuild.js';
 import { disposeTree } from './dispose.js';
 import { installMove } from './agentMove.js';
 import { ACCOUNT_TINT } from './model.js';
+import { recColor, isTeamRec, isInternRec, makeInternLook, tickMemberLook, disposeLook } from './garden/teamlook.js';
 import { TAU, BUBBLE_Y, angleDiff } from './agentConst.js';
 
 export class Agent {
@@ -15,7 +16,7 @@ export class Agent {
     this.L = null;
     this.env = null;
     this.isMain = s.role === 'main';
-    this.tint = ACCOUNT_TINT[s.account] || 0x7a8aa8;
+    this.tint = (s.tint != null || s.color) ? recColor(s) : ACCOUNT_TINT[s.account] || 0x7a8aa8;
     this.mode = 'away';
     this.path = null;
     this.now = 0;
@@ -35,9 +36,11 @@ export class Agent {
     this.buildChar(look);
     this.buildFlair();
     world.add(this.rig, this.flair);
+    if (isInternRec(s)) makeInternLook(this, recColor(s));
   }
 
   update(dt, t, slot, L, env) {
+    if (!slot) return; // hidden interns have no seat
     this.slot = slot;
     this.L = L;
     this.env = env;
@@ -68,6 +71,7 @@ export class Agent {
     if (this.mode === 'seated' || this.mode === 'standing' || this.mode === 'leisure') applyPose(this, t);
     this.detail.userData.tick?.(t);
     this.updateScreen(c, gone);
+    if (isTeamRec(this.s)) tickMemberLook(this, dt);
     this.updateFlair(t, gone);
   }
 
@@ -119,6 +123,7 @@ export class Agent {
     this.mixer.uncacheRoot(this.model);
     for (const part of [this.rig, this.model, this.flair]) disposeTree(part);
     this.screenTex.tex.dispose();
+    disposeLook(this);
   }
 }
 

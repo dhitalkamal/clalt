@@ -16,6 +16,7 @@ type Snapshot struct {
 	V        int          `json:"v"`
 	Accounts []AccountOut `json:"accounts"`
 	Sessions []SessionOut `json:"sessions"`
+	Team     []TeamOut    `json:"team"`
 }
 
 // AccountOut is an account with its limits, by label only.
@@ -57,7 +58,7 @@ func Build(src Sources) (Snapshot, error) {
 	if src.Now != nil {
 		now = src.Now
 	}
-	snap := Snapshot{V: Version, Accounts: []AccountOut{}, Sessions: []SessionOut{}}
+	snap := Snapshot{V: Version, Accounts: []AccountOut{}, Sessions: []SessionOut{}, Team: []TeamOut{}}
 	accts, err := src.Accounts.Accounts()
 	if err != nil {
 		return Snapshot{}, err
@@ -86,9 +87,21 @@ func Build(src Sources) (Snapshot, error) {
 		}
 		return list[i].Handle < list[j].Handle
 	})
+	var cwds []string
+	seen := map[string]bool{}
 	for _, s := range list {
 		snap.Sessions = append(snap.Sessions, sessionOut(s, src.Subagents))
+		// the team reads each project folder once, by its real path
+		if s.Cwd != "" && !seen[s.Cwd] {
+			seen[s.Cwd] = true
+			cwds = append(cwds, s.Cwd)
+		}
 	}
+	var defs []AgentDef
+	if src.Team != nil {
+		defs = src.Team.Agents(cwds)
+	}
+	snap.Team = teamOut(defs, snap.Sessions)
 	return snap, nil
 }
 

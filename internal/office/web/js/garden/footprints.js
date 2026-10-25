@@ -6,15 +6,16 @@ import { footprint, rad } from './geo.js';
 export const FOOTPRINTS = {
   lobby: { w: 3.8, d: 4.0 }, cafe: { w: 5.6, d: 4.0 }, play: { w: 5.0, d: 4.0 }, treehouse: { w: 9.6, d: 4.2 },
   cabin: { col: 2.1, row: 2.8, pad: 0.0 }, research: { col: 2.1, row: 3.5, pad: 0.2 }, workspace: { col: 2.1, row: 3.5, pad: 0.2 },
+  team: { col: 2.1, row: 3.5, pad: 0.2 },
 };
 
-export const DESK_TYPES = new Set(['cabin', 'research', 'workspace']);
+export const DESK_TYPES = new Set(['cabin', 'research', 'workspace', 'team']);
 
 // cabins hold one desk line per row, a little forward of the cell centre. research and workspace rows hold two
 // lines facing each other, PAIR_GAP either side of the row centre
 const CABIN_DZ = 0.1;
 const PAIR_GAP = 0.55;
-export const PAIRED = new Set(['research', 'workspace']);
+export const PAIRED = new Set(['research', 'workspace', 'team']);
 
 // {w, d} before rotation, or null for an unknown type
 export function sizeOf(p) {

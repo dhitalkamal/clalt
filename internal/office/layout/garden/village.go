@@ -3,6 +3,7 @@ package garden
 import (
 	"errors"
 	"math"
+	"slices"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
@@ -78,9 +79,9 @@ func toEllipse(p pt, rx, rz float64) pt {
 }
 
 func genVillage(p plan) (layout.Layout, error) {
-	items := append(append(append(append([]layout.Pavilion{}, p.cabins...),
-		layout.Pavilion{ID: "treehouse", Type: "treehouse"}, layout.Pavilion{ID: "play", Type: "play"}),
-		p.workspace...), p.research...)
+	items := slices.Concat(p.cabins,
+		[]layout.Pavilion{{ID: "treehouse", Type: "treehouse"}, {ID: "play", Type: "play"}},
+		p.workspace, p.team, p.research)
 	for e := 0.0; e <= 160; e += 0.5 {
 		if s, ok := buildVillage(items, e); ok {
 			return s.finish("village"), nil

@@ -18,9 +18,9 @@ export function buildSpares(L, taken, tintFor) {
       d.position.set(s.x, 0, s.z);
       d.rotation.y = rad(s.rot);
       g.add(d);
-    } else if (s.kind === 'review' || s.kind === 'meeting') {
+    } else if (s.kind === 'review' || s.kind === 'meeting' || s.kind === 'stool') {
       const st = makeStool(EMPTY_TINT, 1);
-      st.position.set(s.x, MEZ, s.z);
+      st.position.set(s.x, s.kind === 'stool' ? 0 : MEZ, s.z);
       g.add(st);
     }
   }

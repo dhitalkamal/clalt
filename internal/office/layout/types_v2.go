@@ -77,6 +77,8 @@ type Pavilion struct {
 	Label   string  `json:"label,omitempty"`
 	Cols    int     `json:"cols,omitempty"`
 	Rows    int     `json:"rows,omitempty"`
+	// members are the agent ids at the desks of a team pavilion, in desk order
+	Members []string `json:"members,omitempty"`
 }
 
 // Spot is a standing place for overflow agents.

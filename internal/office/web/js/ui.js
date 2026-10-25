@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { el, clear, age } from './dom.js';
 import { MAX_SESSIONS } from './model.js';
 import { fitLabels } from './labelfit.js';
+import { teamCard } from './cardinfo.js';
 
 const $ = (id) => document.getElementById(id);
 const tmp = new THREE.Vector3();
@@ -193,6 +194,12 @@ export class UI {
       this.fill(key, (c) => c.append(el('div', 'h', 'claude (main) ', el('span', 'crown', 'crown')), dl([
         ['handle', s.handle], ['project', s.project], ['model', s.model], ['state', stateCell(s.state, s.state + reason)],
         ['account', label], ['subagents', String(subs)], ['running', age(Date.now() - s.startedAt)]])), x, y);
+      return;
+    }
+    if (s.role === 'team' || s.intern) {
+      const info = teamCard(s);
+      const rows = info.rows.map(([k, v]) => [k, typeof v === 'string' ? v : stateCell(v.state, v.text)]);
+      this.fill(info.key, (c) => c.append(el('div', 'h', info.title), dl(rows)), x, y);
       return;
     }
     const key = ['s', s.id, s.leaving, s.task, s.space].join('|');

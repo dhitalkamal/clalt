@@ -2,10 +2,12 @@
 // finished ones walk out, state changes are picked up by the agents on their own.
 import { planBreaks } from './planner.js';
 import { app, ui, relayout, makeAgent, refreshLabels } from './app.js';
+import { classifySubs, updateMembers, rosterOf } from './roster.js';
 import { MAX_SESSIONS, MAX_SUBS, makeSession, makeSub, modelName, tintFor } from './model.js';
 
 const KNOWN_VERSION = 1;
 let lastOrder = null;
+let lastRoster = '';
 
 // starting is a session that has not said anything yet, which looks like waiting for input
 const stateOf = (s) => (s === 'starting' ? 'idle' : s);
@@ -82,10 +84,19 @@ export function applySnapshot(snap) {
   ui.accounts = app.accounts;
   updateKnown(snap.sessions);
   const born = [];
-  const changed = addNew(snap.sessions, born);
+  let changed = addNew(snap.sessions, born);
+  // team: classify runs (mapped onto a member or intern), then update the member records. an older server has no team.
+  const team = Array.isArray(snap.team) ? snap.team : [];
+  app.team = team; // the renderer reads plate names and strip colours from it on every seat refresh
+  classifySubs(app.sessions, new Set(team.map((e) => e.id)));
+  const known = new Set(app.members.map((m) => m.id));
+  app.members = updateMembers(app.members, team, app.sessions);
+  for (const m of app.members) if (!known.has(m.id) && !m.leaving) born.push(m);
+  const sig = rosterOf(app.sessions, app.members).map((e) => e.key + ':' + e.kind).join(',');
+  if (sig !== lastRoster) { lastRoster = sig; changed = true; }
   if (changed || reorder || !app.layout) relayout();
   else refreshLabels();
-  for (const rec of born) if (!app.agents.has(rec.id)) makeAgent(rec, first);
+  for (const rec of born) if (!rec.mapped && !app.agents.has(rec.id)) makeAgent(rec, first);
   if (first) {
     // idle agents start in the middle of a break so the cafe and play area are in use from the first frame
     for (const a of planBreaks(app, true)) a.instantBreak(a.planOffer, a.planOffer.steps.length - 1);

@@ -16,7 +16,7 @@ func Desks(p layout.Pavilion) int {
 	switch p.Type {
 	case "cabin":
 		return p.Cols * p.Rows
-	case "research", "workspace":
+	case "research", "workspace", "team":
 		return p.Cols * p.Rows * 2
 	}
 	return 0

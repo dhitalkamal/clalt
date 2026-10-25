@@ -3,6 +3,7 @@ package garden
 import (
 	"errors"
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
@@ -73,8 +74,8 @@ func buildStreet(p plan, gap float64) (*scene, bool) {
 		anchors = append(anchors, a[0])
 		endN += w + gap
 	}
-	// south side: research, workspace, cafe
-	south := append(append(append([]layout.Pavilion{}, p.research...), p.workspace...), layout.Pavilion{ID: "cafe", Type: "cafe"})
+	// south side: research, workspace, team, cafe
+	south := slices.Concat(p.research, p.workspace, p.team, []layout.Pavilion{{ID: "cafe", Type: "cafe"}})
 	for _, c := range south {
 		w, _ := size(c)
 		c, a := beside(c, endS+w/2, -1)

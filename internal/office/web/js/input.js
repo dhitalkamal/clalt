@@ -38,7 +38,7 @@ function pickRegion(x, y) {
 }
 
 function regionCard(r) {
-  const agents = [...app.agents.values()].map((a) => ({ id: a.s.id, label: a.isMain ? a.s.handle : a.s.type, x: a.rig.position.x, y: a.rig.position.y, z: a.rig.position.z, away: a.mode === 'away' }));
+  const agents = [...app.agents.values()].map((a) => ({ id: a.s.id, label: a.isMain ? a.s.handle : a.s.role === 'team' ? a.s.name : a.s.type, team: a.s.role === 'team', busy: a.s.state === 'busy', x: a.rig.position.x, y: a.rig.position.y, z: a.rig.position.z, away: a.mode === 'away' }));
   return regionInfo(r, app.layoutJson, ui.accounts, agents);
 }
 

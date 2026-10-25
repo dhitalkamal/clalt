@@ -10,6 +10,8 @@ import { buildPlants } from './plantmesh.js';
 import { buildFence } from './fence.js';
 import { flowerBed, bench, lampPost, pond, fountain, standingTable, sign } from './propmesh.js';
 import { cabin, space } from './pavdesk.js';
+import { team } from './pavteam.js';
+import { resetPlates, paintPlates, teamList } from './teamplates.js';
 import { lobby } from './pavlobby.js';
 import { cafe, play } from './pavbreak.js';
 import { treehouse } from './treehouse.js';
@@ -23,6 +25,7 @@ function makePavilion(p) {
   switch (p.type) {
     case 'cabin': return { group: cabin(p, tintFor(p.account)) };
     case 'research': case 'workspace': return { group: space(p) };
+    case 'team': return { group: team(p) };
     case 'lobby': return { group: lobby(p) };
     case 'cafe': return { group: cafe(p) };
     case 'treehouse': return { group: treehouse() };
@@ -74,6 +77,7 @@ export function buildGarden(layout, site, plan) {
     root.add(p.group);
     ticks.push(p.tick);
   }
+  resetPlates();
   for (const { p } of site.pavs) {
     const made = makePavilion(p);
     made.group.position.set(p.x, 0, p.z);
@@ -81,6 +85,7 @@ export function buildGarden(layout, site, plan) {
     root.add(made.group);
     if (made.tick) ticks.push(made.tick);
   }
+  paintPlates(teamList());
   placeProps(site, root, ticks);
   if (layout.site.fence !== false) root.add(buildFence(layout, site));
   root.add(buildPlants(plan));
