@@ -11,7 +11,7 @@ const BLURB = {
   street: 'one winding street to a fountain',
 };
 
-const HINT = 'drag pan, wheel zoom, WASD move, G ground, F follow, Esc top';
+const HINT = 'drag rotate, shift-drag move, wheel zoom, WASD move, G ground, Esc top';
 
 function button(cls, label, onClick) {
   const b = el('button', cls, label);

@@ -30,10 +30,11 @@ a free one.
 
 ## Controls
 
-- Sky camera, the default: W A S D or the arrows move over the campus (Shift is
-  faster), Q and E turn, R and C go higher and lower, wheel zooms to the cursor,
-  left drag grabs the ground, right drag turns and tilts, double-click flies to
-  that spot, two fingers pinch on a touch screen.
+- Sky camera, the default: drag turns the camera around the spot under the
+  cursor, all the way round and from straight down to almost level. Shift and
+  drag (or right drag) moves the view, wheel zooms to the cursor, two fingers
+  pinch on a touch screen. W A S D or the arrows move (Shift is faster), Q and E
+  turn, Z and X tilt, R and C go higher and lower, double-click flies there.
 - G goes down to ground level and walks (W A S D, drag to look, Shift runs,
   Space jumps, not on the stairs). The third person camera pulls in when a wall,
   tree or deck edge is in the way. V switches between first and third person.

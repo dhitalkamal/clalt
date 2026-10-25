@@ -8,11 +8,18 @@ export function ignoreKey(e) {
   return !!(t && (TEXT.has(t.tagName) || t.isContentEditable));
 }
 
+// what a held mouse button does in the sky: left orbits, shift+left (or ctrl+left, the mac right click) and right pan
+export function dragMode(buttons, shift, ctrl = false) {
+  if (buttons & 2) return 'pan';
+  if (buttons & 1) return shift || ctrl ? 'pan' : 'orbit';
+  return null;
+}
+
 // x and y are client pixels. keys holds KeyboardEvent.code values. consume() clears the per-frame deltas.
 export function createInput(dom) {
   const input = {
     keys: new Set(),
-    mouse: { x: 0, y: 0, dx: 0, dy: 0, buttons: 0, over: false },
+    mouse: { x: 0, y: 0, dx: 0, dy: 0, buttons: 0, shift: false, ctrl: false, over: false },
     wheel: 0,
     ctrlWheel: false,
     dbl: null,
@@ -25,7 +32,7 @@ export function createInput(dom) {
   on(window, 'keydown', (e) => { if (!ignoreKey(e)) input.keys.add(e.code); });
   on(window, 'keyup', (e) => input.keys.delete(e.code));
   on(window, 'blur', () => input.keys.clear());
-  on(dom, 'pointerdown', (e) => { m.buttons = e.buttons; m.x = e.clientX; m.y = e.clientY; try { dom.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ } });
+  on(dom, 'pointerdown', (e) => { m.buttons = e.buttons; m.shift = e.shiftKey; m.ctrl = e.ctrlKey; m.x = e.clientX; m.y = e.clientY; try { dom.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ } });
   on(dom, 'pointermove', (e) => { m.dx += e.clientX - m.x; m.dy += e.clientY - m.y; m.x = e.clientX; m.y = e.clientY; m.buttons = e.buttons; });
   on(dom, 'pointerup', (e) => { m.buttons = e.buttons; });
   on(dom, 'pointercancel', () => { m.buttons = 0; });
