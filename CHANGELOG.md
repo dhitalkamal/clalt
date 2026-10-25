@@ -29,37 +29,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and import (strict keys, 512 KB, colours, geometry, no urls), so sharing one
   is safe. `clalt office layout list|use|export|import|reset` manages them. The
   built-in default template is read only. See docs/office.md.
-
-### Removed
-
-- `clalt crew` and the Kiro Crew gateway support, including the dashboard
-  gateway row, the doctor check and `CLALT_KIROCREW_BIN`. `clalt crew` now
-  says it was removed and exits 2.
-
-### Fixed
-
-- `clalt feed status` no longer fails when `~/.claude/settings.json` is a
-  symlink: it says where the link points and whether the feed is installed.
-  `clalt feed install` and `uninstall` now work through such a link by editing
-  the real file after asking, with a git work tree warning, and never replace
-  the link. A dangling or looping link, a target that is not a regular file or
-  belongs to someone else, and a link that moved since install are refused.
-- A plugins file that claude saved by renaming over its link
-  (`installed_plugins.json`, `known_marketplaces.json`,
-  `plugin-catalog-cache.json`) no longer leaves the account on its own copy:
-  the sync keeps the newer copy at the shared path, backs the older one up to
-  `~/.config/clalt/backups/plugins/<id>/` and links the account again.
-  `plugins/plugin-directory-cache-v2.json` and `plugins/.last_inuse_sweep` are
-  per account and no longer warned about. `clalt doctor` shows a pending adopt.
-- `clalt doctor` asks claude whether the default claude home is signed in
-  before judging `~/.claude/.credentials.json`: a live login is ok and must
-  stay, a signed-out home makes it a leftover. It no longer asks you to run
-  `claude auth status` by hand unless claude cannot answer.
-- `clalt doctor` no longer says "would copy 0 files" for old profile folders
-  when only conflicts are left. It says all history is already in the shared
-  folder and names the files that differ.
-
-### Added
+- The office is a garden campus: pavilions on a lawn with paths, water and trees,
+  generated from your accounts and the desks they need. Five templates: `rows`
+  (the default), `village`, `river`, `street`, and `hall`, the old single hall
+  kept as it was. `clalt office --template <id>` starts with one for a run and
+  writes nothing, `clalt office layout use <id>` saves one as the default, and
+  the page switches templates with keys 1 to 5. Layout files get a version 2
+  for the garden; version 1 files keep loading.
+- Office navigation, the same in every template and in the hall: a sky camera
+  (W A S D and arrows, Q and E to turn, R and C for height, wheel zoom to the
+  cursor, left drag to grab the ground, right drag to turn and tilt,
+  double-click to fly to a spot), G for ground level, V for first or third
+  person, F to follow an agent, Esc and Home to go back, 6 to 9 for the top,
+  plan, iso and hero views, P for auto spin and L for labels.
 
 - Plain `claude` beside clalt. clalt recognises the default home (`~/.claude`) as
   an account when it is signed in as the same email (claude.ai login, case does
@@ -68,7 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   recorded in `session-accounts.jsonl` with source `default`
   (`clalt feed forget-default` undoes it).
 - `clalt feed install|uninstall|status`: an opt-in live feed for plain claude.
-  Install asks first, refuses a symlink or invalid `settings.json`, backs the
+  Install asks first, refuses an invalid `settings.json`, backs the
   file up, appends clalt's hooks after yours and chains your own statusLine;
   uninstall removes exactly what was added. Plain claude sessions show in the
   dashboard Sessions view and fill the limits of the matched account. Usage is
@@ -94,9 +76,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   registry. `clalt resume <id>` without `--account` uses the account that last
   ran the conversation (from `session-accounts.jsonl`), else the account the
   picker chooses for the folder it ran in.
-- The dashboard shows running sessions (state, model, context, folder, branch),
-  the 5-hour and 7-day limits with the age of the reading, and Kiro Crew
-  gateways, from the session registry, the feed and the crew records. A limit
+- The dashboard shows running sessions (state, model, context, folder, branch)
+  and the 5-hour and 7-day limits with the age of the reading, from the
+  session registry and the feed. A limit
   the feed has not reported shows as unknown, never 0%. `x` stops a session
   only after checking again that the pid is a claude started by that session's
   clalt run (not on Windows).
@@ -128,12 +110,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   most one per session per wait, with an off setting. The session hooks that
   raise it come with the session feed.
 
-- `clalt crew start|stop|status|logs <name>`: one detached Kiro Crew gateway per
-  account, with the account's login, its own home and port (from 5500), localhost
-  only (checked with lsof). It only runs Kiro Crew 0.9.x (CLALT_CREW_ALLOW_UNTESTED=1
-  lifts that), stops only the process it started (pid and
-  start time checked), and never prints a token. `clalt doctor` reports stale
-  records and an unsupported version once a gateway has a record. See docs/crew.md.
 - `clalt migrate [--dry-run]`: copies the conversation history held in
   per-account profile folders (`~/.config/clalt/profiles/<name>/projects`) into
   the shared projects folder, which is `~/.claude/projects`, or
@@ -362,6 +338,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - the old dashboard (`internal/tui`) and the Charm v1 libraries it used.
 
 ### Fixed
+
+- `clalt feed status` no longer fails when `~/.claude/settings.json` is a
+  symlink: it says where the link points and whether the feed is installed.
+  `clalt feed install` and `uninstall` now work through such a link by editing
+  the real file after asking, with a git work tree warning, and never replace
+  the link. A dangling or looping link, a target that is not a regular file or
+  belongs to someone else, and a link that moved since install are refused.
+- A plugins file that claude saved by renaming over its link
+  (`installed_plugins.json`, `known_marketplaces.json`,
+  `plugin-catalog-cache.json`) no longer leaves the account on its own copy:
+  the sync keeps the newer copy at the shared path, backs the older one up to
+  `~/.config/clalt/backups/plugins/<id>/` and links the account again.
+  `plugins/plugin-directory-cache-v2.json` and `plugins/.last_inuse_sweep` are
+  per account and no longer warned about. `clalt doctor` shows a pending adopt.
+- `clalt doctor` asks claude whether the default claude home is signed in
+  before judging `~/.claude/.credentials.json`: a live login is ok and must
+  stay, a signed-out home makes it a leftover. It no longer asks you to run
+  `claude auth status` by hand unless claude cannot answer.
+- `clalt doctor` no longer says "would copy 0 files" for old profile folders
+  when only conflicts are left. It says all history is already in the shared
+  folder and names the files that differ.
 
 - every command waited about 5 seconds on a terminal that does not answer a
   colour query: bubbletea v1 asked for the background colour when the program

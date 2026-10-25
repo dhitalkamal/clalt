@@ -30,9 +30,18 @@ a free one.
 
 ## Controls
 
-- Drag to orbit the whole way round, right drag (or shift and drag) to pan, wheel
-  to zoom, two fingers to pinch and pan on a touch screen.
-- The camera bar (keys 6 to 9, G ground, V view, F follow, P spin, Home and Esc) and the sky camera work the same in every template, the hall included. The Overview button goes back to the top view.
+- Sky camera, the default: W A S D or the arrows move over the campus (Shift is
+  faster), Q and E turn, R and C go higher and lower, wheel zooms to the cursor,
+  left drag grabs the ground, right drag turns and tilts, double-click flies to
+  that spot, two fingers pinch on a touch screen.
+- G goes down to ground level and walks (W A S D, drag to look). V switches
+  between first and third person there. F follows the agent under the cursor or
+  the selected one. Esc leaves ground or follow, and from the sky goes to the
+  top view, like Home.
+- Keys 1 to 5 pick a template, 6 to 9 the top, plan, iso and hero views, P turns
+  auto spin on and off and L the labels. The keys do nothing while you edit.
+- The camera bar and these keys work the same in every template, the hall
+  included. The Overview button goes back to the top view.
 - Hover a character for a card with the handle, project, model, state and
   account label. Click a room for the number of agents in it.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows

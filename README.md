@@ -7,6 +7,137 @@ best effort.
 
 Unofficial community tool, not affiliated with Anthropic.
 
+## Getting started
+
+You need claude 2.1.301 or newer on your PATH, and Go 1.26.10 or newer to build
+clalt.
+
+### 1. Install
+
+```
+go install github.com/dhitalkamal/clalt@latest   # puts clalt in ~/go/bin
+```
+
+or, from a clone of this repo:
+
+```
+make install            # builds and copies to ~/bin (override INSTALL_DIR=...)
+```
+
+`make install` writes to `~/bin`, which is not on every PATH. If `clalt: command
+not found`, add it (`export PATH="$HOME/bin:$PATH"`) or set `INSTALL_DIR`. The
+same goes for `~/go/bin` with `go install`. Check with `clalt version`.
+
+### 2. Add your accounts
+
+```
+clalt login personal       # opens claude's own sign-in in your browser
+clalt login work           # a new name makes a new account
+clalt list                 # who is signed in, and until when
+```
+
+If your browser is already signed in to another claude.ai account, use a
+private window for the sign-in. clalt refuses a sign-in whose email already
+belongs to another account.
+
+### 3. Run sessions, switch accounts
+
+```
+clalt run personal         # start claude as personal
+clalt run work             # in another terminal, at the same time
+clalt run                  # let clalt pick the account with the most room
+clalt whoami               # which account this shell is in
+```
+
+There is no global "switch". Each `clalt run <name>` is its own session, so any
+number of accounts run in parallel. Everything after the name goes to claude:
+`clalt run work --model opus`. All accounts share one conversation history, so
+`clalt resume` can continue a conversation under another account. To move a
+running session, use `clalt move <session> <account>` (see
+[docs/move.md](docs/move.md)).
+
+### 4. Dashboard
+
+```
+clalt dashboard            # accounts, sessions, limits, usage and budgets
+clalt dashboard --demo     # the same on made-up data, touches no account
+```
+
+Keys are listed in [docs/dashboard.md](docs/dashboard.md).
+
+### 5. Office
+
+```
+clalt office               # live 3D garden campus of your agents, in the browser
+clalt office --template village
+clalt office --edit        # build mode: change the floor plan and save it
+```
+
+It prints a link with a one-run token and opens it. Press Ctrl-C to stop it. It
+only watches, unless you pass `--edit`.
+
+Templates: `rows` (the default), `village`, `river`, `street` and `hall`. Pick
+one with `--template <id>` or with keys 1 to 5 on the page.
+
+Navigation on the page (the sky camera, the default):
+
+```
+W A S D, arrows   move over the campus      Q E        turn
+R, C              higher, lower             wheel      zoom to the cursor
+left drag         grab the ground           right drag turn and tilt
+double-click      fly to that spot          Home       back to the top view
+G                 ground level: walk        V          first or third person
+F                 follow the agent under the cursor or selected
+Esc               leave ground or follow, or go to the top view
+1-5               templates                 6-9        top, plan, iso, hero views
+P                 auto spin                 L          labels
+```
+
+More in [docs/office.md](docs/office.md).
+
+### 6. Optional: the feed for plain claude
+
+`clalt run` sessions feed the dashboard and the office on their own. To include
+sessions you start with plain `claude` (config in `~/.claude`), run:
+
+```
+clalt feed install         # asks first, --yes skips the question
+clalt feed status
+```
+
+It needs `~/.claude` to be signed in as the same email as one of your accounts.
+It copies `~/.claude/settings.json` to `~/.config/clalt/backups/settings/`,
+then adds clalt's hooks and status line to it, after your own. Your hooks and
+status line keep running. It does not change anything else, and it is refused
+on Windows. Details in [docs/feed.md](docs/feed.md).
+
+### Uninstall
+
+```
+clalt feed uninstall       # removes exactly what feed install added
+clalt remove <name> --delete   # per account: signs out, deletes its folder
+rm ~/bin/clalt             # or ~/go/bin/clalt
+rm -r ~/.config/clalt      # clalt's own state, after the steps above
+```
+
+Sign accounts out first (`remove --delete` does it). On macOS the login lives
+in the Keychain, and deleting the folder alone leaves that entry behind. Your
+history in `~/.claude` is never touched.
+
+## Terms and data
+
+- clalt only reads the files Claude Code keeps on your machine: its transcripts
+  (for usage), its session hooks and `claude auth status`. It stores no prompts,
+  no replies and no tokens, and never reads a credential file or the keychain.
+- The office server listens on 127.0.0.1 only, with a new random token per run.
+  The page loads nothing from the internet. Anyone who has the link while it
+  runs can look at it, so do not paste it in a chat.
+- Nothing is sent anywhere by clalt itself. Each account is yours, and each
+  account's terms with Anthropic apply. Auto-switch is meant for accounts you
+  are entitled to use for the work at hand.
+- clalt is unofficial and not affiliated with Anthropic. It is released under
+  the license in [LICENSE](LICENSE), with no warranty.
+
 ## How it works
 
 Each account is a folder, `~/.config/clalt/accounts/<id>`, that clalt hands to
@@ -25,33 +156,12 @@ skills, plugins, commands, agents, CLAUDE.md and, importantly, the same
 conversation history. Only the login (and a few pieces of per-account state)
 stay separate.
 
-## Install
+## More ways to install
 
-Requires Go 1.26.10 or newer to build, and claude 2.1.301 or newer to run.
-Builds on macOS, Linux, and Windows.
-
-```
-make install            # builds and copies to ~/bin (override INSTALL_DIR=...)
-```
-
-or just `make build` and copy `./clalt` somewhere on your PATH.
-
-### Install on another device
-
-One command from a clone of this repo (needs Go on that device):
-
-```
-./scripts/install.sh
-```
-
-It builds and installs to a PATH dir (`~/go/bin` if present, else
-`~/.local/bin`). Re-runnable.
-
-No Go on the target? Build portable binaries here and copy the matching one over:
-
-```
-make cross          # writes dist/clalt-{linux-amd64,linux-arm64,windows-amd64.exe,darwin-<arch>}
-```
+`./scripts/install.sh` builds and installs to `~/go/bin` if present, else
+`~/.local/bin` (needs Go). No Go on the target? `make cross` writes portable
+binaries to `dist/clalt-{linux-amd64,linux-arm64,windows-amd64.exe,darwin-<arch>}`;
+copy the matching one over.
 
 ## Platform support
 
@@ -59,6 +169,7 @@ clalt calls the `claude` binary, so it works wherever claude does. Windows is
 best effort: linking the shared claude home needs symlinks, which Windows only
 allows in Developer Mode. A link that cannot be made is reported by name and
 the rest still work.
+
 
 ## Commands
 
@@ -70,12 +181,15 @@ clalt run <name> [-- ...]  run claude as <name>, in its own folder, with the
 clalt run [-- ...]         run claude as the allowed account with the most room
                            for this folder
 clalt rules <name>         the folders an account may serve, and auto-switch
-                           (--add-folder, --remove-folder, --auto-switch)
+                           (--add-folder, --remove-folder, --auto-switch,
+                           --no-auto-switch)
 clalt move <session> <account>
                            move a running session at its next pause
 clalt logout <name>        sign the account out, keep its history
 clalt remove <name>        sign out and hide the account, history stays
                            (--force skips the confirmation)
+clalt remove <name> --delete
+                           sign out, delete its folder and record
 clalt rename <old> <new>   change the label only, the folder never moves
 clalt list                 accounts with their live sign-in state
 clalt whoami               which account this shell is in
@@ -88,32 +202,27 @@ clalt resume [words]       list conversations of every account, or continue one
                            with `clalt resume <id> [--account <name>]`
 clalt launch <name>        run claude as <name> in a new kitty tab or tmux window
 clalt jump <session>       bring the terminal of a running session to the front
-clalt notify [on|off]      desktop alerts when a session needs you
+clalt notify [on|off|status|test]
+                           desktop alerts when a session needs you
+clalt feed install|uninstall|status
+                           the live feed for plain claude (forget-default and
+                           remember-default control usage attribution)
 clalt budget [name]        show or set per-account spend caps
                            (--daily N, --weekly N, --clear)
 clalt usage [name]         local usage stats
 clalt dashboard            full-screen dashboard of accounts, sessions and usage
 clalt dashboard --demo     the dashboard on made-up data, touches no account
 clalt office               live 3D garden campus of your agents in the browser
-                           (local, watch only; --template rows|village|river|street|hall)
+                           (--port N, --no-open, --edit,
+                           --template rows|village|river|street|hall)
+clalt office layout list|use <name>|export <name> [file]|import <file>|reset
+                           the office floor plans
 clalt version              print build version (--json for machine-readable)
 ```
 
 Add `--json` to most commands for machine-readable output. Accounts are named
-by their label everywhere on the command line, ignoring case.
-
-## Quick start
-
-```
-clalt login personal       # opens claude's sign-in in your browser
-clalt login work
-clalt run personal         # start claude as personal
-clalt run work             # ... in another terminal, at the same time
-clalt list                 # who is signed in, and until when
-```
-
-Everything after the account name goes to claude, with or without a `--` in
-front: `clalt run work -- --resume` and `clalt run work --model opus` both work.
+by their label everywhere on the command line, ignoring case. Everything after
+the account name of `clalt run` goes to claude, with or without a `--`, and
 clalt exits with claude's own exit code.
 
 ## Documentation
@@ -167,20 +276,8 @@ CLALT_CLAUDE_BIN    the claude binary clalt runs (default claude, from PATH)
 - MCP sync writes an account's `.claude.json` while another session of the same
   account may be running. The write is atomic and only happens when something
   changed, but a small race is accepted.
-- clalt gives each claude call that is not interactive two minutes: `auth
-  status` (with the version check it makes first), `--version` on its own, and
-  `logout`, whose two minutes cover the version check, the sign-out and the
-  status check together. At the deadline it interrupts claude, and kills it 30
-  seconds later if it is still running (Windows cannot be sent an interrupt, so
-  there the 30 seconds just run before the kill). It does not cancel sooner:
-  real claude has no interrupt handler, so cancelling a call ends it at once,
-  possibly in the middle of a token refresh, and that can sign the folder out.
-  `claude auth login` is interactive and has no timeout, and neither has a
-  session started by `clalt run`. A Ctrl-C at the terminal ends clalt but not the
-  status check or sign-out it is waiting for: on macOS and Linux those run in a
-  process group of their own, so the interrupt cannot end claude in the middle of
-  a token refresh. The sign-in and the session stay in the foreground, since
-  they read the terminal.
+- Non-interactive claude calls get two minutes, then an interrupt and a kill
+  30 seconds later. See [docs/commands.md](docs/commands.md#timeouts).
 - Text that claude reports (the email, plan and organization, and its error
   lines) and file names found on disk have control characters, line separators
   and bidirectional overrides shown as escapes (`\x1b`) before they are stored

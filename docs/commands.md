@@ -183,3 +183,19 @@ section of their own. They take and show labels like the other commands.
 agents in the browser, on this machine only and watch only (`--edit` adds build
 mode). `clalt office layout list|use|export|import|reset` manages the floor
 plans. Both are described in [office.md](office.md).
+
+## Timeouts
+
+clalt gives each claude call that is not interactive two minutes: `auth status`
+(with the version check it makes first), `--version` on its own, and `logout`,
+whose two minutes cover the version check, the sign-out and the status check
+together. At the deadline it interrupts claude, and kills it 30 seconds later if
+it is still running (Windows cannot be sent an interrupt, so there the 30
+seconds just run before the kill). It does not cancel sooner: real claude has no
+interrupt handler, so cancelling a call ends it at once, possibly in the middle
+of a token refresh, and that can sign the folder out. `claude auth login` is
+interactive and has no timeout, and neither has a session started by `clalt
+run`. A Ctrl-C at the terminal ends clalt but not the status check or sign-out
+it is waiting for: on macOS and Linux those run in a process group of their own,
+so the interrupt cannot end claude in the middle of a token refresh. The sign-in
+and the session stay in the foreground, since they read the terminal.
