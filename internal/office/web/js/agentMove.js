@@ -13,8 +13,9 @@ class Move {
 
   withY(pts) { return pts.map((p) => ({ x: p.x, z: p.z, y: p.y ?? this.slot.y })); }
 
-  follow(kind, fn, done) {
-    this.path = { kind, fn, wp: 0, done };
+  // dest(L, agent) names the goal node when the path is a graph route, so a rebuilt campus can re-plan it
+  follow(kind, fn, done, dest) {
+    this.path = { kind, fn, wp: 0, done, dest };
     this.mode = 'walking';
     this.play('walk', kind === 'in' ? 0.01 : 0.2);
   }
@@ -42,7 +43,7 @@ class Move {
     const first = this.L.path(this.L.spawn, this.slot.node);
     this.detach();
     this.place(first[0], Math.atan2(first[1].x - first[0].x, first[1].z - first[0].z));
-    this.follow('in', () => this.L.path(this.L.spawn, this.slot.node), () => this.arrive());
+    this.follow('in', () => this.L.path(this.L.spawn, this.slot.node), () => this.arrive(), (L, a) => a.slot.node);
   }
 
   startOut() {
@@ -68,7 +69,7 @@ class Move {
       this.playing = null;
       this.hideProps();
       this.mixer.stopAllAction();
-    });
+    }, (L) => L.spawn);
   }
 
   startStand() {

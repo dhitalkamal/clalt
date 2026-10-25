@@ -15,7 +15,7 @@ import { makeBuilder, placeItem } from './items.js';
 import { buildDynamic } from './dynamic.js';
 import { levels, cellToWorld as c2w, worldToCell as w2c } from './geom.js';
 import { assignSeats } from './seats.js';
-import { applyGarden, teardownGarden, cellToWorld as gardenCellToWorld, worldToCell as gardenWorldToCell } from '../garden/index.js';
+import { applyGarden, teardownGarden, isGarden, cellToWorld as gardenCellToWorld, worldToCell as gardenWorldToCell } from '../garden/index.js';
 
 export { levels };
 const lights = [];
@@ -127,7 +127,8 @@ function clearHall() {
 // v2 layouts are the garden campus (garden/index.js), v1 layouts are the hall below
 export async function applyLayout(layout) {
   if (layout && layout.v === 2) {
-    clearHall();
+    // a garden rebuilding itself keeps its agents and seat plan: only a hall has to be cleared
+    if (!isGarden()) clearHall();
     return applyGarden(layout);
   }
   teardownGarden();

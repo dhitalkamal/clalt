@@ -105,7 +105,12 @@ export function installBreaks(Agent) {
     this.model.position.y = this.slot.y;
     if (!abort && st) {
       const spot = this.L.spots[st.spot];
-      this.follow('break', () => this.L.path(from, spot.node), () => { this.curNode = spot.node; this.beginAct(st.act, st.dur, spot); });
+      // the spot is looked up again on arrival: a rebuilt campus has new spot objects
+      this.follow('break', () => this.L.path(from, spot.node), () => {
+        const at = this.L.spots[st.spot] || spot;
+        this.curNode = at.node;
+        this.beginAct(st.act, st.dur, at);
+      }, (L) => (L.spots[st.spot] || spot).node);
       return;
     }
     const carry = plan.carry && !abort;
@@ -116,7 +121,7 @@ export function installBreaks(Agent) {
       this.nextBreakAt = this.now + 18 + (this.s.seed % 7);
       if (carry && this.cupHeld) this.cupHideAt = this.now + 16;
       else { this.cupHeld = false; }
-    });
+    }, (L, a) => a.slot.node);
     this.act = 'walk';
     if (!carry && !(this.cupHeld && plan.carry)) { /* cup is dropped at the desk, see sit() callback */ }
   };
@@ -135,6 +140,6 @@ export function installBreaks(Agent) {
       this.beginAct('handoff', 2.6, null);
       main.nodUntil = this.now + 1.8;
       this.env.glance = null;
-    });
+    }, (L, a) => { const m = a.env.agents.get(a.s.session.id); return m && m.slot.corr; });
   };
 }

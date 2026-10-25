@@ -26,6 +26,7 @@ import { disposeRes } from './res.js';
 import { enterGardenStage, leaveGardenStage, fitLight, fitFog } from './stagefx.js';
 import { goTo, cameraTick, presetPose, fitBounds } from './cameras.js';
 import { assignGardenSeats } from './slots.js';
+import { slotMoved, snapshotMove, walkToSeat, remapAgent } from './carry.js';
 import { buildSpares } from './dynamic.js';
 import { gardenLabels } from './labels.js';
 
@@ -56,6 +57,24 @@ function spaceOf(L, slot) {
   return pav ? pav.type : 'lobby';
 }
 
+// one agent after a re-plan: same seat keeps its object (re-pointed at a rebuilt layout), a moved seat gets a fresh rig
+// and walks there from where the old agent stood, an agent the roster no longer has is dropped
+function reslot(L, id, a, ns) {
+  const stale = a.L !== L;
+  if (!ns) { if (stale) removeAgent(id); return; }
+  const gone = a.s.leaving || a.s.state === 'ended';
+  if (!slotMoved(a.slot, ns)) { if (stale) remapAgent(a, L, ns); return; }
+  if (gone || a.mode === 'away') { remapAgent(a, L, ns); return; }
+  const snap = snapshotMove(a);
+  removeAgent(id);
+  const rec = recordOf(id);
+  if (!rec) return;
+  const n = makeAgent(rec, true);
+  n.scale = 0.001;
+  n.rig.scale.setScalar(0.001);
+  walkToSeat(n, snap, L);
+}
+
 // roster changed: re-plan seats, redraw the spare furniture, re-create agents whose rig no longer fits
 export function refreshGardenSeats() {
   const L = app.layout;
@@ -72,14 +91,7 @@ export function refreshGardenSeats() {
   drop(app.dynamic && app.dynamic.group);
   app.dynamic = { group: buildSpares(L, taken, tintFor), sway: [], wings: [] };
   world.add(app.dynamic.group);
-  for (const [id, a] of [...app.agents]) {
-    const ns = slots.get(id);
-    if (ns && (a.slot.kind !== ns.kind || a.slot.side !== ns.side)) {
-      removeAgent(id);
-      const rec = recordOf(id);
-      if (rec) makeAgent(rec, true);
-    }
-  }
+  for (const [id, a] of [...app.agents]) reslot(L, id, a, slots.get(id));
   ui.setLabels(gardenLabels(L, app.accounts));
 }
 
@@ -123,26 +135,29 @@ function onResize() {
   fitStage(state.bb);
 }
 
-export function teardownGarden() {
+// keep: a rebuild of the campus leaves the agents (and the garden stage settings) alone
+function freeGarden(keep) {
   if (!state) return;
-  for (const id of [...app.agents.keys()]) removeAgent(id);
+  if (!keep) for (const id of [...app.agents.keys()]) removeAgent(id);
   drop(app.dynamic && app.dynamic.group);
   world.remove(state.group);
   disposeRes();
   stage.rig = null;
-  leaveGardenStage(stage);
+  if (!keep) leaveGardenStage(stage);
   Object.assign(app, { layout: null, layoutJson: null, dynamic: null, statics: null, shell: null, life: null, ticks: [], seatPlan: null,
     relayoutImpl: null, labelsImpl: null, resizeImpl: null, dimmed: null, printers: [], pongs: [] });
   ui.setLabels([]);
   state = null;
 }
 
+export const teardownGarden = () => freeGarden(false);
+
 // builds the garden for a v2 layout and seats the agents that are already on screen
 export async function applyGarden(layout) {
   const old = stage.rig;
   // a rebuilt campus keeps the seat plan: agents whose seat still exists sit down where they were
   const plan = app.seatPlan;
-  teardownGarden();
+  freeGarden(true);
   enterGardenStage(stage);
   const L = compileGarden(layout);
   const built = buildGarden(layout, L.walk.site, L.walk.plan);
@@ -170,10 +185,11 @@ export async function applyGarden(layout) {
   app.labelsImpl = () => ui.setLabels(gardenLabels(L, app.accounts));
   app.resizeImpl = onResize;
   refreshGardenSeats();
+  // agents that survived the rebuild were handled by refreshGardenSeats; the rest are what the page already had
   for (const s of app.sessions) {
     if (s.leaving) continue;
-    makeAgent(s, true);
-    for (const sub of s.subs) if (!sub.leaving) makeAgent(sub, true);
+    if (!app.agents.has(s.id)) makeAgent(s, true);
+    for (const sub of s.subs) if (!sub.leaving && !app.agents.has(sub.id)) makeAgent(sub, true);
   }
 }
 
