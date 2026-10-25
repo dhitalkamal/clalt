@@ -64,29 +64,37 @@ export function fitBounds(bb, { az, el, fov, aspect = 16 / 9, safe = {} }) {
   const cy = b - t;
   const tv = Math.tan((fov * RAD) / 2);
   const pts = corners(bb);
-  const c = { x: (bb.x0 + bb.x1) / 2, y: 0.6, z: (bb.z0 + bb.z1) / 2 };
-  let dist = 40;
-  for (let it = 0; it < 6; it++) {
-    // smallest distance for which every corner projects inside the safe half sizes
-    dist = 0;
-    for (const p of pts) {
-      const q = { x: p.x - c.x, y: p.y - c.y, z: p.z - c.z };
-      const qd = dot(q, dir);
-      dist = Math.max(dist, qd + Math.abs(dot(q, right)) / (hx * tv * aspect), qd + Math.abs(dot(q, up)) / (hy * tv));
+  const c0 = { x: (bb.x0 + bb.x1) / 2, y: 0.6, z: (bb.z0 + bb.z1) / 2 };
+  // at a fixed distance, slide the target until the projected extents centre on the safe rect. the
+  // slide is in the image plane so depths hold, but perspective makes it uneven: iterate it
+  const settle = (dist) => {
+    const c = { ...c0 };
+    let ext;
+    for (let it = 0; it < 8; it++) {
+      ext = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+      for (const p of pts) {
+        const n = project({ az: az * RAD, el: el * RAD, dist, target: c, fov }, p, aspect);
+        ext.x0 = Math.min(ext.x0, n.x); ext.x1 = Math.max(ext.x1, n.x); ext.y0 = Math.min(ext.y0, n.y); ext.y1 = Math.max(ext.y1, n.y);
+      }
+      const sx = ((ext.x0 + ext.x1) / 2 - cx) * dist * tv * aspect;
+      const sy = ((ext.y0 + ext.y1) / 2 - cy) * dist * tv;
+      c.x += right.x * sx + up.x * sy;
+      c.y += right.y * sx + up.y * sy;
+      c.z += right.z * sx + up.z * sy;
     }
-    // then slide the target so the corner extents centre on the safe rectangle
-    let x0 = Infinity; let x1 = -Infinity; let y0 = Infinity; let y1 = -Infinity;
-    for (const p of pts) {
-      const n = project({ az: az * RAD, el: el * RAD, dist, target: c, fov }, p, aspect);
-      x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y);
-    }
-    const sx = ((x0 + x1) / 2 - cx) * dist * tv * aspect;
-    const sy = ((y0 + y1) / 2 - cy) * dist * tv;
-    c.x += right.x * sx + up.x * sy;
-    c.y += right.y * sx + up.y * sy;
-    c.z += right.z * sx + up.z * sy;
+    return { c, fits: ext.x1 - ext.x0 <= 2 * hx + 1e-4 && ext.y1 - ext.y0 <= 2 * hy + 1e-4 };
+  };
+  // smallest distance whose centred extents fit: extents shrink as the camera backs off, so bisect.
+  // the depth of the deepest corner is the lower bound (nothing may sit behind the camera)
+  let lo = 0;
+  for (const p of pts) lo = Math.max(lo, dot({ x: p.x - c0.x, y: p.y - c0.y, z: p.z - c0.z }, dir));
+  let hi = Math.max(lo * 2, 40);
+  while (!settle(hi).fits && hi < 1e5) hi *= 2;
+  for (let it = 0; it < 40; it++) {
+    const mid = (lo + hi) / 2;
+    if (settle(mid).fits) hi = mid; else lo = mid;
   }
-  return { dist, target: { ...c } };
+  return { dist: hi, target: { ...settle(hi).c } };
 }
 
 // pose from a camera position and the point it looks at

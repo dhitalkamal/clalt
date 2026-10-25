@@ -23,4 +23,7 @@
 #panel button:focus-visible, #bar button:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
 @media (max-width: 700px) { #panel { width: 190px; } .tpl .txt span { display: none; } }
 @media (prefers-reduced-motion: reduce) { #panel *, #bar * { transition: none !important; animation: none !important; } }
-@media (max-width: 900px) { #controls { bottom: 70px; } }
+/* not enough room for both on one row: controls and hint stack above the bar, the bar scrolls sideways when it is wider than the screen */
+#bar { overflow-x: auto; scrollbar-width: none; }
+@media (max-width: 1200px) { #controls { bottom: 70px; } .hint { bottom: 124px; } }
+@media (max-width: 520px) { .hint { bottom: 166px; } }

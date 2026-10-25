@@ -77,3 +77,26 @@ test('fog and far plane grow with the camera distance', async () => {
   assert.ok(far.near >= 400 * 1.9 && far.camFar >= far.far);
   assert.deepEqual(fogRange(10), { near: 70, far: 220, camFar: 400 });
 });
+
+// how much of the safe rect the projected bounds box covers: the larger of width and height fraction
+function fill(id, box, safe, aspect = 16 / 9) {
+  const pose = presetPose(id, { bb: box, aspect, safe });
+  let x0 = 9; let x1 = -9; let y0 = 9; let y1 = -9;
+  for (const x of [box.x0, box.x1]) for (const y of [box.bottom ?? -1.2, box.top ?? 3.4]) for (const z of [box.z0, box.z1]) {
+    const p = project(pose, { x, y, z }, aspect);
+    x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+  }
+  const sw = 1 - (safe.left || 0) - (safe.right || 0);
+  const sh = 1 - (safe.top || 0) - (safe.bottom || 0);
+  return { w: (x1 - x0) / 2 / sw, h: (y1 - y0) / 2 / sh };
+}
+
+test('iso and hero fill the safe rect for garden and hall bounds', () => {
+  const hall = { x0: -14, x1: 14, z0: -9, z1: 9 };
+  const safes = [{}, { left: 0.2, right: 0, top: 0.1, bottom: 0.12 }, { left: 0, right: 0.25, top: 0.08, bottom: 0.15 }];
+  for (const box of [bb, hall]) for (const id of ['iso', 'hero']) for (const safe of safes) {
+    const f = fill(id, box, safe);
+    assert.ok(Math.max(f.w, f.h) >= 0.9, `${id} ${JSON.stringify(safe)} ${f.w.toFixed(2)} ${f.h.toFixed(2)}`);
+    assert.ok(Math.max(f.w, f.h) <= 1.0, `${id} overfull ${f.w.toFixed(2)} ${f.h.toFixed(2)}`);
+  }
+});

@@ -5,6 +5,7 @@ import { fitLabels } from './labelfit.js';
 
 const $ = (id) => document.getElementById(id);
 const tmp = new THREE.Vector3();
+const SVGNS = 'http://www.w3.org/2000/svg';
 const barClass = (pct) => (pct >= 85 ? 'red' : pct >= 60 ? 'amber' : 'green');
 
 // one limit bar. a window the feed has no reading of shows a question mark, which is not 0%.
@@ -47,6 +48,12 @@ export class UI {
     this.empty = $('empty');
     this.notice = $('notice');
     this.cardKey = '';
+    // leader lines live in one svg under the labels: attributes only, no inline style (strict csp)
+    this.leaders = document.createElementNS(SVGNS, 'svg');
+    this.leaders.setAttribute('class', 'leaders');
+    this.layer.prepend(this.leaders);
+    this.lines = new Map();
+    this.fitPrev = null;
   }
 
   setNotice(text) {
@@ -122,13 +129,40 @@ export class UI {
       const z = this.sizes(rec);
       items.push({ id, x: rec.sx, y: rec.sy, w: z.w * sc, h: z.h * sc, cw: z.cw ? z.cw * sc : 0, ch: z.ch ? z.ch * sc : 0, pri: rec.cls === 'zone' ? 1 : 0 });
     }
-    const fit = fitLabels(items);
+    const fit = fitLabels(items, { prev: this.fitPrev });
+    this.fitPrev = fit;
+    const live = new Set();
     for (const [id, rec] of this.labels) {
-      const f = (rec.front && fit.get(id)) || { dy: 0, compact: false };
+      const f = (rec.front && fit.get(id)) || { dx: 0, dy: 0, compact: false, hidden: false };
       rec.el.classList.toggle('compact', f.compact);
-      rec.el.style.transform = `translate(${rec.sx}px, ${rec.sy + f.dy}px) translate(-50%, -100%) scale(${sc})`;
-      rec.el.style.opacity = rec.front ? 1 : 0;
+      rec.el.style.transform = `translate(${rec.sx + f.dx}px, ${rec.sy + f.dy}px) translate(-50%, -100%) scale(${sc})`;
+      rec.el.style.opacity = rec.front && !f.hidden ? 1 : 0;
+      if (f.leader) { this.leader(id, rec, f, items.find((i) => i.id === id)); live.add(id); }
     }
+    for (const [id, line] of this.lines) if (!live.has(id)) { line.remove(); this.lines.delete(id); }
+  }
+
+  // a short line from the anchor to the nearest point of its displaced label
+  leader(id, rec, f, it) {
+    let line = this.lines.get(id);
+    if (!line) {
+      line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('class', 'leader');
+      this.leaders.appendChild(line);
+      this.lines.set(id, line);
+    }
+    const w = f.compact ? it.cw : it.w;
+    const h = f.compact ? it.ch : it.h;
+    const cx = rec.sx + f.dx;
+    const cy = rec.sy + f.dy;
+    const ex = Math.max(cx - w / 2, Math.min(rec.sx, cx + w / 2));
+    const ey = Math.max(cy - h, Math.min(rec.sy, cy));
+    // an anchor still under its card needs no line
+    line.setAttribute('visibility', Math.hypot(ex - rec.sx, ey - rec.sy) < 4 ? 'hidden' : 'visible');
+    line.setAttribute('x1', rec.sx.toFixed(1));
+    line.setAttribute('y1', rec.sy.toFixed(1));
+    line.setAttribute('x2', ex.toFixed(1));
+    line.setAttribute('y2', ey.toFixed(1));
   }
 
   // the card is rebuilt only when its content changes, then moved with the pointer
