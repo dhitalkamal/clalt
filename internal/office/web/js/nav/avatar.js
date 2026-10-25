@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { character } from '../assets.js';
 import { CHAR_SCALE } from '../agentConst.js';
+import { clipFor } from './clipmath.js';
 
 const TINT = 0xffc857;
 
@@ -35,10 +36,11 @@ export function createAvatar(ctx) {
   });
   const mixer = new THREE.AnimationMixer(model);
   const acts = {};
-  for (const n of ['idle', 'walk']) {
+  for (const n of ['idle', 'walk', 'sprint', 'jump', 'fall']) {
     const c = clips.find((k) => k.name === n);
     if (c) acts[n] = mixer.clipAction(c);
   }
+  if (acts.jump) { acts.jump.setLoop(THREE.LoopOnce, 1); acts.jump.clampWhenFinished = true; }
   let playing = null;
   const play = (n) => {
     if (!acts[n] || playing === n) return;
@@ -59,12 +61,16 @@ export function createAvatar(ctx) {
 
   return {
     root,
-    // st: {x, y, z, yaw, moving, running}
+    // st: {x, y, z, yaw, moving, running, speed, air, vy}. speed is the real ground speed, it sets the clip rate
     update(st, dt) {
       root.position.set(st.x, st.y, st.z);
       model.rotation.y = st.yaw;
-      play(st.moving ? 'walk' : 'idle');
-      if (acts.walk) acts.walk.timeScale = st.running ? 2 : 1;
+      const c = clipFor({ speed: st.moving ? st.speed ?? 2 : 0, running: st.running, air: !!st.air, vy: st.vy || 0 });
+      // no jump clip: a simple tuck instead
+      const pick = acts[c.name] ? c.name : st.air ? 'idle' : 'walk';
+      play(pick);
+      if (acts[pick]) acts[pick].timeScale = c.timeScale;
+      model.scale.y = !acts.jump && st.air ? CHAR_SCALE * 0.9 : CHAR_SCALE;
       mixer.update(dt);
     },
     setVisible(v) { root.visible = v; },

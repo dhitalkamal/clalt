@@ -34,10 +34,11 @@ a free one.
   faster), Q and E turn, R and C go higher and lower, wheel zooms to the cursor,
   left drag grabs the ground, right drag turns and tilts, double-click flies to
   that spot, two fingers pinch on a touch screen.
-- G goes down to ground level and walks (W A S D, drag to look). V switches
-  between first and third person there. F follows the agent under the cursor or
-  the selected one. Esc leaves ground or follow, and from the sky goes to the
-  top view, like Home.
+- G goes down to ground level and walks (W A S D, drag to look, Shift runs,
+  Space jumps, not on the stairs). The third person camera pulls in when a wall,
+  tree or deck edge is in the way. V switches between first and third person.
+  F follows the agent under the cursor or the selected one. Esc leaves ground
+  or follow, and from the sky goes to the top view, like Home.
 - Keys 1 to 5 pick a template, 6 to 9 the top, plan, iso and hero views, P turns
   auto spin on and off and L the labels. The keys do nothing while you edit.
 - The camera bar and these keys work the same in every template, the hall
