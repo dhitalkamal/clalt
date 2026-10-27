@@ -54,3 +54,6 @@ func noEmail(s string) string {
 	}
 	return s
 }
+
+// NoEmail is noEmail for other packages that print account names.
+func NoEmail(s string) string { return noEmail(s) }

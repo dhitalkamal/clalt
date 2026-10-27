@@ -218,6 +218,7 @@ clalt office               live 3D garden campus of your agents in the browser
                            --template rows|village|river|street|hall)
 clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                            the office floor plans
+clalt mcp                  read-only MCP server for Claude Code (docs/mcp.md)
 clalt version              print build version (--json for machine-readable)
 ```
 

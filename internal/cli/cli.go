@@ -96,6 +96,8 @@ func run(app *App, args []string) int {
 		err = app.cmdDashboard(cmdArgs)
 	case "office":
 		err = app.cmdOffice(cmdArgs)
+	case "mcp":
+		err = app.cmdMcp(cmdArgs)
 	case "migrate":
 		err = app.cmdMigrate(cmdArgs)
 	case "rules":
@@ -193,6 +195,8 @@ usage:
                               only; --edit is accepted and does nothing)
   clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                               the office floor plans (see docs/office.md)
+  clalt mcp                   read-only MCP server on stdin and stdout, so Claude can
+                              answer questions about your accounts (see docs/mcp.md)
   clalt version               print build version (--json for machine-readable)
 
 global:
