@@ -1,5 +1,6 @@
 // settings model: what the dialog lists, what it sends and what it says when that fails. no dom.
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
+export const SAVE_LABEL = 'Set as default';
 const PREFIX = 'could not save the default office: ';
 
 // the reply of GET /api/layouts: templates first as the server orders them, then saved layouts.
@@ -12,7 +13,7 @@ export function layoutOptions(reply) {
   const add = (id, title, group) => {
     if (typeof id !== 'string' || !id || seen.has(id)) return;
     seen.add(id);
-    options.push({ id, title: title || id, group, checked: id === active });
+    options.push({ id, title: title || id, group, checked: id === active, isDefault: id === active });
   };
   const list = (v) => (Array.isArray(v) ? v : []);
   for (const t of list(reply && reply.templates)) if (t) add(t.id, t.title, 'template');
@@ -20,6 +21,11 @@ export function layoutOptions(reply) {
   for (const l of list(reply && reply.layouts)) if (l && !l.builtin) add(l.name, l.title, 'saved');
   return { active, options };
 }
+
+export const confirmText = (title) => title + ' is now your default. It opens every time you run clalt office.';
+
+// nothing to set when no option is picked or the pick already is the default
+export const canSetDefault = (picked, current) => !!picked && picked !== current;
 
 export function saveRequest(id) {
   return {

@@ -1,7 +1,7 @@
 // the settings dialog: pick the default office, open build mode. a modal <dialog>, so the browser
 // keeps focus inside, closes on Esc and makes the page behind it inert. the model lives in settings.js.
 import { el, clear } from './dom.js';
-import { layoutOptions } from './settings.js';
+import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault } from './settings.js';
 
 const GROUPS = [['template', 'Templates'], ['saved', 'Saved layouts']];
 let serial = 0;
@@ -16,7 +16,12 @@ export function createSettingsDialog(h) {
   const err = el('p', 'err');
   err.setAttribute('role', 'alert');
   err.hidden = true;
-  const save = el('button', 'primary', 'Save');
+  const ok = el('p', 'ok');
+  ok.setAttribute('role', 'status');
+  ok.hidden = true;
+  let current = '';
+  const titles = new Map();
+  const save = el('button', 'primary', SAVE_LABEL);
   save.type = 'button';
   const close = el('button', '', 'Close');
   close.type = 'button';
@@ -24,7 +29,7 @@ export function createSettingsDialog(h) {
   const buildNote = el('p', 'note');
   dlg.append(
     title,
-    el('div', 'sec', el('h3', '', 'Default office'), el('p', 'note', 'what everyone sees when they open the office'), list, err),
+    el('div', 'sec', el('h3', '', 'Default office'), el('p', 'note', 'what everyone sees when they open the office'), list, err, ok),
     el('div', 'sec', el('h3', '', 'Build mode'), buildNote, build),
     el('div', 'row', close, save),
   );
@@ -32,11 +37,24 @@ export function createSettingsDialog(h) {
 
   const setError = (msg) => { err.textContent = msg || ''; err.hidden = !msg; };
   const chosen = () => { const r = list.querySelector('input:checked'); return r ? r.value : null; };
-  const busy = (on) => { save.disabled = on; close.disabled = on; for (const r of list.querySelectorAll('input')) r.disabled = on; };
+  const setOk = (msg) => { ok.textContent = msg || ''; ok.hidden = !msg; };
+  const sync = () => { save.disabled = !canSetDefault(chosen(), current); };
+  const busy = (on) => { close.disabled = on; for (const r of list.querySelectorAll('input')) r.disabled = on; if (on) save.disabled = true; else sync(); };
+  // moves the default tag to the option that now is the default
+  const markDefault = (id) => {
+    current = id;
+    for (const t of list.querySelectorAll('.tag')) t.remove();
+    const input = list.querySelector('input[value="' + CSS.escape(id) + '"]');
+    if (input) input.parentNode.append(tagFor());
+  };
+  // the comma is hidden from sight so a screen reader says "River, default"
+  const tagFor = () => el('span', 'tag', el('span', 'sr', ', '), 'default');
 
   function fill(reply) {
     clear(list);
-    const { options } = layoutOptions(reply);
+    titles.clear();
+    const { options, active } = layoutOptions(reply);
+    current = active;
     const name = 'settings-office-' + ++serial;
     for (const [group, title] of GROUPS) {
       const items = options.filter((o) => o.group === group);
@@ -50,16 +68,20 @@ export function createSettingsDialog(h) {
         input.checked = o.checked;
         input.id = name + '-' + o.id;
         const label = el('label', '', input, el('span', '', o.title));
+        titles.set(o.id, o.title);
+        if (o.isDefault) label.append(tagFor());
         set.append(label);
       }
       list.append(set);
     }
     if (!options.length) list.append(el('p', 'note', 'no layouts to choose from'));
-    save.disabled = !options.length;
+    sync();
+    for (const r of list.querySelectorAll('input')) r.addEventListener('change', () => { setOk(''); sync(); });
   }
 
   async function open(note) {
     setError('');
+    setOk('');
     buildNote.textContent = note.text;
     build.disabled = !note.ok;
     clear(list);
@@ -80,8 +102,9 @@ export function createSettingsDialog(h) {
     const id = chosen();
     if (!id) return;
     setError('');
+    setOk('');
     busy(true);
-    try { await h.save(id); shut(); } catch (e) { setError(e.message); } finally { busy(false); }
+    try { await h.save(id); markDefault(id); setOk(confirmText(titles.get(id) || id)); } catch (e) { setError(e.message); } finally { busy(false); }
   });
 
   return { open, isOpen: () => dlg.open };

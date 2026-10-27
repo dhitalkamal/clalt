@@ -1,7 +1,7 @@
 // settings model: option list from /api/layouts, the save request and the error text. pure, no dom.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { layoutOptions, saveRequest, errorText, saveDefault } from '../settings.js';
+import { layoutOptions, saveRequest, errorText, saveDefault, SAVE_LABEL, confirmText, canSetDefault } from '../settings.js';
 
 const REPLY = {
   active: 'river',
@@ -64,4 +64,23 @@ test('builtin files are left out and an active default shows as hall', () => {
   const { options } = layoutOptions({ ...REPLY, active: 'default' });
   assert.equal(options.some((o) => o.id === 'default'), false);
   assert.deepEqual(options.filter((o) => o.checked).map((o) => o.id), ['hall']);
+});
+
+test('the button says what it does', () => {
+  assert.equal(SAVE_LABEL, 'Set as default');
+});
+
+test('the default option is flagged, only that one', () => {
+  const { options } = layoutOptions(REPLY);
+  assert.deepEqual(options.filter((o) => o.isDefault).map((o) => o.id), ['river']);
+});
+
+test('confirmText names the new default and says when it opens', () => {
+  assert.equal(confirmText('River'), 'River is now your default. It opens every time you run clalt office.');
+});
+
+test('canSetDefault is false when nothing is picked or the pick is the default', () => {
+  assert.equal(canSetDefault('river', 'river'), false);
+  assert.equal(canSetDefault('rows', 'river'), true);
+  assert.equal(canSetDefault(null, 'river'), false);
 });
