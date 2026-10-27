@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>clalt office</title>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="notebook.css">
 <link rel="stylesheet" href="editor.css">
 <link rel="stylesheet" href="chrome.css">
 <link rel="stylesheet" href="activity.css">
@@ -14,6 +15,14 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<svg class="nb-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="nb-hatch-tokens" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#6f9bc7"/><rect width="3.5" height="7" fill="#4a79a8"/></pattern>
+    <pattern id="nb-hatch-peak" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#f3c25c"/><rect width="3.5" height="7" fill="#e0980f"/></pattern>
+    <pattern id="nb-hatch-pct7" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#a99bd6"/><rect width="3.5" height="7" fill="#7a6bb5"/></pattern>
+    <pattern id="nb-hatch-hot" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#e07a63"/><rect width="3.5" height="7" fill="#bf3f26"/></pattern>
+  </defs>
+</svg>
 <div id="labels"></div>
 <div id="status"></div>
 <div id="notice" hidden></div>

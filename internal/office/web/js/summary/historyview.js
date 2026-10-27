@@ -2,6 +2,7 @@
 // tokens chart and the busiest-5h chart.
 import { el } from '../dom.js';
 import { drawChart } from './chartsvg.js';
+import { chipNode } from '../notebook.js';
 import { pctModel, pctReadout, pctSeries, pctNote } from './pctchart.js';
 
 const HEIGHT = 170;
@@ -20,7 +21,7 @@ export function renderHistory(hist, width) {
   if (hist.truncated) root.append(el('p', 'warn', 'Some transcripts were not read (size limit), so the oldest days may be low.'));
   if (!accounts.some(hasUsage)) root.append(el('p', 'quiet', 'No usage in the last ' + hist.days + ' days.'));
   for (const a of accounts) {
-    const sec = el('section', 'acct', el('h3', '', a.label || a.id));
+    const sec = el('section', 'acct', el('h3', '', chipNode(a.label || a.id)));
     for (const [key, name, title, cls] of PCT) {
       if (!pctSeries(a.days, key).any) continue;
       const model = pctModel({ days: a.days, key, width, height: HEIGHT });

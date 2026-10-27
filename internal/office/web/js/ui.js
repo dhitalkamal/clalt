@@ -3,6 +3,7 @@ import { el, clear, age } from './dom.js';
 import { MAX_SESSIONS } from './model.js';
 import { fitLabels } from './labelfit.js';
 import { teamCard } from './cardinfo.js';
+import { stampNode, chipNode } from './notebook.js';
 
 const $ = (id) => document.getElementById(id);
 const tmp = new THREE.Vector3();
@@ -41,7 +42,7 @@ const dl = (rows) => {
   return d;
 };
 
-const stateCell = (state, text) => el('span', '', el('span', 'dot ' + state), text);
+const stateCell = (state, text) => stampNode(state, text);
 
 export class UI {
   constructor(camera, canvas) {
@@ -185,7 +186,8 @@ export class UI {
   }
 
   showRegion(info, x, y) {
-    this.fill('r:' + info.title + JSON.stringify(info.rows), (c) => c.append(el('div', 'h', info.title), dl(info.rows)), x, y);
+    const rows = info.rows.map(([k, v]) => [k, k === 'account' ? chipNode(v) : v]);
+    this.fill('r:' + info.title + JSON.stringify(info.rows), (c) => c.append(el('div', 'h', info.title), dl(rows)), x, y);
   }
 
   showCard(agent, x, y) {
@@ -199,7 +201,7 @@ export class UI {
       const key = ['m', s.id, s.state, s.reason, s.project, s.model, subs, age(Date.now() - s.startedAt)].join('|');
       this.fill(key, (c) => c.append(el('div', 'h', 'claude (main) ', el('span', 'crown', 'crown')), dl([
         ['handle', s.handle], ['project', s.project], ['model', s.model], ['state', stateCell(s.state, s.state + reason)],
-        ['account', label], ['subagents', String(subs)], ['running', age(Date.now() - s.startedAt)]])), x, y);
+        ['account', chipNode(label)], ['subagents', String(subs)], ['running', age(Date.now() - s.startedAt)]])), x, y);
       return;
     }
     if (s.role === 'team' || s.intern) {

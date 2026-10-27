@@ -1,5 +1,6 @@
 // the day view as dom, from the model of model.js. everything is set as text.
 import { el } from '../dom.js';
+import { chipNode } from '../notebook.js';
 
 function factsRow(facts) {
   const dl = el('dl', 'facts');
@@ -52,7 +53,7 @@ export function renderDay(m) {
     return root;
   }
   for (const a of m.accounts) {
-    const sec = el('section', 'acct', el('h3', '', a.title), factsRow(a.facts));
+    const sec = el('section', 'acct', el('h3', '', chipNode(a.title)), factsRow(a.facts));
     if (a.limit) sec.append(limitRow(a));
     for (const p of a.projects) sec.append(project(p));
     root.append(sec);

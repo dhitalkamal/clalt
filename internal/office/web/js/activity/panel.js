@@ -8,6 +8,7 @@ import { renderRows } from './render.js';
 import { activityTarget, describeTarget } from './target.js';
 import { fetchNewer } from './catchup.js';
 import { createActionBar } from '../actions/bar.js';
+import { stampNode, chipNode } from '../notebook.js';
 import { newPager, pagerKey, matches, applyFirst, applyNewer, applyOlder, startOlder, failOlder, canLoadOlder, shouldRefresh, activityPath } from './pager.js';
 
 const PAGE = 100;
@@ -69,9 +70,9 @@ export function createActivityPanel(h) {
     bar.update(st.target.handle);
     meta.replaceChildren();
     const add = (k, v) => meta.append(el('div', '', el('dt', '', k), el('dd', '', v)));
-    add('account', d.account);
-    add('project', d.project);
-    add('state', el('span', '', el('span', 'dot ' + d.state), d.stateText));
+    add('state', stampNode(d.state, d.stateText));
+    add('account', chipNode(d.account));
+    add('project', el('span', 'projname', d.project));
     const gone = st.rec.leaving || (st.rec.role === 'main' && st.rec.state === 'ended') || st.rec.role === 'review';
     note.hidden = !gone && !st.idle;
     note.textContent = gone ? 'this run has ended, the log stays readable' : st.idle ? 'no run right now, showing the last one' : '';
