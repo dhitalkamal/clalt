@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -16,10 +17,12 @@ import (
 	"github.com/dhitalkamal/clalt/internal/notify"
 	"github.com/dhitalkamal/clalt/internal/office"
 	"github.com/dhitalkamal/clalt/internal/office/layout"
+	"github.com/dhitalkamal/clalt/internal/officed"
 	"github.com/dhitalkamal/clalt/internal/registry"
+	"github.com/dhitalkamal/clalt/internal/version"
 )
 
-const officeUsage = "clalt office [--port N] [--no-open] [--template <id>]"
+const officeUsage = "clalt office [--port N] [--no-open] [--template <id>]\n       " + officeDaemonUsage
 
 // officeArgs are the flags of clalt office.
 type officeArgs struct {
@@ -83,7 +86,7 @@ func templateIDs() string {
 	return strings.Join(ids, ", ")
 }
 
-func officeLogPath() string { return filepath.Join(config.LogsDir(), "office.log") }
+func officeLogPath() string { return officed.LogPath(config.OfficeDir()) }
 
 // officeAccounts lists the accounts the dashboard lists, by label.
 type officeAccounts struct{ app *App }
@@ -135,10 +138,24 @@ func (a *App) cmdOffice(args []string) error {
 	if len(args) > 0 && args[0] == "layout" {
 		return a.cmdOfficeLayout(args[1:])
 	}
+	if len(args) > 0 {
+		if handled, err := a.cmdOfficeDaemon(args[0], args[1:]); handled {
+			return err
+		}
+	}
 	opt, err := parseOfficeArgs(args)
 	if err != nil {
 		return err
 	}
+	if r, ok := a.mgr().Running(); ok && opt.port == r.Port {
+		return fmt.Errorf("clalt office is already running on port %d: stop it with clalt office off, or open it with clalt office open", r.Port)
+	}
+	return a.runOffice(opt, a.Out, nil)
+}
+
+// runOffice serves the office until the context ends. out gets the link and
+// started is told the port and token once it listens, both may be nil.
+func (a *App) runOffice(opt officeArgs, out io.Writer, started func(port int, token string)) error {
 	ctx := a.officeCtx
 	if ctx == nil {
 		var stop context.CancelFunc
@@ -159,7 +176,8 @@ func (a *App) cmdOffice(args []string) error {
 	gen := office.NewGardenFeed(a.clock)
 	warner := notify.Default()
 	return cleanedOrNil(office.Run(ctx, office.Options{
-		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Template: opt.template,
+		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: out, Template: opt.template,
+		Started: started, Version: version.Version, Autostart: pageAutostart{a.autostart()},
 		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
 		Generator: gen,
 		Activity:  real,

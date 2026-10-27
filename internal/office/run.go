@@ -37,6 +37,11 @@ type Options struct {
 	Actions SessionActions
 	// Summary builds the daily summary and the history, see Config.
 	Summary *summary.Service
+	// Autostart and Version, see Config.
+	Autostart Autostarter
+	Version   string
+	// Started is called once the server listens, with its port and token.
+	Started func(port int, token string)
 }
 
 // Instance is a running server.
@@ -73,7 +78,7 @@ func Start(opt Options) (*Instance, error) {
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
 		Generator: opt.Generator, Template: opt.Template, Activity: opt.Activity, Reviews: opt.Reviews,
-		Actions: opt.Actions, Summary: opt.Summary,
+		Actions: opt.Actions, Summary: opt.Summary, Autostart: opt.Autostart, Version: opt.Version,
 	})
 	if err != nil {
 		ln.Close()
@@ -113,6 +118,9 @@ func Run(ctx context.Context, opt Options) error {
 	inst, err := Start(opt)
 	if err != nil {
 		return err
+	}
+	if opt.Started != nil {
+		opt.Started(inst.Addr.(*net.TCPAddr).Port, inst.Token)
 	}
 	out := opt.Out
 	if out == nil {

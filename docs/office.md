@@ -11,6 +11,54 @@ Ctrl-C. `--no-open` only prints the link. `--port N` picks the port, by default
 a free one. `--edit` is still accepted and does nothing: saving from the page no
 longer needs it.
 
+## Running it in the background
+
+You do not need to keep a terminal open. The PR review watcher and the limit
+warnings run as long as the office server runs, so a background server keeps
+them going.
+
+    clalt office on             start it in the background and open the browser
+    clalt office open           open the running one again
+    clalt office status [--link]  on or off, port, pid, uptime, version
+    clalt office off            stop it
+    clalt office autostart on|off|status   start it when you log in (macOS)
+
+- `on` starts `clalt office serve` detached (its own session, no stdin) and
+  opens the link. The port is 47321, or the next free one up to 47340. If it
+  already runs, `on` only opens it. It is not available on Windows yet: run
+  `clalt office` in a terminal there.
+- `off` asks the server to stop (SIGTERM) and waits up to 5 seconds. It only
+  signals a process that proved itself: the pid in the run file must answer a
+  token-checked `GET /api/ping` on the saved port as the clalt office server
+  with that same pid. A stale run file is removed and nothing is signalled.
+- `open` says so and suggests `clalt office on` when it is off.
+- `status` never prints the link unless you add `--link`, because the link
+  carries the token. It also shows the last error line of the log.
+- `clalt office` in the foreground still works as before. It refuses `--port N`
+  when the background office already uses that port.
+
+Files, all in `~/.config/clalt/office/` (the folder is 0700):
+
+- `run.json` (0600): `pid`, `port`, `token`, `startedAt`, `version`. This is the
+  only place the token is kept besides the browser cookie. It is removed when
+  the server stops.
+- `office.log`: output and errors of the background server, moved to
+  `office.log.old` at about 1 MB (one old file is kept). The token is never
+  written to it.
+
+### Start at login
+
+On macOS, Settings has a "Start office when I log in" checkbox, and
+`clalt office autostart on|off|status` does the same from a terminal. It writes
+`~/Library/LaunchAgents/com.dhitalkamal.clalt.office.plist` (runs the absolute
+path of the clalt binary with `office serve`, no token in it) and loads it with
+`launchctl bootstrap gui/<uid>`. Off runs `launchctl bootout` and removes the
+file. If you move or reinstall clalt, run `autostart on` again so the path is
+right. The server started by launchd writes `run.json` like any other, so
+`clalt office open` works. Turning it off from the page while launchd runs that
+very server removes the file but does not unload the job, so the page stays up
+until the server stops. On other systems the checkbox is disabled.
+
 ## How it looks
 
 - A glass cabin per session, grouped in a wing per account. The wing sign shows
@@ -131,10 +179,12 @@ changes nothing.
 ## Privacy
 
 - The page is served from your machine only. The server listens on `127.0.0.1`
-  and nothing else, with a random port unless you set one. It needs no network
+  and nothing else, with a random port unless you set one (the background
+  office uses 47321 or the next free port). It needs no network
   access and the page loads nothing from the internet: the 3D library, the
   models and the page are inside the clalt binary.
-- Every run makes a new random token. The printed link carries it, the first
+- Every run makes a new random token (the background office keeps it in
+  `run.json`, readable by you only). The printed link carries it, the first
   load turns it into a cookie that only this browser sends to this server, and
   every request without it is refused. Other websites in your browser cannot
   read the page or the data, and a request that names another host (a DNS

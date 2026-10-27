@@ -51,6 +51,10 @@ type Config struct {
 	Actions SessionActions
 	// Summary builds GET /api/summary and /api/history, nil answers 404.
 	Summary *summary.Service
+	// Autostart is start at login for the settings dialog, nil answers 404.
+	Autostart Autostarter
+	// Version is what /api/ping says.
+	Version string
 }
 
 type handler struct {
@@ -148,6 +152,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if !h.authorized(r) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.URL.Path == "/api/ping" {
+		h.ping(w)
+		return
+	}
+	if r.URL.Path == autostartPath {
+		h.autostartGet(w)
 		return
 	}
 	if r.URL.Path == "/api/snapshot" {

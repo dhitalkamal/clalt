@@ -69,13 +69,12 @@ Keys are listed in [docs/dashboard.md](docs/dashboard.md).
 
 ```
 clalt office               # live 3D garden campus of your agents, in the browser
-clalt office --template village
+clalt office on            # same, in the background (also off, open, status)
 ```
 
-It prints a link with a one-run token and opens it. Press Ctrl-C to stop it. Pick
-the default template in the page's settings, it is saved for every run. Build
-mode (change the floor plan and save it) opens from the page. `--edit` is no
-longer needed.
+It prints a link with a one-run token and opens it. Press Ctrl-C to stop it, or
+use `on` and `off` to run it with no terminal open. Pick the default template in
+the page's settings. Build mode (change the floor plan) opens from the page.
 
 Templates: `rows` (the default), `village`, `river`, `street` and `hall`. Pick
 one for a run with `--template <id>`, or set the default in the page's Settings.
@@ -214,8 +213,9 @@ clalt usage [name]         local usage stats
 clalt dashboard            full-screen dashboard of accounts, sessions and usage
 clalt dashboard --demo     the dashboard on made-up data, touches no account
 clalt office               live 3D garden campus of your agents in the browser
-                           (--port N, --no-open,
-                           --template rows|village|river|street|hall)
+                           (--port N, --no-open, --template rows|village|river|street|hall)
+clalt office on|off|open|status [--link]|autostart on|off|status
+                           run the office in the background, start it at login
 clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                            the office floor plans
 clalt mcp                  read-only MCP server for Claude Code (docs/mcp.md)

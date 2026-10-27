@@ -84,3 +84,44 @@ test('canSetDefault is false when nothing is picked or the pick is the default',
   assert.equal(canSetDefault('rows', 'river'), true);
   assert.equal(canSetDefault(null, 'river'), false);
 });
+
+// start at login
+import { autostartModel, autostartRequest, autostartErrorText, loadAutostart, saveAutostart, AUTOSTART_LABEL, AUTOSTART_UNSUPPORTED } from '../settings.js';
+
+test('autostartModel: supported shows the state, unsupported is disabled with the reason', () => {
+  assert.deepEqual(autostartModel({ supported: true, enabled: true }), { supported: true, enabled: true, disabled: false, note: '' });
+  assert.deepEqual(autostartModel({ supported: true, enabled: false }), { supported: true, enabled: false, disabled: false, note: '' });
+  const off = autostartModel({ supported: false, enabled: true });
+  assert.equal(off.disabled, true);
+  assert.equal(off.enabled, false);
+  assert.equal(off.note, 'start at login is macOS only for now');
+  assert.equal(AUTOSTART_UNSUPPORTED, off.note);
+  assert.equal(autostartModel(null).disabled, true);
+  assert.equal(AUTOSTART_LABEL, 'Start office when I log in');
+});
+
+test('autostartRequest posts json with the edit header and same-origin credentials', () => {
+  const { url, init } = autostartRequest(true);
+  assert.equal(url, '/api/office/autostart');
+  assert.equal(init.method, 'POST');
+  assert.equal(init.headers['Content-Type'], 'application/json');
+  assert.equal(init.headers['X-Clalt-Edit'], '1');
+  assert.equal(init.credentials, 'same-origin');
+  assert.deepEqual(JSON.parse(init.body), { enabled: true });
+  assert.deepEqual(JSON.parse(autostartRequest(false).init.body), { enabled: false });
+});
+
+test('autostartErrorText says what failed in one line', () => {
+  assert.equal(autostartErrorText({ network: true }), 'could not change start at login: clalt office is not reachable');
+  assert.equal(autostartErrorText({ status: 500, text: ' boom \n' }), 'could not change start at login: boom');
+  assert.equal(autostartErrorText({ status: 403, text: '' }), 'could not change start at login: http 403');
+});
+
+test('loadAutostart and saveAutostart return the model, failures carry a ready message', async () => {
+  const ok = (body) => async () => ({ ok: true, json: async () => body });
+  assert.equal((await loadAutostart(ok({ supported: true, enabled: true }))).enabled, true);
+  assert.equal((await saveAutostart(false, ok({ supported: true, enabled: false }))).enabled, false);
+  await assert.rejects(saveAutostart(true, async () => ({ ok: false, status: 400, text: async () => 'macOS only' })), /could not change start at login: macOS only/);
+  await assert.rejects(saveAutostart(true, async () => { throw new Error('x'); }), /not reachable/);
+  await assert.rejects(loadAutostart(async () => ({ ok: false, status: 404, text: async () => '' })), /404/);
+});

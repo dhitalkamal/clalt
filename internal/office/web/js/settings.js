@@ -52,3 +52,51 @@ export async function saveDefault(id, fetchFn = fetch) {
   }
   return res.json();
 }
+
+// start at login: GET and POST /api/office/autostart, {supported, enabled}
+export const AUTOSTART_LABEL = 'Start office when I log in';
+export const AUTOSTART_UNSUPPORTED = 'start at login is macOS only for now';
+const AUTOSTART_URL = '/api/office/autostart';
+
+// an unsupported system shows the box unchecked and disabled, with the reason
+export function autostartModel(reply) {
+  const supported = !!(reply && reply.supported);
+  return {
+    supported,
+    enabled: supported && !!reply.enabled,
+    disabled: !supported,
+    note: supported ? '' : AUTOSTART_UNSUPPORTED,
+  };
+}
+
+export function autostartRequest(on) {
+  return {
+    url: AUTOSTART_URL,
+    init: { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ enabled: !!on }) },
+  };
+}
+
+export function autostartErrorText({ status, text, network } = {}) {
+  const prefix = 'could not change start at login: ';
+  if (network) return prefix + 'clalt office is not reachable';
+  return prefix + ((text || '').trim() || 'http ' + status);
+}
+
+// both resolve to the model, a failure throws an Error whose message is ready to show
+export async function loadAutostart(fetchFn = fetch) {
+  const res = await fetchFn(AUTOSTART_URL, { cache: 'no-store', credentials: 'same-origin' });
+  if (!res.ok) throw new Error('http ' + res.status);
+  return autostartModel(await res.json());
+}
+
+export async function saveAutostart(on, fetchFn = fetch) {
+  const { url, init } = autostartRequest(on);
+  let res;
+  try { res = await fetchFn(url, init); } catch (e) { throw new Error(autostartErrorText({ network: true })); }
+  if (!res.ok) {
+    let text = '';
+    try { text = await res.text(); } catch (e) { /* no body, the status says enough */ }
+    throw new Error(autostartErrorText({ status: res.status, text }));
+  }
+  return autostartModel(await res.json());
+}

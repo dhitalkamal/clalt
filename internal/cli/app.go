@@ -10,6 +10,7 @@ import (
 
 	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/officed"
 )
 
 // App holds the constructed dependencies for one invocation.
@@ -41,6 +42,10 @@ type App struct {
 	// browser, nil means the real one. tests set both.
 	officeCtx  context.Context
 	officeOpen func(url string) error
+	// officeMgr and officeAuto are the background office and its start at login,
+	// nil means the real ones. tests set them with fakes.
+	officeMgr  *officed.Manager
+	officeAuto *officed.Autostart
 
 	// foreground says whether clalt is in the foreground group of a terminal.
 	// tests set it, nil means ask the controlling terminal.
