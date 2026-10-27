@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { SKY } from './terrain.js';
 import { fogRange } from './cameras.js';
+import { setStaticShadows } from '../agentShadow.js';
 
 export const SHADOW_SIZE = 2048;
 let saved = null;
@@ -35,6 +36,10 @@ export function enterGardenStage(stage) {
   sun.intensity = 3.0;
   sun.shadow.radius = 6;
   setShadowSize(sun, SHADOW_SIZE);
+  // static geometry only: agents get a floor disc instead of a live shadow
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
+  setStaticShadows(true);
 }
 
 export function leaveGardenStage(stage) {
@@ -54,6 +59,8 @@ export function leaveGardenStage(stage) {
   sun.intensity = s.sun[1];
   sun.shadow.radius = s.sun[2];
   setShadowSize(sun, s.size);
+  renderer.shadowMap.autoUpdate = true;
+  setStaticShadows(false);
   camera.fov = s.fov;
   camera.far = s.far2;
   camera.updateProjectionMatrix();
@@ -71,6 +78,7 @@ export function fitLight(stage, bb, dist) {
   sc.left = -R; sc.right = R; sc.top = R; sc.bottom = -R;
   sc.near = 0.1; sc.far = R * 4;
   sc.updateProjectionMatrix();
+  stage.renderer.shadowMap.needsUpdate = true;
   fitFog(stage, dist);
 }
 

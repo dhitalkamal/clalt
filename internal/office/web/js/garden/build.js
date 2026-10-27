@@ -17,6 +17,7 @@ import { cafe, play } from './pavbreak.js';
 import { treehouse } from './treehouse.js';
 import { std, geo, cached } from './res.js';
 import { flagTex } from './tex.js';
+import { mergeStatic } from './merge.js';
 
 const PLAZA = 0x9b9488;
 
@@ -69,8 +70,10 @@ export function buildGarden(layout, site, plan) {
   const terr = buildTerrain(layout);
   root.add(terr.group);
   ticks.push(...terr.ticks);
-  root.add(buildPaths(site.paths));
-  for (const b of site.bridges) root.add(bridge(b.a, b.b, b.w));
+  // paths, bridges and props share one group so equal materials fold into one draw call across the campus
+  const scenery = new THREE.Group();
+  scenery.add(buildPaths(site.paths));
+  for (const b of site.bridges) scenery.add(bridge(b.a, b.b, b.w));
   for (const pd of site.ponds) {
     const p = pond(pd.rx, pd.rz);
     p.group.position.set(pd.x, 0.02, pd.z);
@@ -83,10 +86,14 @@ export function buildGarden(layout, site, plan) {
     made.group.position.set(p.x, 0, p.z);
     made.group.rotation.y = rad(p.rot || 0);
     root.add(made.group);
+    // a pavilion with a tick has parts the tick moves by reference, those stay as built
     if (made.tick) ticks.push(made.tick);
+    else mergeStatic(made.group);
   }
   paintPlates(teamList());
-  placeProps(site, root, ticks);
+  placeProps(site, scenery, ticks);
+  mergeStatic(scenery);
+  root.add(scenery);
   if (layout.site.fence !== false) root.add(buildFence(layout, site));
   root.add(buildPlants(plan));
   return { group: root, ticks, bb: terr.bb };

@@ -7,6 +7,7 @@ import { installMove } from './agentMove.js';
 import { ACCOUNT_TINT } from './model.js';
 import { recColor, isTeamRec, isInternRec, makeInternLook, tickMemberLook, disposeLook } from './garden/teamlook.js';
 import { TAU, BUBBLE_Y, angleDiff } from './agentConst.js';
+import { makeBlob, placeBlob, stripCast } from './agentShadow.js';
 
 export class Agent {
   constructor(s, world, slot, look) {
@@ -37,6 +38,8 @@ export class Agent {
     this.buildFlair();
     world.add(this.rig, this.flair);
     if (isInternRec(s)) makeInternLook(this, recColor(s));
+    this.blob = makeBlob(world);
+    if (this.blob) stripCast(this);
   }
 
   update(dt, t, slot, L, env) {
@@ -73,6 +76,7 @@ export class Agent {
     this.updateScreen(c, gone);
     if (isTeamRec(this.s)) tickMemberLook(this, dt);
     this.updateFlair(t, gone);
+    placeBlob(this);
   }
 
   updateScreen(t, gone) {
@@ -119,6 +123,7 @@ export class Agent {
 
   dispose() {
     this.world.remove(this.rig, this.model, this.flair);
+    if (this.blob) this.world.remove(this.blob);
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.model);
     for (const part of [this.rig, this.model, this.flair]) disposeTree(part);

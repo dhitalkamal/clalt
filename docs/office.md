@@ -99,6 +99,19 @@ until the server stops. On other systems the checkbox is disabled.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows
   every tag, not only the ones of the main agents.
 
+## Battery
+
+The page draws at 60 frames per second only while you drag, zoom, walk or the
+camera flies, at about 15 while agents move or type, and about 2 when nothing
+moves. After 2 minutes without input it stays at the slow rate until the mouse
+or a key wakes it. Shadows of the scenery are baked once per layout, agents get
+a soft disc on the floor, and the pixel ratio is capped at 1.5. Shift+F shows
+fps, draw calls, triangles and frame time. To measure the real power on a Mac,
+open the office tab alone, leave the mouse still, and run
+`sudo powermetrics --samplers gpu_power,cpu_power -i 1000 -n 30` for 30
+seconds, once on the old build and once on this one, and compare the GPU power
+and CPU power lines (combined power in mW is the number to compare).
+
 ## Templates
 
 The office starts as a garden campus: pavilions on a lawn with paths, water and
