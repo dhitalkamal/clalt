@@ -40,12 +40,12 @@ longer needs it.
   Space jumps, not on the stairs). The third person camera pulls in when a wall,
   tree or deck edge is in the way. V switches between first and third person.
   F follows the agent under the cursor or the selected one. Esc leaves ground
-  or follow, and from the sky goes to the top view, like Home.
-- Keys 6 to 9 pick the top, plan, iso and hero views (the template is the
-  default set in Settings), P turns auto spin on and off and L the labels.
+  or follow, and from the sky goes to the overview, like Home.
+- P turns auto spin on and off and L the labels. Old links with
+  `#cam=top`, `plan`, `iso` or `hero` open the sky camera at the overview.
   The keys do nothing while you edit.
 - The camera bar and these keys work the same in every template, the hall
-  included. The Overview button goes back to the top view.
+  included. The Overview button goes back to the overview.
 - Hover a character for a card with the handle, project, model, state and
   account label. Click a room for the number of agents in it.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows

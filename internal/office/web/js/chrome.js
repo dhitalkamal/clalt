@@ -3,7 +3,7 @@
 import { el } from './dom.js';
 import { CAMS } from './viewstate.js';
 
-const HINT = 'drag rotate, shift-drag move, wheel zoom, WASD move, G ground, Esc top';
+const HINT = 'drag rotate, shift-drag move, wheel zoom, WASD move, G ground, Home or Esc overview';
 
 function button(cls, label, onClick) {
   const b = el('button', cls, label);

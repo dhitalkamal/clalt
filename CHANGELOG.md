@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   90 days) and the office History tab charts the 5h and 7d peak percent per
   day with a 90 percent line. Today shows the 5h peak and the latest reading.
 
+### Changed
+
+- The camera bar drops the top, plan, iso and hero presets (keys 6 to 9): the sky
+  camera orbits freely, and Home, Esc and Overview go to one default overview.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added

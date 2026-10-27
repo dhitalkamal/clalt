@@ -1,22 +1,21 @@
 // what the page remembers about the view: the camera in the url hash. the office itself is the server's
 // active layout, changed from the settings dialog. pure helpers, no browser needed.
 
-// presets sit on 6 to 9, ground and sky are navigation modes (ground has g, sky is the default free camera)
+// the bar offers two navigation modes: ground (g) and the free sky camera
 export const CAMS = [
-  { id: 'top', label: 'top', key: '6' },
-  { id: 'plan', label: 'plan', key: '7' },
-  { id: 'iso', label: 'iso', key: '8' },
-  { id: 'hero', label: 'hero', key: '9' },
   { id: 'ground', label: 'ground', key: 'g' },
   { id: 'sky', label: 'sky', key: '' },
 ];
-// camera ids of older urls
-const ALIAS = { eye: 'ground', orbit: 'sky' };
+// camera ids of older urls: the fixed presets now open the sky camera at the overview
+const ALIAS = { eye: 'ground', orbit: 'sky', top: 'sky', plan: 'sky', iso: 'sky', hero: 'sky' };
+
+// what the bar shows for a nav state: the overview framing is still the sky camera
+export const camOfNav = (s) => (s && s.mode === 'ground' ? 'ground' : 'sky');
 
 // the camera a new layout starts in: ground would drop the walker into a layout it has not seen
-export const camAfterSwitch = (cam) => (cam === 'ground' ? 'sky' : cam);
+export const camAfterSwitch = () => 'sky';
 
-// reads #cam=hero. anything that is not a known shape becomes null.
+// reads #cam=ground. anything that is not a known shape becomes null.
 export function parseHash(hash) {
   const q = new URLSearchParams(String(hash || '').replace(/^#/, ''));
   const c = ALIAS[q.get('cam')] || q.get('cam');

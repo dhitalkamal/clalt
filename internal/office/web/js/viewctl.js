@@ -7,7 +7,7 @@ import { createChrome } from './chrome.js';
 import { createLayoutWatcher } from './layoutwatch.js';
 import { actionFor } from './keymap.js';
 import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
-import { parseHash, buildHash, camAfterSwitch } from './viewstate.js';
+import { parseHash, buildHash, camAfterSwitch, camOfNav } from './viewstate.js';
 import { createSettingsDialog } from './settingsdialog.js';
 import { saveDefault } from './settings.js';
 import { el } from './dom.js';
@@ -16,7 +16,7 @@ import { startReviews } from './reviews/index.js';
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function startView(first) {
-  const state = { cam: parseHash(location.hash).cam || 'top', spin: false, labels: true, edit: first.edit === true, editor: null, layout: first.layout };
+  const state = { cam: parseHash(location.hash).cam || 'sky', spin: false, labels: true, edit: first.edit === true, editor: null, layout: first.layout };
   const saveHash = () => { try { history.replaceState(null, '', buildHash({ cam: state.cam }) || location.pathname + location.search); } catch (e) { /* hash stays as it was */ } };
   const notice = (msg) => ui.setNotice(msg);
 
@@ -65,7 +65,7 @@ export function startView(first) {
 
   // the nav manager reports presets and mode changes: the bar and the url follow
   onNavChange((s) => {
-    const id = s.mode === 'ground' ? 'ground' : s.preset || 'sky';
+    const id = camOfNav(s);
     if (id === state.cam) return;
     state.cam = id;
     chrome.markCam(id);

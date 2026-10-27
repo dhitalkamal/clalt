@@ -86,11 +86,11 @@ Navigation on the page (the sky camera, the default):
 W A S D, arrows   move over the campus      Q E        turn
 R, C              higher, lower             wheel      zoom to the cursor
 left drag         grab the ground           right drag turn and tilt
-double-click      fly to that spot          Home       back to the top view
+double-click      fly to that spot          Home       back to the overview
 G                 ground level: walk        V          first or third person
 F                 follow the agent under the cursor or selected
-Esc               leave ground or follow, or go to the top view
-1-5               templates                 6-9        top, plan, iso, hero views
+Esc               leave ground or follow, or go to the overview
+1-5               templates
 P                 auto spin                 L          labels
 ```
 

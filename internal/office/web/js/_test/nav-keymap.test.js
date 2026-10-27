@@ -6,12 +6,8 @@ import { parseHash } from '../viewstate.js';
 
 const ev = (key, extra = {}) => ({ key, target: { tagName: 'BODY' }, ...extra });
 
-test('6 to 9 pick camera presets, 1 to 5 are free', () => {
-  assert.equal(actionFor(ev('2')), null);
-  assert.deepEqual(actionFor(ev('6')), { type: 'cam', id: 'top' });
-  assert.deepEqual(actionFor(ev('7')), { type: 'cam', id: 'plan' });
-  assert.deepEqual(actionFor(ev('8')), { type: 'cam', id: 'iso' });
-  assert.deepEqual(actionFor(ev('9')), { type: 'cam', id: 'hero' });
+test('6 to 9 and 1 to 5 are free, the preset keys are gone', () => {
+  for (const k of ['1', '2', '5', '6', '7', '8', '9']) assert.equal(actionFor(ev(k)), null);
 });
 
 test('mode and toggle keys', () => {
@@ -33,7 +29,7 @@ test('camera movement keys are not page actions, typing and chords are ignored',
 test('old camera ids in a url still resolve', () => {
   assert.equal(parseHash('#cam=eye').cam, 'ground');
   assert.equal(parseHash('#cam=orbit').cam, 'sky');
-  assert.equal(parseHash('#cam=hero').cam, 'hero');
+  for (const c of ['top', 'plan', 'iso', 'hero']) assert.equal(parseHash('#cam=' + c).cam, 'sky');
 });
 
 test('auto-repeat does not fire toggles or presets', () => {
