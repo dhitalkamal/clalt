@@ -6,7 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-28
+
 ### Added
+
+- The office reads like a team (#54): every session has its own character and
+  desk for its whole life, and every agent type (built-ins, your own agents
+  from the Claude home `agents` folder and each project's `.claude/agents`, and
+  types seen running) has a named desk in a team pavilion: lit while it works,
+  dimmed when idle. Extra parallel runs of a type sit beside it as interns, with
+  a +N badge past three. Busy agents never take breaks. Only the name and
+  description of an agent file are read.
+- Activity panel (#58): click a session, a busy team member or an intern to see
+  its full timeline (prompts, replies, tool calls with files, durations and
+  outcome, subagent runs you can open as their own log), live while open. clalt
+  reads Claude Code's transcript files on demand and stores nothing. New read
+  route `GET /api/activity`.
+- Session actions (#60): Move to another account, Open terminal and Stop (with
+  a confirm step) from the activity panel, for sessions started with
+  `clalt run`; sessions started with plain claude show them disabled with the
+  reason. Stop asks the run wrapper to end the session cleanly at its next
+  pause.
+- Limit warnings (#60): account cards show "full in ~Nm" when the 5h window is
+  forecast to run out within an hour, with Move all, and a desktop notification
+  fires once per account and window at 20 minutes, naming the account with the
+  most room.
+- Local PR reviews (#59): opt in repos under Settings, and clalt reviews pull
+  requests where your review is requested with a read-only Claude run (Read,
+  Grep, Glob only, no PR code executed, the PR's own Claude settings and MCP
+  servers ignored) on the account with the most room. Findings and the full run
+  log show in a Reviews inbox. Nothing is ever posted to GitHub: gh runs only
+  through an allowlist of read commands. Reviews run while `clalt office` runs.
+- Today and History (#61): a daily summary per account and project (sessions,
+  active time, tokens, cost, subagent runs, tools, files, failures) with Copy as
+  text, and 7, 30 or 90 day charts of tokens and the busiest 5h window, built on
+  demand from transcripts.
+- Settings dialog (#56, #57): pick the default office from the page ("Set as
+  default"), it opens on every run; build mode opens from the same dialog.
+- Office camera and walking (#51, #53): left drag orbits around the spot you
+  grab, from straight down to almost level (Shift or right drag moves, Z and X
+  tilt); ground mode jumps with Space, the third person camera pulls in front
+  of walls, and the walker uses the agents' walk and run animation.
 
 - The session feed lists the subagents of each session (`subagents` in
   `feed/sessions/<handle>.json`: id, type, short label, running or done, times),
@@ -22,24 +62,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   or emails. See docs/office.md. The binary grows by about 9 MB for the page,
   the models and net/http.
 
-- `clalt office --edit` is build mode: the page can save the office floor plan
-  as a layout json in `~/.config/clalt/office/layouts`. Without `--edit` the
-  server has no write routes. Writes need the run token, an `X-Clalt-Edit`
-  header and the server's own origin. Layouts are validated on every load, save
-  and import (strict keys, 512 KB, colours, geometry, no urls), so sharing one
-  is safe. `clalt office layout list|use|export|import|reset` manages them. The
+- Build mode (opened from Settings) saves the office floor plan as a layout
+  json in `~/.config/clalt/office/layouts`. Since #56 saving works in every
+  run and `--edit` is accepted but no longer needed. Writes need the run token,
+  an `X-Clalt-Edit` header, the server's own origin and a JSON content type.
+  Layouts are validated on every load, save and import (strict keys, 512 KB,
+  colours, geometry, no urls), so sharing one is safe.
+  `clalt office layout list|use|export|import|reset` manages them. The
   built-in default template is read only. See docs/office.md.
 - The office is a garden campus: pavilions on a lawn with paths, water and trees,
   generated from your accounts and the desks they need. Five templates: `rows`
   (the default), `village`, `river`, `street`, and `hall`, the old single hall
   kept as it was. `clalt office --template <id>` starts with one for a run and
-  writes nothing, `clalt office layout use <id>` saves one as the default, and
-  the page switches templates with keys 1 to 5. Layout files get a version 2
-  for the garden; version 1 files keep loading.
+  writes nothing, and `clalt office layout use <id>` or the page's Settings
+  saves one as the default; the page shows only the default. Layout files get
+  a version 2 for the garden; version 1 files keep loading.
 - Office navigation, the same in every template and in the hall: a sky camera
   (W A S D and arrows, Q and E to turn, R and C for height, wheel zoom to the
-  cursor, left drag to grab the ground, right drag to turn and tilt,
-  double-click to fly to a spot), G for ground level, V for first or third
+  cursor, left drag to orbit, Shift or right drag to move, double-click to fly
+  to a spot), G for ground level, V for first or third
   person, F to follow an agent, Esc and Home to go back, 6 to 9 for the top,
   plan, iso and hero views, P for auto spin and L for labels.
 

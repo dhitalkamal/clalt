@@ -41,8 +41,9 @@ longer needs it.
   tree or deck edge is in the way. V switches between first and third person.
   F follows the agent under the cursor or the selected one. Esc leaves ground
   or follow, and from the sky goes to the top view, like Home.
-- Keys 1 to 5 pick a template, 6 to 9 the top, plan, iso and hero views, P turns
-  auto spin on and off and L the labels. The keys do nothing while you edit.
+- Keys 6 to 9 pick the top, plan, iso and hero views (the template is the
+  default set in Settings), P turns auto spin on and off and L the labels.
+  The keys do nothing while you edit.
 - The camera bar and these keys work the same in every template, the hall
   included. The Overview button goes back to the top view.
 - Hover a character for a card with the handle, project, model, state and

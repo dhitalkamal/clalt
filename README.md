@@ -78,7 +78,7 @@ mode (change the floor plan and save it) opens from the page. `--edit` is no
 longer needed.
 
 Templates: `rows` (the default), `village`, `river`, `street` and `hall`. Pick
-one with `--template <id>` or with keys 1 to 5 on the page.
+one for a run with `--template <id>`, or set the default in the page's Settings.
 
 Navigation on the page (the sky camera, the default):
 
