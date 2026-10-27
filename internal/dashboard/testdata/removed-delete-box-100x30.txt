@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- old-work ----------------------------------------------------------+
+ |   robin     26%   * 2  | | Label      old-work                                                 |
+ |   morgan    22% !      | | Email      old-work@example.com                                     |
+ |   casey     95% ! * 1  | | Folder     ~/.config/clalt/profiles/old-work                        |
+ |   jordan     5%        | | Status     removed                                                  |
+ |   harriet  signed out  | |                                                                     |
+ |                        | | removed: D deletes it for good, enter signs it back in              |
+ |   Removed              | |                                                                     |
+ | > old-work  old-wo...  | |                                                                     |
+ |          +- Delete old-work --------------------------------------------------------+          |
+ |   jordan | Account  old-work (old-work@example.com)                                 |          |
+ |   room l | Folder   ~/.config/clalt/profiles/old-work                               |          |
+ |          |                                                                          |          |
+ |          | this deletes the account; your conversation history stays                |          |
+ |          |                                                                          |          |
+ |          | Type old-work to confirm:                                                |          |
+ |          |                                                                          |          |
+ |          +- enter deletes, esc cancels ---------------------------------------------+          |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  Enter deletes old-work once its name is typed. Esc cancels.

@@ -1,0 +1,5 @@
+{"type":"user","timestamp":"2026-10-27T15:00:00.000Z","sessionId":"s2","isSidechain":false,"message":{"role":"user","content":"main prompt"}}
+{"type":"assistant","timestamp":"2026-10-27T15:00:01.000Z","sessionId":"s2","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_a9","name":"Task","input":{"description":"old style run"}}]}}
+{"type":"user","timestamp":"2026-10-27T15:00:02.000Z","sessionId":"s2","isSidechain":true,"agentId":"b222","message":{"role":"user","content":"inner prompt"}}
+{"type":"assistant","timestamp":"2026-10-27T15:00:03.000Z","sessionId":"s2","isSidechain":true,"agentId":"b222","message":{"role":"assistant","content":[{"type":"text","text":"inner reply"}]}}
+{"type":"user","timestamp":"2026-10-27T15:00:09.000Z","sessionId":"s2","isSidechain":false,"toolUseResult":{"agentId":"b222"},"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a9","content":"ok"}]}}

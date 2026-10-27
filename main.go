@@ -1,5 +1,6 @@
-// Command clalt manages multiple Claude accounts for Claude Code: capture,
-// authenticate, switch, and inspect usage. See README.md for details.
+// Command clalt manages several Claude accounts for Claude Code: it signs each
+// one in through claude's own login, runs sessions for any of them side by side
+// with one shared history, and reports their usage. See README.md for details.
 package main
 
 import (

@@ -2,114 +2,79 @@ package account
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
 
-	"github.com/dhitalkamal/clalt/internal/credential"
-	"github.com/dhitalkamal/clalt/internal/keychain"
-	"github.com/dhitalkamal/clalt/internal/livestore"
+	"github.com/dhitalkamal/clalt/internal/fslock"
+	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
 
-// state is the on-disk metadata file (no secrets).
-type state struct {
-	Active    string          `json:"active"`
-	Accounts  map[string]Meta `json:"accounts"`
-	Fallback  []string        `json:"fallback,omitempty"`  // ordered rotation chain
-	Threshold float64         `json:"threshold,omitempty"` // util fraction that triggers rotation
-}
+// lockTimeout bounds the wait for another clalt process that is saving
+// state.json. a save takes milliseconds, so waiting this long means a stuck
+// process, and the error says so.
+const lockTimeout = 10 * time.Second
 
-// DefaultThreshold is the utilization fraction above which `next --live` rotates
-// off an account.
-const DefaultThreshold = 0.90
+// state is the on-disk metadata file (no secrets). active is a pointer that
+// older versions set when they switched accounts. nothing sets it now, but it is
+// still written back so that the v0.1.0 binary can read the file.
+type state struct {
+	Active   string          `json:"active"`
+	Accounts map[string]Meta `json:"accounts"`
+
+	// when the first sign-in of the folder design worked, see Store.ThinSince.
+	// the v0.1.0 binary ignores a key it does not know
+	ThinSince time.Time `json:"thinSince,omitempty,omitzero"`
+
+	// the folders each account may serve and whether auto-switch may use it, by
+	// account id. it is a map of its own and not a field of Meta so that Meta stays
+	// a value that can be compared with ==, which tests of several commands use to
+	// check that a refused command changed nothing. v0.1.0 ignores the key.
+	Rules map[string]Rules `json:"rules,omitempty"`
+}
 
 // Store is the account manager.
 type Store struct {
-	kc        keychain.Store
-	live      *livestore.Store
 	statePath string
 	logPath   string
 	now       func() time.Time // injectable clock for tests
 }
 
 // New builds a Store.
-func New(kc keychain.Store, live *livestore.Store, statePath, logPath string) *Store {
-	return &Store{kc: kc, live: live, statePath: statePath, logPath: logPath, now: time.Now}
-}
-
-// Save stores (or replaces) a slot's credential and upserts its metadata.
-// AddedAt is set only on first save; a later save preserves it.
-func (s *Store) Save(name string, c credential.Credential, meta Meta) error {
-	if name == "" {
-		return errors.New("account name is empty")
-	}
-	raw, err := json.Marshal(c)
-	if err != nil {
-		return err
-	}
-	if err := s.kc.Set(KeychainService, name, raw); err != nil {
-		return fmt.Errorf("store secret: %w", err)
-	}
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	existing, ok := st.Accounts[name]
-	if ok && !existing.AddedAt.IsZero() {
-		meta.AddedAt = existing.AddedAt
-	} else {
-		meta.AddedAt = s.now()
-	}
-	// keep the previous lastUsedAt unless the caller set one
-	if meta.LastUsedAt.IsZero() {
-		meta.LastUsedAt = existing.LastUsedAt
-	}
-	st.Accounts[name] = meta
-	return s.save(st)
+func New(statePath, logPath string) *Store {
+	return &Store{statePath: statePath, logPath: logPath, now: time.Now}
 }
 
 // SetBudget sets a slot's daily and/or weekly spend caps (USD). A negative value
 // leaves that cap unchanged; zero clears it.
 func (s *Store) SetBudget(name string, daily, weekly float64) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	meta, ok := st.Accounts[name]
-	if !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if daily >= 0 {
-		meta.DailyBudget = daily
-	}
-	if weekly >= 0 {
-		meta.WeeklyBudget = weekly
-	}
-	st.Accounts[name] = meta
-	return s.save(st)
+	return s.mutate(func(st *state) error {
+		meta, ok := st.Accounts[name]
+		if !ok {
+			return errNoAccount(name)
+		}
+		if daily >= 0 {
+			meta.DailyBudget = daily
+		}
+		if weekly >= 0 {
+			meta.WeeklyBudget = weekly
+		}
+		st.Accounts[name] = meta
+		return nil
+	})
 }
 
-// Get returns a slot's credential and metadata.
-func (s *Store) Get(name string) (credential.Credential, Meta, error) {
-	raw, err := s.kc.Get(KeychainService, name)
-	if err != nil {
-		return credential.Credential{}, Meta{}, fmt.Errorf("account %q not found", name)
-	}
-	var c credential.Credential
-	if err := json.Unmarshal(raw, &c); err != nil {
-		return credential.Credential{}, Meta{}, fmt.Errorf("decode secret for %q: %w", name, err)
-	}
+// ThinSince is the time of the first sign-in that worked since accounts became
+// folders, or zero when none has. the old switch log stopped growing then, so
+// usage from that time on has no account to be charged to.
+func (s *Store) ThinSince() (time.Time, error) {
 	st, err := s.load()
-	if err != nil {
-		return credential.Credential{}, Meta{}, err
-	}
-	return c, st.Accounts[name], nil
+	return st.ThinSince, err
 }
 
-// List returns all accounts sorted by name with the active one flagged.
+// List returns all accounts sorted by id.
 func (s *Store) List() ([]Account, error) {
 	st, err := s.load()
 	if err != nil {
@@ -117,121 +82,59 @@ func (s *Store) List() ([]Account, error) {
 	}
 	out := make([]Account, 0, len(st.Accounts))
 	for name, meta := range st.Accounts {
-		out = append(out, Account{Name: name, Meta: meta, Active: name == st.Active})
+		out = append(out, Account{Name: name, Meta: meta})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, nil
 }
 
-// Active returns the active account name (empty if none).
-func (s *Store) Active() (string, error) {
-	st, err := s.load()
-	if err != nil {
-		return "", err
+// mutate runs one load-modify-save cycle under a file lock, so parallel clalt
+// processes (several `clalt run` sessions) cannot overwrite each other's
+// changes. fn must not call another method that mutates: the lock is not
+// re-entrant. nothing is written when fn returns an error.
+func (s *Store) mutate(fn func(st *state) error) error {
+	if err := checkPath(s.statePath); err != nil {
+		return err
 	}
-	return st.Active, nil
+	return fslock.WithLock(s.statePath+".lock", lockTimeout, func() error {
+		st, err := s.load()
+		if err != nil {
+			return err
+		}
+		if err := fn(&st); err != nil {
+			return err
+		}
+		return s.save(st)
+	})
 }
 
-// SetActive points the active marker at name (must exist).
-func (s *Store) SetActive(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
+// checkPath refuses a path that is not absolute. with no home the paths of the
+// state and of the switch log are relative, which means the working directory,
+// and a file there is somebody else's and one written there would be lost.
+func checkPath(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("clalt's state is at %q, which is not an absolute path: is HOME set?", path)
 	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	st.Active = name
-	return s.save(st)
-}
-
-// Remove deletes a slot. It refuses to remove the active account so a switch is
-// required first (prevents leaving Claude Code pointed at a deleted slot).
-func (s *Store) Remove(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	if name == st.Active {
-		return fmt.Errorf("%q is active; switch to another account before removing it", name)
-	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if err := s.kc.Delete(KeychainService, name); err != nil {
-		return err
-	}
-	delete(st.Accounts, name)
-	return s.save(st)
-}
-
-// Delete removes a slot unconditionally (unlike Remove, it does not guard the
-// active account); it clears the active pointer if it pointed here. Used by
-// logout, where forgetting the active account is the explicit intent.
-func (s *Store) Delete(name string) error {
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	if _, ok := st.Accounts[name]; !ok {
-		return fmt.Errorf("account %q not found", name)
-	}
-	if err := s.kc.Delete(KeychainService, name); err != nil {
-		return err
-	}
-	delete(st.Accounts, name)
-	if st.Active == name {
-		st.Active = ""
-	}
-	return s.save(st)
-}
-
-// Rename moves a slot to a new name, fixing the active pointer if needed.
-func (s *Store) Rename(oldName, newName string) error {
-	if newName == "" {
-		return errors.New("new name is empty")
-	}
-	st, err := s.load()
-	if err != nil {
-		return err
-	}
-	meta, ok := st.Accounts[oldName]
-	if !ok {
-		return fmt.Errorf("account %q not found", oldName)
-	}
-	if _, exists := st.Accounts[newName]; exists {
-		return fmt.Errorf("account %q already exists", newName)
-	}
-	raw, err := s.kc.Get(KeychainService, oldName)
-	if err != nil {
-		return fmt.Errorf("read secret for %q: %w", oldName, err)
-	}
-	if err := s.kc.Set(KeychainService, newName, raw); err != nil {
-		return err
-	}
-	if err := s.kc.Delete(KeychainService, oldName); err != nil {
-		return err
-	}
-	delete(st.Accounts, oldName)
-	st.Accounts[newName] = meta
-	if st.Active == oldName {
-		st.Active = newName
-	}
-	return s.save(st)
+	return nil
 }
 
 // load reads state.json, returning an empty state if the file is absent.
 func (s *Store) load() (state, error) {
 	st := state{Accounts: map[string]Meta{}}
-	raw, err := os.ReadFile(s.statePath)
+	if err := checkPath(s.statePath); err != nil {
+		return st, err
+	}
+	raw, err := fsutil.ReadFile(s.statePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return st, nil
 		}
 		return st, err
 	}
+	// a missing file is a store with no accounts, but an empty one is a file
+	// something cut short, and writing on top of it would hide that
 	if len(raw) == 0 {
-		return st, nil
+		return st, fmt.Errorf("%s is empty", s.statePath)
 	}
 	if err := json.Unmarshal(raw, &st); err != nil {
 		return st, fmt.Errorf("parse state.json: %w", err)
@@ -250,5 +153,5 @@ func (s *Store) save(st state) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.statePath, raw, 0o600)
+	return fsutil.WriteFileAtomic(s.statePath, raw, 0o600)
 }

@@ -7,38 +7,16 @@ import (
 	"path/filepath"
 )
 
-// claudeConfigDir returns Claude Code's config dir: $CLAUDE_CONFIG_DIR if set,
-// else ~/.claude.
-func claudeConfigDir() string {
-	if d := os.Getenv("CLAUDE_CONFIG_DIR"); d != "" {
-		return d
-	}
-	return filepath.Join(home(), ".claude")
-}
-
-// ClaudeConfigDir is Claude Code's config dir (the shared home linked into
-// profiles by `clalt run --link`).
-func ClaudeConfigDir() string { return claudeConfigDir() }
-
-// ClaudeCredentialsPath is where Claude Code keeps .credentials.json.
-func ClaudeCredentialsPath() string {
-	return filepath.Join(claudeConfigDir(), ".credentials.json")
-}
-
-// ClaudeProjectsDir holds the per-session transcript JSONL files.
+// ClaudeProjectsDir holds the per-session transcript JSONL files: the projects
+// folder of the shared claude home. that is the same whichever folder the shell
+// points at, since inside a `clalt run` session CLAUDE_CONFIG_DIR is an account
+// folder whose projects is only a link. it is empty when the shared home is.
 func ClaudeProjectsDir() string {
-	return filepath.Join(claudeConfigDir(), "projects")
-}
-
-// ClaudeJSONPath is Claude Code's .claude.json, which holds MCP server
-// definitions (top-level mcpServers = user scope, projects.<path>.mcpServers =
-// local scope). It sits at ~/.claude.json by default, NOT inside ~/.claude, and
-// moves under $CLAUDE_CONFIG_DIR when that is set.
-func ClaudeJSONPath() string {
-	if d := os.Getenv("CLAUDE_CONFIG_DIR"); d != "" {
-		return filepath.Join(d, ".claude.json")
+	shared := SharedClaudeDir()
+	if shared == "" {
+		return ""
 	}
-	return filepath.Join(home(), ".claude.json")
+	return filepath.Join(shared, "projects")
 }
 
 // ClaltDir is clalt's own state dir: $XDG_CONFIG_HOME/clalt if set,
@@ -50,40 +28,55 @@ func ClaltDir() string {
 	return filepath.Join(home(), ".config", "clalt")
 }
 
-// StatePath is the non-secret metadata + active-pointer file.
+// StatePath is the account list: the labels, recorded sign-ins and budgets of
+// the accounts. there are no secrets in it.
 func StatePath() string { return filepath.Join(ClaltDir(), "state.json") }
 
-// SwitchLogPath records account-switch events for usage attribution.
+// SwitchLogPath is the log of account switches that clalt v0.1.0 kept for usage
+// attribution. nothing writes to it now, it is only read.
 func SwitchLogPath() string { return filepath.Join(ClaltDir(), "switches.jsonl") }
 
-// CacheDir holds cached --live usage responses.
-func CacheDir() string { return filepath.Join(ClaltDir(), "cache") }
-
-// ProfilesDir holds one isolated Claude Code config dir per account, for parallel
-// sessions launched via `clalt run`.
+// ProfilesDir holds the per-account profile folders of clalt v0.1.0. nothing
+// writes there now: `clalt migrate` copies their history out and `clalt doctor`
+// looks for history that is not copied yet.
 func ProfilesDir() string { return filepath.Join(ClaltDir(), "profiles") }
 
-// ProfileDir is the isolated config dir for one account.
-func ProfileDir(name string) string { return filepath.Join(ProfilesDir(), name) }
+// AccountsDir holds one claude config dir per account, each used as
+// CLAUDE_CONFIG_DIR for that account (claude keys the login to the path).
+func AccountsDir() string { return filepath.Join(ClaltDir(), "accounts") }
+
+// accountDir is the folder of account id and does not check the id, which is why
+// it is not exported: AccountDirFor is the way to get one.
+func accountDir(id string) string { return filepath.Join(AccountsDir(), id) }
 
 // SessionsDir holds one record per live `clalt run` session.
 func SessionsDir() string { return filepath.Join(ClaltDir(), "sessions") }
 
-// VaultDir holds the encrypted per-account credential store (clalt's own
-// secrets, as opposed to Claude Code's live credential, which stays in the
-// macOS Keychain).
+// SessionAccountsPath is the log of which claude session ran under which
+// account, appended by the hooks of `clalt run` sessions. unlike the feed it is
+// kept, since usage is attributed by it long after the session ended.
+func SessionAccountsPath() string { return filepath.Join(ClaltDir(), "session-accounts.jsonl") }
+
+// FeedDir holds what claude's hooks and statusline report: the state of each
+// running session and the limits of each account.
+func FeedDir() string { return filepath.Join(ClaltDir(), "feed") }
+
+// OfficeDir holds the office layouts and the name of the active one.
+func OfficeDir() string { return filepath.Join(ClaltDir(), "office") }
+
+// LogsDir holds clalt's own log files, such as the errors of the hooks.
+func LogsDir() string { return filepath.Join(ClaltDir(), "logs") }
+
+// VaultDir held the encrypted per-account token store of clalt v0.1.0. nothing
+// reads or writes it now; `clalt doctor` reports it so it can be deleted.
 func VaultDir() string { return filepath.Join(ClaltDir(), "vault") }
 
-// VaultKeyPath is the local encryption key for VaultDir, created on first use.
+// VaultKeyPath was the encryption key for VaultDir.
 func VaultKeyPath() string { return filepath.Join(ClaltDir(), "vault.key") }
 
-// KeepaliveAutoMarkerPath records that the background keepalive was auto-enabled,
-// so clalt does not re-check or re-announce it on every command.
-func KeepaliveAutoMarkerPath() string { return filepath.Join(ClaltDir(), "keepalive.auto") }
-
-// KeepaliveDisabledPath, when present, means the user turned off automatic
-// keepalive (via `keepalive uninstall`); clalt then never auto-installs it.
-func KeepaliveDisabledPath() string { return filepath.Join(ClaltDir(), "keepalive.disabled") }
+// Home is the user home dir by the rule every path here follows: $HOME when set
+// (so tests can override it), else what the platform says.
+func Home() string { return home() }
 
 // home returns the user home dir, falling back to $HOME so tests can override it.
 func home() string {
@@ -93,3 +86,7 @@ func home() string {
 	h, _ := os.UserHomeDir()
 	return h
 }
+
+// DefaultHomePath caches whether plain claude (the default home) is signed in as
+// one of the accounts, so that hooks and reports need not ask claude.
+func DefaultHomePath() string { return filepath.Join(ClaltDir(), "default-home.json") }

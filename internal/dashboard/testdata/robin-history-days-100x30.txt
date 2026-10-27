@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | |  Overview    Sessions    Limits   [History]   Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | [Days]  Projects  Models                                            |
+ |   jordan     5%        | |                                                                     |
+ |   harriet  signed out  | |   day     input  output  cache rd  cache wr    cost  sessions       |
+ |                        | | > Wed 15   0.4M    0.1M      6.2M      0.3M  ~$2.14         3       |
+ |   Removed              | |   Tue 14   0.7M    0.2M     10.5M      0.5M  ~$3.62         4       |
+ |   old-work  old-wo...  | |   Mon 13   0.5M    0.2M      8.3M      0.4M  ~$2.87         3       |
+ |                        | |   Sun 12   0.2M    0.1M      2.8M      0.1M  ~$0.95         1       |
+ |   jordan has the most  | |   Sat 11   0.3M    0.1M      4.1M      0.2M  ~$1.40         2       |
+ |   room left            | |   Fri 10   0.8M    0.2M     11.7M      0.6M  ~$4.05         5       |
+ |                        | |   Thu 9    0.6M    0.2M      9.8M      0.5M  ~$3.37         4       |
+ |                        | |   Wed 8    0.5M    0.2M      7.8M      0.4M  ~$2.70         3       |
+ |                        | |   Tue 7    0.6M    0.2M      9.0M      0.4M  ~$3.10         4       |
+ |                        | |   Mon 6    0.5M    0.2M      7.4M      0.4M  ~$2.55         3       |
+ |                        | |                                                                     |
+ |                        | | -=+=.:+*+=+:.=+==*--=++*#::+*=  last 30 days  ~$71.20               |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter run  s sign in  e budget  r rename  tab pane  [ ] or 1-5 view  / find  ? keys  q quit

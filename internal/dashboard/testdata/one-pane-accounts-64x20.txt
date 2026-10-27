@@ -1,0 +1,20 @@
+ clalt                    5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------------------------------------------+
+ | > robin     26%   * 2                                      |
+ |   morgan    22% !                                          |
+ |   casey     95% ! * 1                                      |
+ |   jordan     5%                                            |
+ |   harriet  signed out                                      |
+ |                                                            |
+ |   Removed                                                  |
+ |   old-work  old-wo...                                      |
+ |                                                            |
+ |   jordan has the most                                      |
+ |   room left                                                |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ |                                                            |
+ +------------------------------------------------------------+
+  enter run  tab pane  [ ] or 1-5 view  ? keys  q quit

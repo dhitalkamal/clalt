@@ -1,13 +1,9 @@
-// Package account manages named Claude credential slots: secrets live in the
-// macOS Keychain under the "clalt" service, non-secret metadata and the active
-// pointer live in state.json, and switching swaps the active slot into Claude
-// Code's live store.
+// Package account keeps what clalt knows about each account: its label, who
+// signed in and when, and its spend caps, in state.json. there are no secrets
+// here: claude keeps each account's login in the account's own folder.
 package account
 
 import "time"
-
-// KeychainService is the namespace for per-account credential secrets.
-const KeychainService = "clalt"
 
 // Meta is the non-secret info shown in listings and the dashboard.
 type Meta struct {
@@ -18,11 +14,30 @@ type Meta struct {
 	// spend caps in USD (0 = unset); used for budget bars and alerts.
 	DailyBudget  float64 `json:"dailyBudget,omitempty"`
 	WeeklyBudget float64 `json:"weeklyBudget,omitempty"`
+
+	// added with thin profiles. the fields above are still written so the
+	// v0.1.0 binary can read the file. an unset label means the id is the label.
+	Label string `json:"label,omitempty"`
+	Org   string `json:"org,omitempty"`
+	// omitempty alone never drops a zero time.Time, omitzero does
+	SignedInAt time.Time `json:"signedInAt,omitempty,omitzero"`
+	Hidden     bool      `json:"hidden,omitempty"`
 }
 
-// Account is a slot plus whether it is currently active.
+// Account is one account of the state file. the state also keeps the active
+// pointer v0.1.0 wrote, so that the old binary can still read the file, but
+// nothing reads it here.
 type Account struct {
-	Name   string
-	Meta   Meta
-	Active bool
+	Name string // the account id: the state.json key and the folder under accounts/
+	Meta Meta
+}
+
+// Label is what the user sees and types: Meta.Label, else the id.
+func (a Account) Label() string { return labelOf(a.Name, a.Meta) }
+
+func labelOf(id string, m Meta) string {
+	if m.Label != "" {
+		return m.Label
+	}
+	return id
 }

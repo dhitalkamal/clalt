@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | robin@example.com   Example   team plan                             |
+ |   jordan     5%        | | Signed in. Re-login due in 23 days. Last used 4m ago.               |
+ |   harriet  signed out  | |                                                                     |
+ |                        | | 5h  #######=---------------------  26%  resets 01:45 (in 1h52m)     |
+ |   Removed              | |     at this pace it runs out around 01:10                           |
+ |   old-work  old-wo...  | | 7d  ############-----------------  42%  resets Fri 15:45 (1d 15h)   |
+ |                        | |     on pace to finish the week at 71%                               |
+ |   jordan has the most  | | Limits as of 4s ago.                                                |
+ |   room left            | |                                                                     |
+ |                        | | Budget   today  $2.14 of $10.00   ####=----------------             |
+ |                        | |          week  $18.40 of $50.00   #######=-------------             |
+ |                        | |                                                                     |
+ |                        | | Today    529k tokens   ~$2.14                                       |
+ |                        | | Week     *#::+*=   4.5M tokens   ~$18.40                            |
+ |                        | |                                                                     |
+ |                        | | Running  2 sessions: 1 working, 1 waiting for you                   |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  New label for robin: morgan  Another account has that name.

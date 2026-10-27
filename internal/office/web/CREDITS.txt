@@ -1,0 +1,18 @@
+All assets are CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). Credit is not required,
+listed for provenance. Only the .glb files below were copied into assets/ and are what the page loads.
+
+1. Kenney, Furniture Kit 2.0 - https://kenney.nl/assets/furniture-kit (CC0)
+   assets/furniture/*.glb (desk, monitor, keyboard, mouse, walls, windows, doorway, floor, plants, lamps,
+   cabinets, bookcases, rugs, round table, side table, coffee machine, laptop, books)
+2. Kenney, Mini Characters 1.0 - https://kenney.nl/assets/mini-characters (CC0)
+   assets/characters/character-{male,female}-{a..f}.glb + Textures/colormap.png
+3. three.js r170 (three@0.170.0 from the npm registry), MIT, https://threejs.org
+   vendor/three (build/three.module.min.js and the loaders from examples/jsm, LICENSE; no CDN at runtime)
+
+Not used, evaluated for typing and wave clips:
+ - Quaternius "Animated Character" via poly.pizza (https://poly.pizza/m/2urczqZ9Xf, CC0 1.0): has Idle, Walk,
+   Run, Wave, Yes, No, Jump but no typing or sitting clip, and it is one lone character in another art style.
+   Not downloaded into the project.
+ - Quaternius Universal Animation Library / Ultimate Animated Character: only on itch.io and Patreon pages,
+   no direct file link, so skipped.
+ - No CC0 pack with a typing clip was found, so typing and waving stay procedural on the Kenney rig.

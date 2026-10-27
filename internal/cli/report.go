@@ -1,18 +1,15 @@
 package cli
 
 import (
-	"context"
+	"errors"
+	"fmt"
 	"sort"
 	"time"
 
+	"github.com/dhitalkamal/clalt/internal/account"
 	"github.com/dhitalkamal/clalt/internal/config"
-	"github.com/dhitalkamal/clalt/internal/credential"
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
-
-// liveTTL is how long a cached live-usage response stays fresh; the endpoint
-// rate-limits hard, so we poll it rarely.
-const liveTTL = 5 * time.Minute
 
 type modelStat struct {
 	Model    string  `json:"model"`
@@ -27,30 +24,40 @@ type projectStat struct {
 	Messages int    `json:"messages"`
 }
 
+// accountReport is the usage of one account. name is its label, id the folder
+// it is kept in; usage nobody can be blamed for is reported as unattributed,
+// under that name and id.
 type accountReport struct {
-	Name      string            `json:"name"`
-	Active    bool              `json:"active"`
-	Plan      string            `json:"plan,omitempty"`
-	Email     string            `json:"email,omitempty"`
-	ExpiresAt time.Time         `json:"expiresAt,omitempty"`
-	FiveHour  usage.WindowStat  `json:"fiveHour"`
-	SevenDay  usage.WindowStat  `json:"sevenDay"`
-	Tokens    int64             `json:"tokens"`
-	Cost      float64           `json:"cost"`
-	Models    []modelStat       `json:"models"`
-	Projects  []projectStat     `json:"topProjects"`
-	Trend     []usage.DayBucket `json:"trend"`
-	Live      *usage.LiveUsage  `json:"live,omitempty"`
-	LiveNote  string            `json:"liveNote,omitempty"`
+	ID       string            `json:"id,omitempty"`
+	Name     string            `json:"name"`
+	Plan     string            `json:"plan,omitempty"`
+	Email    string            `json:"email,omitempty"`
+	FiveHour usage.WindowStat  `json:"fiveHour"`
+	SevenDay usage.WindowStat  `json:"sevenDay"`
+	Tokens   int64             `json:"tokens"`
+	Cost     float64           `json:"cost"`
+	Models   []modelStat       `json:"models"`
+	Projects []projectStat     `json:"topProjects"`
+	Trend    []usage.DayBucket `json:"trend"`
 }
 
 // recordsByAccount scans local transcripts and groups usage records by the
-// account active at each record's time, folding pre-first-switch usage into the
-// current active account so a fresh user still sees their history.
+// account id that was active at each record's time, per the switch log an old
+// clalt kept. what the log cannot place stays under usage.Unattributed, and so
+// does everything from the first sign-in of the folder design on, unless a
+// session of clalt run saw its claude session id, which says whose it is. records
+// are deduped by message id and request id, so a reply Claude Code wrote as
+// several transcript lines counts once. the transcripts are the ones of the
+// shared home, and when they cannot be read that is an error: the numbers would
+// be missing, not zero.
 func (a *App) recordsByAccount() (map[string][]usage.Record, error) {
-	records, err := usage.ScanProjects(config.ClaudeProjectsDir())
+	projects := config.ClaudeProjectsDir()
+	if projects == "" {
+		return nil, errors.New(noHomeKnown)
+	}
+	records, err := usage.ScanRoots([]string{projects})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read the transcripts in %s: %w", projects, err)
 	}
 	events, err := a.Store.ReadSwitchLog()
 	if err != nil {
@@ -60,52 +67,62 @@ func (a *App) recordsByAccount() (map[string][]usage.Record, error) {
 	for _, e := range events {
 		usageEvents = append(usageEvents, usage.SwitchEvent{Ts: e.Ts, Account: e.Account})
 	}
-	byAccount := usage.Attribute(records, usageEvents)
-	if active, _ := a.Store.Active(); active != "" {
-		if u := byAccount[usage.Unattributed]; len(u) > 0 {
-			byAccount[active] = append(byAccount[active], u...)
-			delete(byAccount, usage.Unattributed)
-		}
+	// the log stopped growing when the first account signed in as a folder, and
+	// what was written after that has no account to be charged to
+	cutover, err := a.Store.ThinSince()
+	if err != nil {
+		return nil, err
 	}
-	return byAccount, nil
+	sessions, err := usage.ReadSessionAccounts(config.SessionAccountsPath())
+	if err != nil {
+		return nil, err
+	}
+	sessions, err = a.addDefaultLines(records, sessions, cutover)
+	if err != nil {
+		return nil, err
+	}
+	return usage.AttributeSessions(records, usageEvents, sessions, cutover), nil
 }
 
-// buildReports assembles per-account usage from local transcripts attributed via
-// the switch log, optionally augmented with live data for the filtered account.
-func (a *App) buildReports(wantLive bool, filter string) ([]accountReport, error) {
+// buildReports assembles per-account usage from local transcripts. with a label
+// it reports that one account; without, every visible account, then whatever
+// usage no account could be given.
+func (a *App) buildReports(label string) ([]accountReport, error) {
 	byAccount, err := a.recordsByAccount()
 	if err != nil {
 		return nil, err
 	}
-	accts, err := a.Store.List()
+	accts, err := a.visibleAccounts()
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now()
+	if label != "" {
+		acc, err := a.findVisible(label)
+		if err != nil {
+			return nil, err
+		}
+		accts = []account.Account{acc}
+	}
+	now := a.clock()
 	var reports []accountReport
-	for _, ac := range accts {
-		if filter != "" && ac.Name != filter {
-			continue
-		}
-		recs := byAccount[ac.Name]
-		r := buildOne(ac.Name, ac.Active, ac.Meta.Plan, ac.Meta.Email, recs, now)
-		if c, _, gerr := a.Store.Get(ac.Name); gerr == nil {
-			r.ExpiresAt = c.ExpiresAtTime()
-			if wantLive {
-				r.Live, r.LiveNote = a.liveUsage(ac.Name, c)
-			}
-		}
+	for _, acc := range accts {
+		r := buildOne(shown(acc), byAccount[acc.Name], now)
+		r.ID, r.Plan, r.Email = acc.Name, clean(acc.Meta.Plan), clean(acc.Meta.Email)
 		reports = append(reports, r)
+	}
+	if recs := byAccount[usage.Unattributed]; label == "" && len(recs) > 0 {
+		rest := buildOne(usage.Unattributed, recs, now)
+		rest.ID = usage.Unattributed
+		reports = append(reports, rest)
 	}
 	return reports, nil
 }
 
-func buildOne(name string, active bool, plan, email string, recs []usage.Record, now time.Time) accountReport {
+func buildOne(name string, recs []usage.Record, now time.Time) accountReport {
 	r := accountReport{
-		Name: name, Active: active, Plan: plan, Email: email,
+		Name:     name,
 		FiveHour: usage.Window(recs, now, 5*time.Hour),
 		SevenDay: usage.Window(recs, now, 7*24*time.Hour),
-		Tokens:   0,
 		Cost:     usage.TotalCost(recs),
 		Trend:    usage.DailyTrend(recs, 14, now),
 	}
@@ -143,35 +160,4 @@ func buildOne(name string, active bool, plan, email string, recs []usage.Record,
 		r.Projects = r.Projects[:5] // top 5
 	}
 	return r
-}
-
-// liveUsage returns cached live data when fresh, otherwise fetches; on a rate
-// limit it falls back to any stale cache and notes that.
-func (a *App) liveUsage(name string, cred credential.Credential) (*usage.LiveUsage, string) {
-	now := time.Now()
-	if e, ok := a.Cache.Load(name); ok && e.Fresh(liveTTL, now) {
-		d := e.Data
-		return &d, "cached"
-	}
-	if a.ApiBase == "" {
-		return nil, "live disabled"
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	lu, err := usage.FetchLive(ctx, a.OAuth.HTTP, a.ApiBase, cred.AccessToken)
-	if err != nil {
-		if e, ok := a.Cache.Load(name); ok {
-			d := e.Data
-			if usage.IsRateLimited(err) {
-				return &d, "rate limited; showing stale cache"
-			}
-			return &d, "live fetch failed; showing stale cache"
-		}
-		if usage.IsRateLimited(err) {
-			return nil, "rate limited; no cached data"
-		}
-		return nil, "live fetch failed: " + err.Error()
-	}
-	_ = a.Cache.Save(name, lu, now)
-	return &lu, "live"
 }

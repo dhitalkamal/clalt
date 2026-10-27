@@ -1,0 +1,15 @@
+{"type":"user","timestamp":"2026-10-27T14:00:00.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"user","content":"fix the parser"}}
+{"type":"assistant","timestamp":"2026-10-27T14:00:02.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"thinking","thinking":"private thoughts"},{"type":"text","text":"I will look at it"}]}}
+{"type":"assistant","timestamp":"2026-10-27T14:00:03.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_r1","name":"Read","input":{"file_path":"src/parser.go"}}]}}
+{"type":"user","timestamp":"2026-10-27T14:00:04.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_r1","content":"package parser"}]}}
+{"type":"assistant","timestamp":"2026-10-27T14:00:05.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_b1","name":"Bash","input":{"command":"go test ./...","description":"run the tests"}}]}}
+{"type":"user","timestamp":"2026-10-27T14:00:08.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b1","is_error":true,"content":[{"type":"text","text":"FAIL parser"}]}]}}
+{"type":"assistant", this line is broken
+{"type":"assistant","timestamp":"2026-10-27T14:00:10.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_a1","name":"Agent","input":{"description":"survey the repo","subagent_type":"Explore","prompt":"look around"}}]}}
+{"type":"user","timestamp":"2026-10-27T14:00:40.000Z","sessionId":"s1","isSidechain":false,"toolUseResult":{"agentId":"a111","status":"completed"},"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a1","content":[{"type":"text","text":"survey done"}]}]}}
+{"type":"assistant","timestamp":"2026-10-27T14:00:41.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_e1","name":"Edit","input":{"file_path":"src/parser.go","old_string":"a","new_string":"b"}}]}}
+{"type":"user","timestamp":"2026-10-27T14:00:42.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_e1","content":"edited"}]}}
+{"type":"system","subtype":"compact_boundary","timestamp":"2026-10-27T14:00:43.000Z","sessionId":"s1","content":"conversation compacted"}
+{"type":"user","timestamp":"2026-10-27T14:00:44.000Z","sessionId":"s1","isMeta":true,"message":{"role":"user","content":"meta caveat"}}
+{"type":"attachment","timestamp":"2026-10-27T14:00:45.000Z","sessionId":"s1","attachment":{"type":"hook"}}
+{"type":"assistant","timestamp":"2026-10-27T14:00:46.000Z","sessionId":"s1","isSidechain":false,"message":{"role":"assistant","content":[{"type":"text","text":"all done"}]}}

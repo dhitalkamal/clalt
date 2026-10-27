@@ -1,0 +1,10 @@
+[
+  {"id": "general-purpose", "name": "General Purpose", "desc": "", "source": "builtin", "busy": 0, "color": "#4f8edc"},
+  {"id": "explore", "name": "Explore", "desc": "fast codebase search", "source": "builtin", "busy": 2, "color": "#e0a030"},
+  {"id": "plan", "name": "Plan", "desc": "", "source": "builtin", "busy": 0, "color": "#6cc08b"},
+  {"id": "code-reviewer", "name": "Code Reviewer", "desc": "", "source": "user", "busy": 1, "color": "#d9577a"},
+  {"id": "pr-review-toolkit:code-reviewer", "name": "pr-review-toolkit:code-reviewer", "desc": "", "source": "seen", "busy": 0, "color": "#9a6ad8"},
+  {"id": "my-agent", "name": "My Agent", "desc": "", "source": "project", "busy": 0, "color": "#3fb5b0"},
+  {"id": "test-runner", "name": "Test Runner", "desc": "", "source": "project", "busy": 0, "color": "#c8c04a"},
+  {"id": "seen-one", "name": "Seen One", "desc": "", "source": "seen", "busy": 0, "color": "#8a8f9a"}
+]

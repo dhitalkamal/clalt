@@ -1,0 +1,636 @@
+[
+  {
+    "id": "desk",
+    "footprint": {
+      "w": 4,
+      "d": 3
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "seat",
+      "work"
+    ],
+    "label": "Desk",
+    "category": "work"
+  },
+  {
+    "id": "cabin",
+    "footprint": {
+      "w": 4,
+      "d": 4
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "seat",
+      "cabin"
+    ],
+    "label": "Glass cabin",
+    "category": "work"
+  },
+  {
+    "id": "divider",
+    "footprint": {
+      "w": 3,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Glass divider",
+    "category": "work"
+  },
+  {
+    "id": "bookcase",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Bookcase",
+    "category": "work"
+  },
+  {
+    "id": "bookcase-open",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Open bookcase",
+    "category": "work"
+  },
+  {
+    "id": "pin-board",
+    "footprint": {
+      "w": 2,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Pin board",
+    "category": "work"
+  },
+  {
+    "id": "graph-screen",
+    "footprint": {
+      "w": 2,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Call graph screen",
+    "category": "work"
+  },
+  {
+    "id": "printer-table",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "printer"
+    ],
+    "label": "Printer table",
+    "category": "work"
+  },
+  {
+    "id": "tv-cabinet",
+    "footprint": {
+      "w": 2,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "TV cabinet",
+    "category": "work"
+  },
+  {
+    "id": "rack",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0
+    ],
+    "tags": [],
+    "label": "Storage rack",
+    "category": "work"
+  },
+  {
+    "id": "table-seat",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "seat",
+      "round"
+    ],
+    "label": "Table seat",
+    "category": "meeting"
+  },
+  {
+    "id": "round-table",
+    "footprint": {
+      "w": 2,
+      "d": 2
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Round table",
+    "category": "meeting"
+  },
+  {
+    "id": "whiteboard",
+    "footprint": {
+      "w": 3,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Whiteboard",
+    "category": "meeting"
+  },
+  {
+    "id": "pages-table",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Review pages table",
+    "category": "meeting"
+  },
+  {
+    "id": "coffee-pot-table",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Coffee pot table",
+    "category": "meeting"
+  },
+  {
+    "id": "side-table",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Side table",
+    "category": "meeting"
+  },
+  {
+    "id": "sofa",
+    "footprint": {
+      "w": 3,
+      "d": 2
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Sofa",
+    "category": "lounge"
+  },
+  {
+    "id": "lounge-chair",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Lounge chair",
+    "category": "lounge"
+  },
+  {
+    "id": "coffee-table",
+    "footprint": {
+      "w": 2,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Coffee table",
+    "category": "lounge"
+  },
+  {
+    "id": "rug",
+    "footprint": {
+      "w": 6,
+      "d": 4
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Rug",
+    "category": "lounge"
+  },
+  {
+    "id": "rug-large",
+    "footprint": {
+      "w": 8,
+      "d": 4
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Large rug",
+    "category": "lounge"
+  },
+  {
+    "id": "rug-round",
+    "footprint": {
+      "w": 4,
+      "d": 4
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Round rug",
+    "category": "lounge"
+  },
+  {
+    "id": "rug-small",
+    "footprint": {
+      "w": 3,
+      "d": 2
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Small rug",
+    "category": "lounge"
+  },
+  {
+    "id": "coffee-bar",
+    "footprint": {
+      "w": 4,
+      "d": 2
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "break"
+    ],
+    "label": "Coffee bar",
+    "category": "food"
+  },
+  {
+    "id": "high-table",
+    "footprint": {
+      "w": 3,
+      "d": 3
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "break"
+    ],
+    "label": "High table",
+    "category": "food"
+  },
+  {
+    "id": "menu-board",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Menu board",
+    "category": "food"
+  },
+  {
+    "id": "water-cooler",
+    "footprint": {
+      "w": 1,
+      "d": 2
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "break"
+    ],
+    "label": "Water cooler",
+    "category": "food"
+  },
+  {
+    "id": "ping-pong",
+    "footprint": {
+      "w": 5,
+      "d": 2
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "play"
+    ],
+    "label": "Ping-pong table",
+    "category": "fun"
+  },
+  {
+    "id": "arcade",
+    "footprint": {
+      "w": 1,
+      "d": 2
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "play"
+    ],
+    "label": "Arcade machine",
+    "category": "fun"
+  },
+  {
+    "id": "bean-bag-red",
+    "footprint": {
+      "w": 2,
+      "d": 2
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "play"
+    ],
+    "label": "Bean bag (red)",
+    "category": "fun"
+  },
+  {
+    "id": "bean-bag-blue",
+    "footprint": {
+      "w": 2,
+      "d": 2
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "play"
+    ],
+    "label": "Bean bag (blue)",
+    "category": "fun"
+  },
+  {
+    "id": "plant",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Plant",
+    "category": "decor"
+  },
+  {
+    "id": "plant-small",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Small plant",
+    "category": "decor"
+  },
+  {
+    "id": "fern",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Fern",
+    "category": "decor"
+  },
+  {
+    "id": "sprout",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Sprout",
+    "category": "decor"
+  },
+  {
+    "id": "lamp-floor",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Floor lamp",
+    "category": "decor"
+  },
+  {
+    "id": "lamp-square",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [],
+    "label": "Square lamp",
+    "category": "decor"
+  },
+  {
+    "id": "clock",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "wall"
+    ],
+    "label": "Wall clock",
+    "category": "decor"
+  },
+  {
+    "id": "notice-board",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "wall"
+    ],
+    "label": "Notice board",
+    "category": "decor"
+  },
+  {
+    "id": "pendant",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0,
+      1
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Pendant lamp",
+    "category": "decor"
+  },
+  {
+    "id": "reception",
+    "footprint": {
+      "w": 2,
+      "d": 1
+    },
+    "levels": [
+      0
+    ],
+    "tags": [],
+    "label": "Reception desk",
+    "category": "lobby"
+  },
+  {
+    "id": "umbrella-stand",
+    "footprint": {
+      "w": 1,
+      "d": 1
+    },
+    "levels": [
+      0
+    ],
+    "tags": [],
+    "label": "Umbrella stand",
+    "category": "lobby"
+  },
+  {
+    "id": "pergola",
+    "footprint": {
+      "w": 16,
+      "d": 6
+    },
+    "levels": [
+      0
+    ],
+    "tags": [
+      "floor"
+    ],
+    "label": "Pergola",
+    "category": "structure"
+  }
+]

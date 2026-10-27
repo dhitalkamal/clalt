@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | |  Overview    Sessions    Limits   [History]   Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | Projects / clalt                                                    |
+ |   jordan     5%        | | Total   ~$47.10 (66% of cost)   11.5M tokens   48 sessions          |
+ |   harriet  signed out  | |                                                                     |
+ |                        | |   day     model       sessions  tokens    cost                      |
+ |   Removed              | |   Wed 15  Opus 5.5           2    238k  ~$1.52                      #
+ |   old-work  old-wo...  | |   Tue 14  Opus 5.5           4    894k  ~$3.62                      #
+ |                        | |   Mon 13  Opus 5.5           3    709k  ~$2.87                      #
+ |   jordan has the most  | |   Sat 11  Opus 5.5           2    346k  ~$1.40                      #
+ |   room left            | |   Fri 10  Opus 5.5           2    269k  ~$1.72                      #
+ |                        | |   Thu 9   Opus 5.5           3    521k  ~$2.81                      #
+ |                        | |   Thu 9   Sonnet 5.5         1    311k  ~$0.56                      #
+ |                        | |   Wed 8   Sonnet 5.5         1    416k  ~$1.31                      #
+ |                        | |   Tue 7   Opus 5.5           1     72k  ~$0.45                      #
+ |                        | |   Mon 6   Sonnet 5.5         1    383k  ~$0.87                      #
+ |                        | |   Sun 5   Opus 5.5           1     55k  ~$0.53                      |
+ |                        | |   Sat 4   Opus 5.5           1    135k  ~$1.01                      |
+ |                        | |   Fri 3   Opus 5.5           1    243k  ~$1.53                      |
+ |                        | |   Thu 2   Opus 5.5           1    262k  ~$1.06                      |
+ |                        | |   Wed 1   Sonnet 5.5         1    151k  ~$0.61                      |
+ |                        | |   Tue 30  Sonnet 5.5         1    619k  ~$1.78                      |
+ |                        | |   Tue 30  Opus 5.5           2    159k  ~$1.37                      |
+ |                        | |   Mon 29  Sonnet 5.5         1    553k  ~$1.75                      |
+ |                        | |   Mon 29  Opus 5.5           1     89k  ~$0.85                      |
+ |                        | |   Sun 28  Opus 5.5           1    210k  ~$0.85                      |
+ +------------------------+ +---------------------------------------------------------------------+
+  esc back   tab pane   [ ] or 1-5 view   ? keys   q quit

@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | | [Overview]   Sessions    Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | robin@example.com   Example   team plan                             |
+ |   jordan     5%        | | Signed in. Re-login due in 23 days. Last used 4m ago.               |
+ |   harriet  signed out  | |                                                                     |
+ |                        | | 5h  #######=---------------------  26%  resets 01:45 (in 1h52m)     |
+ |   Removed              | |     at this pace it runs out around 01:10                           |
+ |   old-work  old-wo...  | | 7d  ############-----------------  42%  resets Fri 15:45 (1d 15h)   |
+ |          +- Delete robin -----------------------------------------------------------+          |
+ |   jordan | Account  robin (robin@example.com)                                       |          |
+ |   room l | Folder   ~/.config/clalt/profiles/robin                                  |          |
+ |          |                                                                          |          |
+ |          | this deletes the account; your conversation history stays                |          |
+ |          |                                                                          |          |
+ |          | Type robin to confirm:                                                   |          |
+ |          |                                                                          |          |
+ |          +- enter deletes, esc cancels ---------------------------------------------+          |
+ |                        | | Running  2 sessions: 1 working, 1 waiting for you                   |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  Enter deletes robin once its name is typed. Esc cancels.

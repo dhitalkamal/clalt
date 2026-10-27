@@ -1,34 +1,30 @@
 BINARY := clalt
 INSTALL_DIR ?= $(HOME)/bin
 
-# CODESIGN_IDENTITY is the name of a stable code-signing identity in your login
-# keychain (a self-signed code-signing cert is fine; see the README). When set,
-# build/install sign the binary with it so its code identity is stable across
-# rebuilds and a macOS Keychain "always allow" grant persists instead of the
-# login-password prompt recurring every run. When empty, `go build` leaves the
-# default ad-hoc signature and clalt warns that prompts will recur.
-CODESIGN_IDENTITY ?=
-CODESIGN_ID := com.clalt.cli
+# build metadata injected via -ldflags -X into internal/version; VERSION falls
+# back to "dev" (the package default) when git isn't available or has no tags.
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null)
+COMMIT  := $(shell git rev-parse HEAD 2>/dev/null)
+DATE    := $(shell date -u +%Y-%m-%d)
+VERSION_PKG := github.com/dhitalkamal/clalt/internal/version
+LDFLAGS := -X $(VERSION_PKG).Commit=$(COMMIT) -X $(VERSION_PKG).Date=$(DATE)
+ifneq ($(strip $(VERSION)),)
+LDFLAGS += -X $(VERSION_PKG).Version=$(VERSION)
+endif
 
-.PHONY: build sign test vet fmt fmtcheck check install cross clean
+.PHONY: build test testjs vet fmt fmtcheck check install cross clean
 
 build:
-	go build -o $(BINARY) .
-	@$(MAKE) --no-print-directory sign
-
-# sign applies the stable identity when one is configured; otherwise it warns
-# that the binary keeps its ad-hoc signature.
-sign:
-ifeq ($(strip $(CODESIGN_IDENTITY)),)
-	@echo "warning: no CODESIGN_IDENTITY set; binary is ad-hoc signed and macOS will re-prompt for your login password every run."
-	@echo "         build with 'make install CODESIGN_IDENTITY=<name>' once you have created the identity (see README)."
-else
-	codesign --force --identifier $(CODESIGN_ID) --sign "$(CODESIGN_IDENTITY)" $(BINARY)
-	@echo "signed $(BINARY) with identity '$(CODESIGN_IDENTITY)'"
-endif
+	go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test:
 	go test ./...
+
+# node tests of the office page; skipped with a message when node is missing
+testjs:
+	@if command -v node >/dev/null 2>&1; then \
+		node --test internal/office/web/js/_test/*.test.js internal/office/web/js/editor/_tests/*.mjs; \
+	else echo "testjs: node not found, skipping the office page tests"; fi
 
 vet:
 	go vet ./...
@@ -40,23 +36,24 @@ fmtcheck:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "unformatted:"; echo "$$out"; exit 1; fi
 
 # run everything CI would
-check: fmtcheck vet test build
+check: fmtcheck vet test testjs build
 
 install: build
 	mkdir -p $(INSTALL_DIR)
 	cp $(BINARY) $(INSTALL_DIR)/$(BINARY)
 	@echo "installed to $(INSTALL_DIR)/$(BINARY) (ensure it is on your PATH)"
 
-# cross builds ready-to-copy binaries for other devices into dist/. Linux and
-# Windows are pure Go (no cgo); the macOS binary is built for this Mac's arch
-# (other Macs should build from source so signing is local). Copy the matching
-# dist/ file to the target's PATH; no Go needed on the target.
+# cross builds ready-to-copy binaries for other devices into dist/. Every
+# target is pure Go (CGO_ENABLED=0, no keychain/cgo dependency anywhere), so
+# any of these can be built from any host, including macOS from Linux CI.
+# Copy the matching dist/ file to the target's PATH; no Go needed there.
 cross:
 	@mkdir -p dist
-	go build -o dist/clalt-darwin-$$(go env GOARCH) .
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/clalt-linux-amd64 .
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dist/clalt-linux-arm64 .
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/clalt-windows-amd64.exe .
+	CGO_ENABLED=0 GOOS=darwin  GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/clalt-darwin-amd64 .
+	CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o dist/clalt-darwin-arm64 .
+	CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/clalt-linux-amd64 .
+	CGO_ENABLED=0 GOOS=linux   GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o dist/clalt-linux-arm64 .
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/clalt-windows-amd64.exe .
 	@echo "built dist/ binaries:"; ls -1 dist
 
 clean:

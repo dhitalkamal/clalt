@@ -1,0 +1,14 @@
+
+
+
+
+
+
+  Terminal too small. Make it at least 60 by 16.
+            Current size is 50 by 14.
+
+
+
+
+
+

@@ -1,196 +1,262 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
-	"time"
+	"os/signal"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
 
+	"golang.org/x/term"
+
+	"github.com/dhitalkamal/clalt/internal/account"
+	"github.com/dhitalkamal/clalt/internal/claudecli"
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/profile"
 )
 
-// cmdRun launches Claude Code for one account. On Linux/Windows the account runs
-// in an isolated config dir in parallel with others. On macOS Claude Code reads
-// one global credential regardless of config dir, so run loads the account into
-// the live login before launching (accounts are not parallel there).
-// Usage: clalt run <account> [--isolated] [--refresh] [-- claude args]
+const runUsage = "clalt run <name> [-- claude args]"
+
+// exitError ends the command with the exit code of the claude it ran, and
+// prints nothing: what went wrong is claude's to say.
+type exitError struct{ code int }
+
+func (e exitError) Error() string { return "exit status " + strconv.Itoa(e.code) }
+
+// cmdRun starts claude as an account. it makes sure the account's folder is
+// linked to the shared claude home and is signed in as the person it was set up
+// for, then gets out of the way.
 func (a *App) cmdRun(args []string) error {
-	account, opts, claudeArgs, err := parseRunArgs(args)
+	label, claudeArgs, err := parseRunArgs(args)
 	if err != nil {
 		return err
 	}
-
-	dir := config.ProfileDir(account)
-	// put the account's credential where claude will actually read it on this OS
-	if err := a.stageForRun(account, dir, opts.refresh); err != nil {
+	var acc account.Account
+	var found bool
+	if label == "" {
+		// the account itself is kept: looking it up again by label could land on
+		// another one that folds to the same label
+		if acc, err = a.pickAccount(); err != nil {
+			return err
+		}
+		label, found = acc.Label(), true
+	} else {
+		acc, found, err = a.Store.ResolveLabel(label)
+	}
+	switch {
+	case err != nil:
 		return err
+	case !found:
+		return fmt.Errorf("no account called %q. sign in with: clalt login %s", label, label)
+	case acc.Meta.Hidden:
+		return fmt.Errorf("%q was removed. 'clalt login %s' brings it back", label, label)
 	}
-
-	// by default a profile inherits the user's full Claude config (settings,
-	// skills, MCP, CLAUDE.md, ...) so a run session behaves like their normal
-	// setup; --isolated opts out for a clean-room profile.
-	if !opts.isolated {
-		if shared, serr := profile.ShareConfig(dir, config.ClaudeConfigDir(), opts.refresh); serr == nil && len(shared) > 0 {
-			a.printf("shared config into profile: %v\n", shared)
-		}
-		// MCP servers live in ~/.claude.json, outside the dirs ShareConfig covers,
-		// so project them separately into the profile's own .claude.json.
-		if servers, merr := profile.LinkMCP(dir, config.ClaudeJSONPath()); merr == nil && len(servers) > 0 {
-			a.printf("shared mcp servers into profile: %v\n", servers)
-		}
-	}
-
-	bin := claudeBinary()
-	path, err := exec.LookPath(bin)
+	folder, err := folderFor(acc)
 	if err != nil {
-		return fmt.Errorf("could not find the %q binary on PATH: %w", bin, err)
-	}
-
-	a.printf("launching claude as %q (profile: %s)\n", account, dir)
-	cmd := exec.Command(path, claudeArgs...)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, a.Out, a.Err
-	// point Claude Code at the profile dir for settings/skills; on Linux/Windows
-	// this also scopes the credential file, giving true isolation.
-	cmd.Env = append(os.Environ(),
-		"CLAUDE_CONFIG_DIR="+dir,
-		"CLAUDE_SECURESTORAGE_CONFIG_DIR="+dir,
-	)
-	if err := cmd.Start(); err != nil {
 		return err
 	}
-	// record the live session so `clalt sessions` and the dashboard can show it
-	pid := cmd.Process.Pid
-	cwd, _ := os.Getwd()
-	_ = profile.WriteSession(config.SessionsDir(), profile.Session{
-		Account: account, PID: pid, Cwd: cwd, StartedAt: time.Now(),
-	})
-	runErr := cmd.Wait()
-	_ = profile.RemoveSession(config.SessionsDir(), pid)
-
-	// capture any rotated token back into the account slot (best-effort)
-	a.syncAfterRun(account, dir)
-	return runErr
-}
-
-// stageForRun makes the account's credential visible to the claude session it is
-// about to launch, using the mechanism that platform's Claude Code actually
-// reads: the live keychain on macOS, an isolated per-profile file elsewhere.
-func (a *App) stageForRun(account, dir string, refresh bool) error {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := a.refuseSharedFolder(acc); err != nil {
 		return err
 	}
-	if runtime.GOOS == "darwin" {
-		// macOS Claude Code reads the one global keychain item and ignores the
-		// per-profile .credentials.json, so load the account into the live store
-		// the way switch does. Consequence: accounts cannot run in parallel on
-		// macOS, they share a single login.
-		if _, _, err := a.Store.Get(account); err != nil {
-			a.printf("no stored credential for %q; claude will prompt you to log in\n", account)
-			return nil
-		}
-		if a.hasOtherRunSession() {
-			a.printf("note: on macOS all sessions share one Claude login; another run is active, so this changes the shared login to %q\n", account)
-		}
-		if err := a.Store.Switch(account); err != nil {
-			return fmt.Errorf("activate %q into the live login: %w", account, err)
-		}
-		return nil
-	}
-	return a.stageProfileCred(account, dir, refresh)
-}
 
-// stageProfileCred writes the account's stored credential into the isolated
-// profile dir (Linux/Windows), where Claude Code reads it per CLAUDE_CONFIG_DIR.
-// A missing credential is not fatal: claude will prompt to log in in the profile.
-func (a *App) stageProfileCred(account, dir string, refresh bool) error {
-	if profile.HasCredential(dir) && !refresh {
-		return nil // keep the profile's own (possibly rotated) credential
-	}
-	cred, _, err := a.Store.Get(account)
+	rep, err := a.syncAccount(folder)
 	if err != nil {
-		a.printf("no stored credential for %q; claude will prompt you to log in inside the isolated profile\n", account)
-		return nil
+		return err
 	}
-	return profile.Stage(dir, cred)
-}
-
-// syncAfterRun captures any token the session rotated back into the account slot.
-// On macOS the rotation lands in the live store; elsewhere in the profile file.
-func (a *App) syncAfterRun(account, dir string) {
-	if runtime.GOOS == "darwin" {
-		cred, err := a.Live.Read()
-		if err != nil || cred.AccessToken == "" {
-			return
-		}
-		if _, meta, gerr := a.Store.Get(account); gerr == nil {
-			_ = a.Store.Save(account, cred, meta)
-		}
-		return
+	if problem := projectsProblem(rep, folder); problem != "" {
+		return errors.New("history would not be shared: " + problem)
 	}
-	a.syncProfileBack(account, dir)
-}
+	a.noteStripped(folder)
 
-// hasOtherRunSession reports whether another `clalt run` session is already live,
-// used to warn that macOS cannot isolate accounts.
-func (a *App) hasOtherRunSession() bool {
-	sessions, err := profile.ListSessions(config.SessionsDir())
-	return err == nil && len(sessions) > 0
-}
-
-// syncProfileBack copies a profile's current (possibly rotated) credential back
-// into the account slot so the dashboard and `switch` stay current.
-func (a *App) syncProfileBack(account, dir string) {
-	cred, ok, err := profile.Read(dir)
-	if err != nil || !ok {
-		return
+	st, err := liveStatus(folder)
+	if err != nil {
+		return fmt.Errorf("could not check who %s is signed in as: %w", shown(acc), err)
 	}
-	if _, meta, gerr := a.Store.Get(account); gerr == nil {
-		_ = a.Store.Save(account, cred, meta)
+	if ok, why, text := checkSignIn(st, folder, acc.Meta); !ok {
+		return fmt.Errorf("%s is not ready to run: %s. %s", shown(acc), text, loginAdvice(why, shown(acc)))
 	}
+	if err := a.Store.Touch(acc.Name); err != nil {
+		fmt.Fprintf(a.Err, "warning: could not record the use of %s: %v\n", shown(acc), err)
+	}
+	return a.runClaude(acc, folder, claudeArgs)
 }
 
-// runOpts are the flags accepted by `clalt run`.
-type runOpts struct {
-	refresh  bool // re-stage the stored credential and re-copy shared settings
-	isolated bool // do NOT share the user's main config into the profile
-}
-
-// parseRunArgs pulls the account name, clalt flags, and passthrough claude args
-// (everything after an optional `--`) out of the argument list. --link is still
-// accepted for backward compatibility but is now the default, so it is a no-op.
-func parseRunArgs(args []string) (account string, opts runOpts, claudeArgs []string, err error) {
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
+// parseRunArgs takes the account name, which is the first argument, and hands
+// everything else to claude, with or without a double dash in front of it. with
+// no name the label is empty and run picks an account.
+func parseRunArgs(args []string) (label string, claudeArgs []string, err error) {
+	for i, arg := range args {
 		switch {
 		case arg == "--":
-			claudeArgs = append(claudeArgs, args[i+1:]...)
-			i = len(args)
-		case arg == "--refresh":
-			opts.refresh = true
-		case arg == "--isolated":
-			opts.isolated = true
-		case arg == "--link":
-			// sharing is the default now; accept the old flag as a no-op
-		case account == "":
-			account = arg
-		default:
-			// once we have the account, remaining args pass through to claude
+			return finishRunArgs(label, append(claudeArgs, args[i+1:]...))
+		case label != "":
 			claudeArgs = append(claudeArgs, arg)
+		case strings.HasPrefix(arg, "-"):
+			return "", nil, usageError{"unknown flag " + arg, runUsage}
+		default:
+			label = arg
 		}
 	}
-	if account == "" {
-		return "", runOpts{}, nil, errors.New("usage: clalt run <account> [--isolated] [--refresh] [-- claude args]")
-	}
-	return account, opts, claudeArgs, nil
+	return finishRunArgs(label, claudeArgs)
 }
 
-// claudeBinary allows tests/power users to override the launched binary.
-func claudeBinary() string {
-	if b := os.Getenv("CLALT_CLAUDE_BIN"); b != "" {
-		return b
+func finishRunArgs(label string, claudeArgs []string) (string, []string, error) {
+	return label, claudeArgs, nil
+}
+
+// projectsProblem says why the account's history would not be the shared
+// history, or returns "" when it would be. it looks at the folder itself and not
+// only at what the sync reported: claude makes a real projects folder when
+// there is none, and then no other account could resume what was said here.
+func projectsProblem(rep profile.Report, folder string) string {
+	state, cause := historyOf(folder)
+	if state == historyShared {
+		return ""
 	}
-	return "claude"
+	link := filepath.Join(folder, "projects")
+	shared := filepath.Join(config.SharedClaudeDir(), "projects")
+	for _, e := range rep.Errors {
+		if e.Name == "projects" {
+			return "projects could not be linked"
+		}
+	}
+	if state == historyUnknown {
+		return fmt.Sprintf("could not look at the projects folder: %s. 'clalt doctor' says more", clean(cause.Error()))
+	}
+	if state == historyOwn {
+		why := ""
+		for _, st := range rep.Kept {
+			if st.Name == "projects" {
+				why = " (" + st.Why + ")"
+			}
+		}
+		return fmt.Sprintf("%s is not linked to the shared history%s. move what is in it into %s, remove it and run again. 'clalt doctor' says more",
+			link, why, shared)
+	}
+	return fmt.Sprintf("%s does not lead to the shared history folder %s. that folder is not reachable (an unmounted volume?), or the link aims somewhere else. 'clalt doctor' says more",
+		link, shared)
+}
+
+// runClaude runs the session with the terminal handed over, and records it for
+// `clalt sessions` while it lasts. clalt stays until claude is gone, whatever
+// signal it gets in the meantime, see relaySignals.
+func (a *App) runClaude(acc account.Account, folder string, args []string) error {
+	// where claude can be asked to end, the wrapper keeps the session and can move it
+	if osCanMove {
+		return a.runWrapped(acc, folder, args)
+	}
+	cmd, err := claudecli.Session(context.Background(), folder, a.withFeedSettings(args))
+	if err != nil {
+		return err
+	}
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = a.In, a.Out, a.Err
+	sess := a.beginSession(acc, folder)
+	defer sess.finish()
+	sess.attach(cmd)
+	// before the start, so that a signal in between is held and not lost
+	sigs := make(chan os.Signal, 8)
+	// Notify with no signals at all would take every signal
+	if watch := watchedSignals(); len(watch) > 0 {
+		signal.Notify(sigs, watch...)
+	}
+	defer signal.Stop(sigs)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start claude: %w", err)
+	}
+	over := make(chan struct{})
+	go relaySignals(sigs, cmd.Process, over, !a.interruptReachesClaude())
+	sess.started(cmd.Process.Pid)
+	err = cmd.Wait()
+	close(over)
+	return claudeExit(err)
+}
+
+// relaySignals deals with the signals that clalt gets while claude runs, until
+// over is closed. at a terminal a Ctrl-C reaches claude by itself, since both are
+// in the terminal's foreground group, and what it means is claude's to decide, so
+// it is only taken in: clalt has to be there when claude ends, and the shell must
+// not get the terminal back before. passing it on as well would give claude a
+// second one, which can turn an interrupt into an exit. it is caught and not
+// ignored, because an ignored signal is inherited through exec and claude would
+// never see its own Ctrl-C. SIGTERM and SIGHUP are for clalt alone (kill, an ide
+// that stops it, a terminal that is closed), and claude would be left running
+// with nobody to answer to, so they are passed on, and clalt ends with the code
+// claude ends with. so is an interrupt when passInterrupt is set, which is for
+// a clalt that no terminal sends a Ctrl-C to (a headless -p run, a script, a
+// supervisor), where a kill -INT at clalt would be lost.
+func relaySignals(sigs <-chan os.Signal, claude *os.Process, over <-chan struct{}, passInterrupt bool) {
+	for {
+		select {
+		case s := <-sigs:
+			if s != os.Interrupt || passInterrupt {
+				_ = claude.Signal(s)
+			}
+		case <-over:
+			return
+		}
+	}
+}
+
+// interruptReachesClaude says whether a Ctrl-C at the terminal reaches claude by
+// itself: the input is a terminal, or clalt is in the foreground group of one,
+// as it is for `echo hi | clalt run work -p` typed at a shell. then passing an
+// interrupt on as well would give claude a second.
+func (a *App) interruptReachesClaude() bool {
+	if a.terminal != nil {
+		return a.terminal()
+	}
+	if a.inputIsTerminal() {
+		return true
+	}
+	if a.foreground != nil {
+		return a.foreground()
+	}
+	return inForegroundOfTerminal()
+}
+
+// inputIsTerminal says whether the input of the session is a terminal. claude is
+// given a.In as it is, so that is what counts: a reader that is no file reaches
+// it through a pipe.
+func (a *App) inputIsTerminal() bool {
+	if a.terminal != nil {
+		return a.terminal()
+	}
+	f, ok := a.In.(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
+}
+
+// watchedSignals are the signals that relaySignals deals with. one that was
+// ignored when clalt started (nohup, a job that a script put in the background)
+// is left alone: claude run by hand would inherit the ignore, and exec gives a
+// caught signal back its default, so catching it would take the ignore away.
+func watchedSignals() []os.Signal {
+	var watch []os.Signal
+	for _, s := range []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGHUP} {
+		if !signal.Ignored(s) {
+			watch = append(watch, s)
+		}
+	}
+	return watch
+}
+
+// claudeExit turns the way a session ended into what clalt exits with. a
+// session killed by a signal gets the code a shell would report.
+func claudeExit(err error) error {
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) {
+		return err
+	}
+	code := exit.ExitCode()
+	if ws, ok := exit.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+		code = 128 + int(ws.Signal())
+	}
+	if code <= 0 {
+		code = 1
+	}
+	return exitError{code}
 }

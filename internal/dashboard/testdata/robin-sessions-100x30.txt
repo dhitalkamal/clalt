@@ -1,0 +1,30 @@
+ clalt                                                        5 accounts, 3 running, updated 4s ago
+ +- Accounts -------------+ +- robin -------------------------------------------------------------+
+ | > robin     26%   * 2  | |  Overview   [Sessions]   Limits    History    Profile               |
+ |   morgan    22% !      | |                                                                     |
+ |   casey     95% ! * 1  | | > working  ~/Projects/personal/clalt (feat/dashboard-v2)            |
+ |   jordan     5%        | |            Opus 5.5 high   context 312k of 1M   ##=-----            |
+ |   harriet  signed out  | |            2h04m   +156 -23 lines   ~$1.10                          |
+ |                        | |                                                                     |
+ |   Removed              | |   waiting  ~/Projects/work/web (develop)                            |
+ |   old-work  old-wo...  | |            Sonnet 5.5 medium   context 48k of 1M   =-------         |
+ |                        | |            0h40m   +12 -3 lines   ~$0.62                            |
+ |   jordan has the most  | |                                                                     |
+ |   room left            | | x stops the selected session.                                       |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ |                        | |                                                                     |
+ +------------------------+ +---------------------------------------------------------------------+
+  enter run  s sign in  e budget  r rename  tab pane  [ ] or 1-5 view  / find  ? keys  q quit

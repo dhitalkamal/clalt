@@ -1,5 +1,4 @@
 /clalt
 /dist/
-*.clalt
 *.out
 .DS_Store
