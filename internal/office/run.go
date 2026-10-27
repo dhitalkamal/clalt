@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
+	"github.com/dhitalkamal/clalt/internal/office/summary"
 )
 
 // Options is how the office runs. Port 0 picks a free one. Open is
@@ -34,6 +35,8 @@ type Options struct {
 	Reviews ReviewSource
 	// Actions runs the session actions, see Config.
 	Actions SessionActions
+	// Summary builds the daily summary and the history, see Config.
+	Summary *summary.Service
 }
 
 // Instance is a running server.
@@ -70,7 +73,7 @@ func Start(opt Options) (*Instance, error) {
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
 		Generator: opt.Generator, Template: opt.Template, Activity: opt.Activity, Reviews: opt.Reviews,
-		Actions: opt.Actions,
+		Actions: opt.Actions, Summary: opt.Summary,
 	})
 	if err != nil {
 		ln.Close()

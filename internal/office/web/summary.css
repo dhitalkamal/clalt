@@ -1,0 +1,49 @@
+/* summary panel: left side on wide screens (the activity drawer is on the right), bottom sheet under 700px */
+.summary { position: fixed; z-index: 7; top: 0; left: 0; bottom: 160px; width: 460px; max-width: 100%; box-sizing: border-box;
+  display: flex; flex-direction: column; padding: 12px 12px 8px; background: rgba(255,255,255,.96); color: var(--ink);
+  border-right: 1px solid rgba(60,50,40,.15); box-shadow: 6px 0 24px rgba(60,50,40,.22); }
+.summary[hidden] { display: none; }
+.summary header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.summary h2 { margin: 0; flex: 1; font-size: 15px; }
+.summary h2:focus { outline: none; }
+.summary h2:focus-visible, .summary :focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+.summary button { border-radius: 999px; padding: 5px 12px; }
+.summary button:disabled { opacity: .45; cursor: default; }
+.summary .tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.summary .tab[aria-selected="true"], .summary .range[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); font-weight: 600; }
+.summary .toolrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+.summary .pick { font: inherit; padding: 4px 6px; border-radius: 8px; border: 1px solid rgba(60,50,40,.25); background: #fff; color: var(--ink); min-width: 0; }
+.summary .daylabel { flex-basis: 100%; font-size: 12px; font-weight: 600; opacity: .8; }
+.summary .status { margin: 0 0 4px; min-height: 0; font-size: 12px; }
+.summary .status:not(:empty) { padding: 4px 8px; border-radius: 8px; background: #eef3fb; border: 1px solid rgba(79,134,198,.4); }
+.summary .body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 2px 8px; }
+.summary .quiet { margin: 6px 0; font-size: 12px; opacity: .72; }
+.summary .warn { margin: 6px 0; padding: 5px 9px; border-radius: 8px; background: #fff3d6; border: 1px solid var(--amber); font-size: 12px; }
+.summary section { margin: 0 0 12px; padding: 8px 10px; border: 1px solid rgba(60,50,40,.14); border-radius: 10px; background: rgba(255,255,255,.7); }
+.summary h3 { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; overflow-wrap: anywhere; }
+.summary h4 { margin: 0 0 2px; font-size: 13px; overflow-wrap: anywhere; }
+.summary .facts { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0 0 4px; font-size: 12px; }
+.summary .facts div { display: flex; gap: 5px; }
+.summary dt { opacity: .6; }
+.summary dd { margin: 0; overflow-wrap: anywhere; }
+.summary .proj { margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(40,30,50,.05); }
+.summary .details { margin: 2px 0 0; font-size: 12px; }
+.summary .detail { display: flex; gap: 8px; padding: 1px 0; }
+.summary .detail dt { flex: none; width: 66px; }
+.summary .detail.bad dt, .summary .fails { color: #a8321f; }
+.summary .fails { margin: 0; padding-left: 16px; }
+.summary figure.chart { margin: 4px 0 8px; }
+.summary figcaption { font-size: 11px; font-weight: 600; opacity: .7; margin-bottom: 2px; }
+.summary svg.plot { display: block; max-width: 100%; height: auto; border-radius: 6px; background: rgba(255,255,255,.8); }
+.summary svg.plot:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+.summary .grid { stroke: rgba(60,50,40,.14); stroke-width: 1; }
+.summary .ylab, .summary .xlab { font: 10px system-ui, sans-serif; fill: #4a4256; }
+.summary .col { fill: #4f86c6; }
+.summary .peak .col { fill: #cf8a1c; }
+.summary .col.cur { stroke: var(--ink); stroke-width: 1.5; }
+.summary .hit { fill: transparent; }
+.summary .readout { margin: 2px 0 0; min-height: 15px; font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .summary { top: auto; bottom: 0; right: 0; width: auto; height: 78vh; border-right: 0; border-top: 1px solid rgba(60,50,40,.15); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px rgba(60,50,40,.22); }
+}
+@media (prefers-reduced-motion: reduce) { .summary * { transition: none !important; animation: none !important; } }

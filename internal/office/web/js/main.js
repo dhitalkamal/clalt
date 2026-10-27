@@ -8,6 +8,7 @@ import { loadFirst } from './layoutload.js';
 import { applyLayout } from './scene/apply.js';
 import { startView } from './viewctl.js';
 import { installActions } from './actions/index.js';
+import { initSummary } from './summary/index.js';
 
 const loadingEl = document.getElementById('loading');
 
@@ -44,6 +45,7 @@ async function boot() {
   loadingEl.hidden = true;
   bindInput();
   installActions();
+  initSummary();
   resize();
   addEventListener('resize', resize);
   const view = startView(first);

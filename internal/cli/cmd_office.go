@@ -165,6 +165,7 @@ func (a *App) cmdOffice(args []string) error {
 		Activity:  real,
 		Reviews:   revs,
 		Actions:   a.officeActions(),
+		Summary:   a.officeSummary(),
 		Snapshot: func() (office.Snapshot, error) {
 			snap, err := office.Build(src)
 			if err == nil {

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
+	"github.com/dhitalkamal/clalt/internal/office/summary"
 )
 
 const (
@@ -48,6 +49,8 @@ type Config struct {
 	Reviews ReviewSource
 	// Actions runs the session actions of the page, nil turns the routes off.
 	Actions SessionActions
+	// Summary builds GET /api/summary and /api/history, nil answers 404.
+	Summary *summary.Service
 }
 
 type handler struct {
@@ -157,6 +160,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/api/reviews") {
 		h.reviewsGet(w, r)
+		return
+	}
+	if r.URL.Path == "/api/summary" {
+		h.summaryRoute(w, r)
+		return
+	}
+	if r.URL.Path == "/api/history" {
+		h.historyRoute(w, r)
 		return
 	}
 	if r.URL.Path == "/api/layout" {
