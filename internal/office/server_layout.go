@@ -27,6 +27,8 @@ func isEditRoute(r *http.Request) bool {
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
 	case "/api/layouts", "/api/layout/use":
 		return true
+	case "/api/reviews/settings":
+		return r.Method != http.MethodGet && r.Method != http.MethodHead
 	}
 	return false
 }
@@ -61,6 +63,10 @@ func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	body, ok := h.readBody(w, r)
 	if !ok {
+		return
+	}
+	if r.URL.Path == "/api/reviews/settings" {
+		h.reviewsSave(w, body)
 		return
 	}
 	if want == http.MethodPut {

@@ -145,6 +145,14 @@ func (a *App) cmdOffice(args []string) error {
 	}
 	real := a.officeReal()
 	src := office.RealSources(real)
+	logf := officeLogf(dashboardLogger(officeLogPath()))
+	revs := a.officeReviews(real, logf)
+	src.Reviews = revs
+	// the watcher lives as long as the office does and stops with it
+	ctx, stopRevs := context.WithCancel(ctx)
+	revsDone := make(chan struct{})
+	go func() { defer close(revsDone); revs.Run(ctx) }()
+	defer func() { stopRevs(); <-revsDone }()
 	// every snapshot also feeds the garden generators their desk needs
 	gen := office.NewGardenFeed(a.clock)
 	return cleanedOrNil(office.Run(ctx, office.Options{
@@ -152,6 +160,7 @@ func (a *App) cmdOffice(args []string) error {
 		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
 		Generator: gen,
 		Activity:  real,
+		Reviews:   revs,
 		Snapshot: func() (office.Snapshot, error) {
 			snap, err := office.Build(src)
 			if err == nil {

@@ -7,6 +7,7 @@ export const agentOfSub = (sub) => {
 
 // returns {handle, agent, kind} or null when the character has no run to show
 export function activityTarget(rec, sessions) {
+  if (rec.role === 'review') return { handle: rec.handle, agent: '', kind: 'session' };
   if (rec.role === 'main') return { handle: rec.handle, agent: '', kind: 'session' };
   if (rec.role === 'team') {
     let best = null;
@@ -28,6 +29,7 @@ export function activityTarget(rec, sessions) {
 // header fields for a record: {title, account, project, state, stateText}. accounts is the label map from the snapshot.
 export function describeTarget(rec, accounts, sessions) {
   const label = (id) => (accounts && accounts.get(id) ? accounts.get(id).label : id || '-');
+  if (rec.role === 'review') return { title: rec.title, account: label(rec.account), project: rec.project || '-', state: rec.state, stateText: 'review run' };
   if (rec.role === 'main') {
     return { title: 'claude (main) ' + rec.handle, account: label(rec.account), project: rec.project || '-', state: rec.state, stateText: rec.state };
   }

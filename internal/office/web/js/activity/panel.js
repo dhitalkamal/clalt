@@ -68,7 +68,7 @@ export function createActivityPanel(h) {
     add('account', d.account);
     add('project', d.project);
     add('state', el('span', '', el('span', 'dot ' + d.state), d.stateText));
-    const gone = st.rec.leaving || (st.rec.role === 'main' && st.rec.state === 'ended');
+    const gone = st.rec.leaving || (st.rec.role === 'main' && st.rec.state === 'ended') || st.rec.role === 'review';
     note.hidden = !gone && !st.idle;
     note.textContent = gone ? 'this run has ended, the log stays readable' : st.idle ? 'no run right now, showing the last one' : '';
   }

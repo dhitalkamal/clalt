@@ -45,7 +45,7 @@ async function boot() {
   resize();
   addEventListener('resize', resize);
   const view = startView(first);
-  startPoll((snap) => { try { applySnapshot(snap); } catch (e) { console.error(e); ui.setNotice('the page could not read the snapshot'); } }, onError, () => view.check());
+  startPoll((snap) => { try { applySnapshot(snap); view.reviews(snap.reviews); } catch (e) { console.error(e); ui.setNotice('the page could not read the snapshot'); } }, onError, () => view.check());
   loop();
 }
 

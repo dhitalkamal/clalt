@@ -17,6 +17,7 @@ type Snapshot struct {
 	Accounts []AccountOut `json:"accounts"`
 	Sessions []SessionOut `json:"sessions"`
 	Team     []TeamOut    `json:"team"`
+	Reviews  ReviewsOut   `json:"reviews"`
 }
 
 // AccountOut is an account with its limits, by label only.
@@ -102,6 +103,7 @@ func Build(src Sources) (Snapshot, error) {
 		defs = src.Team.Agents(cwds)
 	}
 	snap.Team = teamOut(defs, snap.Sessions)
+	snap.Reviews, snap.Team = withReviews(src.Reviews, snap.Team)
 	return snap, nil
 }
 

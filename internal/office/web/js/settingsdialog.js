@@ -26,11 +26,14 @@ export function createSettingsDialog(h) {
   const close = el('button', '', 'Close');
   close.type = 'button';
   const build = h.build;
+  // more sections (PR reviews): {el, load()}
+  const extra = h.sections || [];
   const buildNote = el('p', 'note');
   dlg.append(
     title,
     el('div', 'sec', el('h3', '', 'Default office'), el('p', 'note', 'what everyone sees when they open the office'), list, err, ok),
     el('div', 'sec', el('h3', '', 'Build mode'), buildNote, build),
+    ...extra.map((x) => x.el),
     el('div', 'row', close, save),
   );
   document.body.append(dlg);
@@ -87,6 +90,7 @@ export function createSettingsDialog(h) {
     clear(list);
     list.append(el('p', 'note', 'loading'));
     save.disabled = true;
+    for (const x of extra) x.load();
     dlg.showModal();
     try { fill(await h.loadList()); } catch (e) { clear(list); setError('could not load the layouts: ' + e.message); }
     const first = list.querySelector('input:checked') || list.querySelector('input');

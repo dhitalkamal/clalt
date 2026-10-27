@@ -44,6 +44,8 @@ type Config struct {
 	Template string
 	// Activity finds the transcript behind GET /api/activity, nil answers 404.
 	Activity ActivitySource
+	// Reviews serves /api/reviews, nil answers 404.
+	Reviews ReviewSource
 }
 
 type handler struct {
@@ -145,6 +147,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/api/activity" {
 		h.activity(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/reviews") {
+		h.reviewsGet(w, r)
 		return
 	}
 	if r.URL.Path == "/api/layout" {

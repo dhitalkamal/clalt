@@ -11,6 +11,7 @@ import { parseHash, buildHash, camAfterSwitch } from './viewstate.js';
 import { createSettingsDialog } from './settingsdialog.js';
 import { saveDefault } from './settings.js';
 import { el } from './dom.js';
+import { startReviews } from './reviews/index.js';
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -27,8 +28,9 @@ export function startView(first) {
   const gear = document.getElementById('b-settings');
   const build = el('button', '', 'Build mode');
   build.type = 'button';
+  const reviews = startReviews();
   const dialog = createSettingsDialog({
-    gear, build, save: saveAndShow,
+    gear, build, save: saveAndShow, sections: [reviews.section],
     loadList: async () => {
       const res = await fetch('/api/layouts', { cache: 'no-store', credentials: 'same-origin' });
       if (!res.ok) throw new Error('http ' + res.status);
@@ -135,5 +137,5 @@ export function startView(first) {
   // the bar sits over the scene: the camera fits the island into what is left
   addEventListener('resize', keepClear);
 
-  return { check: () => watcher.check() };
+  return { check: () => watcher.check(), reviews: reviews.update };
 }
