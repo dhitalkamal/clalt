@@ -9,7 +9,7 @@ const isV1 = (l) => l && l.v === 1 && l.size && Array.isArray(l.rooms) && Array.
 const isV2 = (l) => l && l.v === 2 && l.site && Array.isArray(l.pavilions);
 const isLayout = (l) => isV1(l) || isV2(l);
 
-// resolves to {edit, layout, templates, rev}. template is a template id or omitted for the server default.
+// resolves to {edit, layout, templates, rev}. no argument is the server's active layout.
 // edit is true only when the server says so. throws on any failure, with the http status on e.status when there is one.
 export async function loadLayout(template) {
   const body = await getJSON('/api/layout' + (template ? '?template=' + encodeURIComponent(template) : ''));
@@ -25,15 +25,9 @@ export async function loadLayout(template) {
   };
 }
 
-// the first load: the wanted template, else the server default, else the hall that ships with the page.
+// the first load: the server's active layout, else the hall that ships with the page.
 // only here does a failure turn into the hall, later loads keep the scene they have.
-export async function loadFirst(want) {
-  if (want) {
-    try {
-      const body = await loadLayout(want);
-      if (!body.templates.length || body.templates.some((t) => t.id === want)) return { ...body, template: want };
-    } catch (e) { /* a stale or unknown id: try the server default */ }
-  }
+export async function loadFirst() {
   try { return { ...(await loadLayout()), template: null }; } catch (e) { /* the server is out of reach */ }
   return { edit: false, layout: await getJSON('./layout/default.json'), templates: [], rev: '', template: null };
 }

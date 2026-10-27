@@ -55,9 +55,8 @@ function demand(room) {
   return live.flatMap((s) => s.subs).filter((x) => !x.leaving && roomTypeFor(x.type) === room.type).length;
 }
 
-export async function startEditor(layout) {
-  const button = document.getElementById('b-build');
-  button.hidden = false;
+// button is the settings dialog's Build mode button, it toggles the editor
+export async function startEditor(layout, button) {
   const accounts = () => [...app.accounts].map(([id, a]) => ({ id, name: a.label }));
   return mountEditor({
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,

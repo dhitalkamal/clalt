@@ -17,13 +17,12 @@ import (
 	"github.com/dhitalkamal/clalt/internal/registry"
 )
 
-const officeUsage = "clalt office [--port N] [--no-open] [--edit] [--template <id>]"
+const officeUsage = "clalt office [--port N] [--no-open] [--template <id>]"
 
 // officeArgs are the flags of clalt office.
 type officeArgs struct {
 	port   int
 	noOpen bool
-	edit   bool
 	// template is the starting template of this run, empty for the active one
 	template string
 }
@@ -50,7 +49,7 @@ func parseOfficeArgs(args []string) (officeArgs, error) {
 		case arg == "--no-open":
 			out.noOpen = true
 		case arg == "--edit":
-			out.edit = true
+			// no longer needed, the page can always save; accepted so old scripts keep working
 		case arg == "--port" || hasVal:
 			if arg == "--port" {
 				i++
@@ -121,8 +120,8 @@ func userAgentsDir() string {
 }
 
 // cmdOffice serves the live 3D office on loopback and opens it in the browser.
-// it only reads: no account, session or file of claude is changed. with --edit
-// the page can also save office layouts, which are clalt's own files.
+// it only reads: no account, session or file of claude is changed. the page can
+// save office layouts, which are clalt's own files.
 func (a *App) cmdOffice(args []string) error {
 	if len(args) > 0 && args[0] == "layout" {
 		return a.cmdOfficeLayout(args[1:])
@@ -141,7 +140,7 @@ func (a *App) cmdOffice(args []string) error {
 	// every snapshot also feeds the garden generators their desk needs
 	gen := office.NewGardenFeed(a.clock)
 	return cleanedOrNil(office.Run(ctx, office.Options{
-		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Edit: opt.edit, Template: opt.template,
+		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Template: opt.template,
 		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
 		Generator: gen,
 		Snapshot: func() (office.Snapshot, error) {

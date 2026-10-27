@@ -70,11 +70,12 @@ Keys are listed in [docs/dashboard.md](docs/dashboard.md).
 ```
 clalt office               # live 3D garden campus of your agents, in the browser
 clalt office --template village
-clalt office --edit        # build mode: change the floor plan and save it
 ```
 
-It prints a link with a one-run token and opens it. Press Ctrl-C to stop it. It
-only watches, unless you pass `--edit`.
+It prints a link with a one-run token and opens it. Press Ctrl-C to stop it. Pick
+the default template in the page's settings, it is saved for every run. Build
+mode (change the floor plan and save it) opens from the page. `--edit` is no
+longer needed.
 
 Templates: `rows` (the default), `village`, `river`, `street` and `hall`. Pick
 one with `--template <id>` or with keys 1 to 5 on the page.
@@ -213,7 +214,7 @@ clalt usage [name]         local usage stats
 clalt dashboard            full-screen dashboard of accounts, sessions and usage
 clalt dashboard --demo     the dashboard on made-up data, touches no account
 clalt office               live 3D garden campus of your agents in the browser
-                           (--port N, --no-open, --edit,
+                           (--port N, --no-open,
                            --template rows|village|river|street|hall)
 clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                            the office floor plans

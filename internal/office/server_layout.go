@@ -31,16 +31,13 @@ func isEditRoute(r *http.Request) bool {
 	return false
 }
 
-// editRoute is the order of the guards: the token, then whether there is a
-// write surface at all (not without --edit), then the method, then for a write
-// the edit header, the origin and the content type.
+// editRoute is the order of the guards: the token, then the method, then for a
+// write the edit header, the origin and the content type, the body size and the
+// layout checks. there is no switch that turns the routes off: the guards are
+// the protection, and the server only listens on loopback.
 func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 	if !h.authorized(r) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	if !h.cfg.Edit {
-		http.NotFound(w, r)
 		return
 	}
 	want := http.MethodPost
@@ -122,6 +119,23 @@ func (h *handler) readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool
 	return body, true
 }
 
+// listTemplate and listSaved are the rows of GET /api/layouts, kind tells
+// the page which list a name belongs to.
+type listTemplate struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Kind   string `json:"kind"`
+	Active bool   `json:"active"`
+}
+
+type listSaved struct {
+	Name    string `json:"name"`
+	Title   string `json:"title"`
+	Builtin bool   `json:"builtin"`
+	Kind    string `json:"kind"`
+	Active  bool   `json:"active"`
+}
+
 func (h *handler) layoutList(w http.ResponseWriter) {
 	infos, err := h.store.List()
 	if err != nil {
@@ -129,11 +143,20 @@ func (h *handler) layoutList(w http.ResponseWriter) {
 		http.Error(w, "list failed", http.StatusInternalServerError)
 		return
 	}
+	active := h.activeName()
+	tpls := make([]listTemplate, 0, len(layout.Templates))
+	for _, t := range layout.Templates {
+		tpls = append(tpls, listTemplate{t.ID, t.Title, "template", t.ID == active})
+	}
+	saved := make([]listSaved, 0, len(infos))
+	for _, i := range infos {
+		saved = append(saved, listSaved{i.Name, i.Title, i.Builtin, "saved", i.Name == active})
+	}
 	h.reply(w, struct {
-		Active    string            `json:"active"`
-		Layouts   []layout.Info     `json:"layouts"`
-		Templates []layout.Template `json:"templates"`
-	}{h.activeName(), infos, layout.Templates})
+		Active    string         `json:"active"`
+		Layouts   []listSaved    `json:"layouts"`
+		Templates []listTemplate `json:"templates"`
+	}{active, saved, tpls})
 }
 
 // customName is the name a copy of a built-in template is saved under.
@@ -197,7 +220,7 @@ func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
 		}
 	}
 	h.start = ""
-	h.replyLayout(w, true, l.Name, l, revOf(l))
+	h.replyLayout(w, l.Name, l, revOf(l))
 }
 
 // layoutUse makes a stored layout the active one.
@@ -242,5 +265,5 @@ func (h *handler) layoutUse(w http.ResponseWriter, body []byte) {
 	if layout.IsTemplate(req.Name) {
 		l, rev = h.resolve(req.Name)
 	}
-	h.replyLayout(w, true, req.Name, l, rev)
+	h.replyLayout(w, req.Name, l, rev)
 }

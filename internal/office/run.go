@@ -23,9 +23,7 @@ type Options struct {
 	Out      io.Writer
 	Snapshot func() (Snapshot, error)
 	Logf     func(format string, args ...any)
-	// Edit allows layout changes from the page, see Config.
-	Edit    bool
-	Layouts *layout.Store
+	Layouts  *layout.Store
 	// Generator builds the garden templates, Template is the one shown first,
 	// see Config.
 	Generator Generator
@@ -64,7 +62,7 @@ func Start(opt Options) (*Instance, error) {
 	port := ln.Addr().(*net.TCPAddr).Port
 	h, err := NewHandler(Config{
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
-		Snapshot: opt.Snapshot, Logf: opt.Logf, Edit: opt.Edit, Layouts: opt.Layouts,
+		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
 		Generator: opt.Generator, Template: opt.Template,
 	})
 	if err != nil {
@@ -111,9 +109,6 @@ func Run(ctx context.Context, opt Options) error {
 		out = io.Discard
 	}
 	fmt.Fprintf(out, "clalt office is running on this machine only. open:\n\n  %s\n\nthe link carries a token made for this run. press Ctrl-C to stop.\n", inst.URL)
-	if opt.Edit {
-		fmt.Fprintln(out, "edit mode is on: the page can change and save layouts. every change needs the token and this origin.")
-	}
 	if !opt.NoOpen {
 		open := opt.Open
 		if open == nil {

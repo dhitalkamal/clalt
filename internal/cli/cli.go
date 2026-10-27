@@ -188,9 +188,9 @@ usage:
   clalt usage [name]          local usage stats
   clalt dashboard             full-screen dashboard of accounts, sessions and usage
   clalt dashboard --demo      the dashboard on made-up data, touches no account
-  clalt office [--port N] [--no-open] [--edit]
+  clalt office [--port N] [--no-open] [--template <id>]
                               live 3D office of your agents in the browser (local
-                              only, watch only unless --edit)
+                              only; --edit is accepted and does nothing)
   clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                               the office floor plans (see docs/office.md)
   clalt version               print build version (--json for machine-readable)

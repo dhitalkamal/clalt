@@ -1,17 +1,3 @@
-#panel { position: fixed; left: 14px; top: 14px; width: 252px; max-width: calc(100% - 28px); box-sizing: border-box; padding: 12px 10px 10px; border-radius: 18px;
-  background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(60,50,40,.18); border: 1px solid rgba(255,255,255,.8); z-index: 4; }
-#panel h1 { margin: 2px 6px 0; font-size: 16px; letter-spacing: .01em; }
-#panel .sub { margin: 0 6px 8px; font-size: 11px; opacity: .6; }
-.tpl { display: flex; gap: 9px; width: 100%; box-sizing: border-box; text-align: left; margin: 0 0 5px; padding: 8px 9px; border-radius: 12px;
-  background: rgba(255,255,255,.55); border-color: rgba(60,50,40,.1); }
-.tpl:hover { background: #fff; }
-.tpl.on { background: #fff; border-color: var(--amber); box-shadow: 0 0 0 2px rgba(242,181,60,.45); }
-.tpl .k { flex: none; width: 20px; height: 20px; border-radius: 7px; background: rgba(60,50,40,.1); font-weight: 700; font-size: 11px; text-align: center; line-height: 20px; }
-.tpl.on .k { background: var(--amber); }
-.tpl b { display: block; font-size: 13px; }
-.tpl .txt span { display: block; font-size: 11px; line-height: 1.3; opacity: .68; }
-#panel .default { width: 100%; margin-top: 4px; border-radius: 999px; }
-#panel .default:disabled { opacity: .5; cursor: default; }
 #bar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 7px; border-radius: 999px; max-width: calc(100% - 28px);
   overflow-x: auto; background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(60,50,40,.18); border: 1px solid rgba(255,255,255,.8); white-space: nowrap; z-index: 4; }
 #bar button { border-radius: 999px; padding: 6px 13px; background: rgba(255,255,255,.6); border-color: rgba(60,50,40,.12); }
@@ -20,10 +6,33 @@
 #bar button:disabled { opacity: .45; cursor: default; }
 #bar kbd { font: 600 10px system-ui; opacity: .55; margin-left: 6px; text-transform: uppercase; }
 #bar .gap { width: 1px; background: rgba(60,50,40,.15); margin: 3px 4px; flex: none; }
-#panel button:focus-visible, #bar button:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
-@media (max-width: 700px) { #panel { width: 190px; } .tpl .txt span { display: none; } }
-@media (prefers-reduced-motion: reduce) { #panel *, #bar * { transition: none !important; animation: none !important; } }
+#bar button:focus-visible, #controls button:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { #bar * { transition: none !important; animation: none !important; } }
 /* not enough room for both on one row: controls and hint stack above the bar, the bar scrolls sideways when it is wider than the screen */
 #bar { overflow-x: auto; scrollbar-width: none; }
-@media (max-width: 1200px) { #controls { bottom: 70px; } .hint { bottom: 124px; } }
+@media (max-width: 1600px) { #controls { bottom: 70px; } .hint { bottom: 124px; } }
 @media (max-width: 520px) { .hint { bottom: 166px; } }
+#b-settings svg { vertical-align: -2px; }
+
+/* settings dialog: a modal over the scene, same white rounded look as the bar */
+dialog.settings { box-sizing: border-box; width: 400px; max-width: calc(100% - 28px); max-height: calc(100% - 28px); overflow-y: auto; margin: auto;
+  padding: 16px 16px 12px; border: 1px solid rgba(255,255,255,.8); border-radius: 18px; background: rgba(255,255,255,.94); color: var(--ink);
+  box-shadow: 0 8px 32px rgba(60,50,40,.28); }
+dialog.settings::backdrop { background: rgba(43,36,51,.28); }
+dialog.settings h2 { margin: 0 0 8px; font-size: 16px; }
+dialog.settings h3 { margin: 0 0 2px; font-size: 13px; }
+dialog.settings .sec { margin-bottom: 12px; }
+dialog.settings .note { margin: 0 0 8px; font-size: 11px; opacity: .68; }
+dialog.settings fieldset { margin: 0 0 6px; padding: 0; border: 0; min-width: 0; }
+dialog.settings legend { padding: 0; margin-bottom: 3px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .6; }
+dialog.settings label { display: flex; align-items: center; gap: 9px; padding: 7px 9px; margin-bottom: 4px; border-radius: 12px;
+  background: rgba(255,255,255,.55); border: 1px solid rgba(60,50,40,.1); cursor: pointer; }
+dialog.settings label:hover { background: #fff; }
+dialog.settings label:has(input:checked) { background: #fff; border-color: var(--amber); box-shadow: 0 0 0 2px rgba(242,181,60,.45); }
+dialog.settings input[type="radio"] { margin: 0; accent-color: var(--amber); width: 16px; height: 16px; flex: none; }
+dialog.settings .row { display: flex; justify-content: flex-end; gap: 8px; }
+dialog.settings button { border-radius: 999px; padding: 6px 14px; }
+dialog.settings button.primary { background: var(--amber); border-color: var(--amber); font-weight: 600; }
+dialog.settings button:disabled { opacity: .5; cursor: default; }
+dialog.settings .err { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #fde8e6; border: 1px solid var(--red); font-size: 12px; }
+dialog.settings :focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }

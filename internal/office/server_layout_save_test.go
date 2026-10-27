@@ -23,7 +23,7 @@ func v2(t *testing.T, name string) layout.Layout {
 }
 
 func TestHallEditWhileATemplateIsActiveSavesAsHallCustom(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	if err := e.store.SetActive("rows"); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestHallEditWhileATemplateIsActiveSavesAsHallCustom(t *testing.T) {
 }
 
 func TestV2EditWhileATemplateIsActiveSavesAsTemplateCustom(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	if err := e.store.SetActive("rows"); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestV2EditWhileATemplateIsActiveSavesAsTemplateCustom(t *testing.T) {
 }
 
 func TestHallEditNeverOverwritesAStoredV2Layout(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	if err := e.store.Save(v2(t, "foo")); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestHallEditNeverOverwritesAStoredV2Layout(t *testing.T) {
 }
 
 func TestV2EditNeverOverwritesAStoredHallLayout(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	mine := layout.Minimal()
 	mine.Name = "mine"
 	if err := e.store.Save(mine); err != nil {

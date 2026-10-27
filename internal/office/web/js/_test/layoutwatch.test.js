@@ -123,29 +123,9 @@ test('loadLayout throws on an answer that is not a layout', async () => {
 
 const HALL = { v: 1, size: { w: 1, d: 1 }, rooms: [], furniture: [] };
 
-test('loadFirst retries without the template when the template fails', async () => {
-  const seen = [];
-  globalThis.fetch = async (url) => {
-    seen.push(String(url));
-    if (String(url).includes('template=')) return { ok: false, status: 400, json: async () => ({}) };
-    return { ok: true, status: 200, json: async () => ({ edit: true, layout: V2('rows'), templates: [{ id: 'rows' }], rev: '7' }) };
-  };
-  const got = await loadFirst('foo');
-  assert.deepEqual(seen, ['/api/layout?template=foo', '/api/layout']);
-  assert.equal(got.template, null);
-  assert.equal(got.edit, true);
-  assert.equal(got.layout.v, 2);
-});
-
-test('loadFirst keeps a template the server accepts', async () => {
-  stubFetch({ '/api/layout?template=river': { edit: false, layout: V2('river'), templates: [{ id: 'river' }], rev: '1' } });
-  const got = await loadFirst('river');
-  assert.equal(got.template, 'river');
-});
-
-test('loadFirst falls back to the embedded hall only when the server fails twice', async () => {
+test('loadFirst falls back to the embedded hall when the server fails', async () => {
   stubFetch({ './layout/default.json': HALL });
-  const got = await loadFirst('river');
+  const got = await loadFirst();
   assert.equal(got.layout.v, 1);
   assert.equal(got.edit, false);
   assert.deepEqual(got.templates, []);
@@ -154,7 +134,7 @@ test('loadFirst falls back to the embedded hall only when the server fails twice
 
 test('loadFirst without a template falls back to the hall on failure', async () => {
   stubFetch({ './layout/default.json': HALL });
-  assert.equal((await loadFirst(null)).layout.v, 1);
+  assert.equal((await loadFirst()).layout.v, 1);
 });
 
 test('select rejects when the load fails and the template stays', async () => {

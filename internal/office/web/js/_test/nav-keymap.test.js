@@ -5,30 +5,29 @@ import { actionFor } from '../keymap.js';
 import { parseHash } from '../viewstate.js';
 
 const ev = (key, extra = {}) => ({ key, target: { tagName: 'BODY' }, ...extra });
-const tpls = ['hall', 'rows', 'village', 'river', 'street'].map((id) => ({ id }));
 
-test('1 to 5 pick templates, 6 to 9 pick camera presets', () => {
-  assert.deepEqual(actionFor(ev('2'), tpls), { type: 'template', id: 'rows' });
-  assert.deepEqual(actionFor(ev('6'), tpls), { type: 'cam', id: 'top' });
-  assert.deepEqual(actionFor(ev('7'), tpls), { type: 'cam', id: 'plan' });
-  assert.deepEqual(actionFor(ev('8'), tpls), { type: 'cam', id: 'iso' });
-  assert.deepEqual(actionFor(ev('9'), tpls), { type: 'cam', id: 'hero' });
+test('6 to 9 pick camera presets, 1 to 5 are free', () => {
+  assert.equal(actionFor(ev('2')), null);
+  assert.deepEqual(actionFor(ev('6')), { type: 'cam', id: 'top' });
+  assert.deepEqual(actionFor(ev('7')), { type: 'cam', id: 'plan' });
+  assert.deepEqual(actionFor(ev('8')), { type: 'cam', id: 'iso' });
+  assert.deepEqual(actionFor(ev('9')), { type: 'cam', id: 'hero' });
 });
 
 test('mode and toggle keys', () => {
-  assert.deepEqual(actionFor(ev('g'), tpls), { type: 'ground' });
-  assert.deepEqual(actionFor(ev('v'), tpls), { type: 'view' });
-  assert.deepEqual(actionFor(ev('f'), tpls), { type: 'follow' });
-  assert.deepEqual(actionFor(ev('p'), tpls), { type: 'spin' });
-  assert.deepEqual(actionFor(ev('l'), tpls), { type: 'labels' });
-  assert.deepEqual(actionFor(ev('Home'), tpls), { type: 'home' });
-  assert.deepEqual(actionFor(ev('Escape'), tpls), { type: 'escape' });
+  assert.deepEqual(actionFor(ev('g')), { type: 'ground' });
+  assert.deepEqual(actionFor(ev('v')), { type: 'view' });
+  assert.deepEqual(actionFor(ev('f')), { type: 'follow' });
+  assert.deepEqual(actionFor(ev('p')), { type: 'spin' });
+  assert.deepEqual(actionFor(ev('l')), { type: 'labels' });
+  assert.deepEqual(actionFor(ev('Home')), { type: 'home' });
+  assert.deepEqual(actionFor(ev('Escape')), { type: 'escape' });
 });
 
 test('camera movement keys are not page actions, typing and chords are ignored', () => {
-  for (const k of ['w', 'a', 's', 'd', 'q', 'e', 'r', 'c']) assert.equal(actionFor(ev(k), tpls), null);
-  assert.equal(actionFor({ key: 'g', target: { tagName: 'INPUT' } }, tpls), null);
-  assert.equal(actionFor(ev('g', { ctrlKey: true }), tpls), null);
+  for (const k of ['w', 'a', 's', 'd', 'q', 'e', 'r', 'c']) assert.equal(actionFor(ev(k)), null);
+  assert.equal(actionFor({ key: 'g', target: { tagName: 'INPUT' } }), null);
+  assert.equal(actionFor(ev('g', { ctrlKey: true })), null);
 });
 
 test('old camera ids in a url still resolve', () => {
@@ -38,6 +37,6 @@ test('old camera ids in a url still resolve', () => {
 });
 
 test('auto-repeat does not fire toggles or presets', () => {
-  for (const k of ['l', 'p', 'g', 'v', 'f', '6', '2', 'Escape']) assert.equal(actionFor(ev(k, { repeat: true }), tpls), null);
-  assert.deepEqual(actionFor(ev('l', { repeat: false }), tpls), { type: 'labels' });
+  for (const k of ['l', 'p', 'g', 'v', 'f', '6', '2', 'Escape']) assert.equal(actionFor(ev(k, { repeat: true })), null);
+  assert.deepEqual(actionFor(ev('l', { repeat: false })), { type: 'labels' });
 });

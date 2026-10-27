@@ -17,8 +17,8 @@ type Generator interface {
 	Layout(template string) (l layout.Layout, rev string, err error)
 }
 
-// layoutReply is what the layout routes answer: whether the page may edit, the
-// layout, the template list, the name that was answered (a template id or a
+// layoutReply is what the layout routes answer: edit (always true, kept for the
+// page), the layout, the template list, the name that was answered (a template id or a
 // saved layout) and the rev of the layout.
 type layoutReply struct {
 	Edit      bool              `json:"edit"`
@@ -93,12 +93,12 @@ func (h *handler) layoutGet(w http.ResponseWriter, r *http.Request) {
 		name = h.activeName()
 	}
 	l, rev := h.resolve(name)
-	h.replyLayout(w, h.cfg.Edit, name, l, rev)
+	h.replyLayout(w, name, l, rev)
 }
 
-func (h *handler) replyLayout(w http.ResponseWriter, edit bool, name string, l layout.Layout, rev string) {
+func (h *handler) replyLayout(w http.ResponseWriter, name string, l layout.Layout, rev string) {
 	w.Header().Set("X-Clalt-Rev", rev)
-	h.reply(w, layoutReply{Edit: edit, Layout: l, Templates: layout.Templates, Active: name, Rev: rev})
+	h.reply(w, layoutReply{Edit: true, Layout: l, Templates: layout.Templates, Active: name, Rev: rev})
 }
 
 func (h *handler) reply(w http.ResponseWriter, v any) {

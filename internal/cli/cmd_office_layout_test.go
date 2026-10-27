@@ -153,7 +153,8 @@ func TestOfficeLayoutUseAndExportRefuseUnknownNames(t *testing.T) {
 }
 
 // the default is the generated garden (rows) now that the generator is wired in.
-func TestOfficeEditFlag(t *testing.T) {
+// --edit is still accepted but changes nothing: the write routes are always there.
+func TestOfficeEditFlagIsANoOp(t *testing.T) {
 	for _, edit := range []bool{false, true} {
 		e := newEnv(t)
 		args := []string{"--no-open"}
@@ -163,11 +164,7 @@ func TestOfficeEditFlag(t *testing.T) {
 		url, stop := startOffice(t, e, func(string) error { return nil }, args...)
 		base, token, _ := strings.Cut(url, "/?t=")
 		code, body := fetch(t, base+"/api/layout", token)
-		want := `"edit":false`
-		if edit {
-			want = `"edit":true`
-		}
-		if code != 200 || !strings.Contains(body, want) || !strings.Contains(body, `"name":"rows"`) {
+		if code != 200 || !strings.Contains(body, `"edit":true`) || !strings.Contains(body, `"name":"rows"`) {
 			t.Errorf("edit=%v: %d %s", edit, code, body)
 		}
 		req, _ := http.NewRequest("GET", base+"/api/layouts", nil)
@@ -177,10 +174,16 @@ func TestOfficeEditFlag(t *testing.T) {
 			t.Fatal(err)
 		}
 		resp.Body.Close()
-		if (resp.StatusCode == 200) != edit {
+		if resp.StatusCode != 200 {
 			t.Errorf("edit=%v: GET /api/layouts = %d", edit, resp.StatusCode)
 		}
 		stop()
+	}
+}
+
+func TestOfficeUsageHasNoEditFlag(t *testing.T) {
+	if strings.Contains(officeUsage, "--edit") {
+		t.Error(officeUsage)
 	}
 }
 

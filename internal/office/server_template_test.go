@@ -49,7 +49,7 @@ type genEnv struct {
 	logs *[]string
 }
 
-func newGenEnv(t *testing.T, edit bool, startTemplate string) genEnv {
+func newGenEnv(t *testing.T, startTemplate string) genEnv {
 	t.Helper()
 	st := layout.NewStore(t.TempDir(), nil)
 	st.Catalog = layout.Catalog{}
@@ -57,7 +57,7 @@ func newGenEnv(t *testing.T, edit bool, startTemplate string) genEnv {
 	gen := &fakeGen{}
 	var logs []string
 	h, err := NewHandler(Config{
-		Token: testToken, Port: 4242, Hosts: []string{"127.0.0.1:4242"}, Edit: edit, Layouts: st,
+		Token: testToken, Port: 4242, Hosts: []string{"127.0.0.1:4242"}, Layouts: st,
 		Generator: gen, Template: startTemplate,
 		Logf:     func(f string, a ...any) { logs = append(logs, fmt.Sprintf(f, a...)) },
 		Snapshot: func() (Snapshot, error) { return Snapshot{V: 1}, nil },
@@ -69,7 +69,7 @@ func newGenEnv(t *testing.T, edit bool, startTemplate string) genEnv {
 }
 
 func TestGetLayoutWithoutQueryAnswersTheActiveTemplate(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	rec := e.send("GET", "/api/layout", "")
 	r := decodeReply(t, rec)
 	if rec.Code != 200 || r.Layout.V != 2 || r.Layout.Name != "rows" || r.Rev != "r-rows" || r.Active != "rows" {
@@ -88,7 +88,7 @@ func TestGetLayoutWithoutQueryAnswersTheActiveTemplate(t *testing.T) {
 }
 
 func TestGetLayoutTemplateQuery(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	r := decodeReply(t, e.send("GET", "/api/layout?template=river", ""))
 	if r.Layout.Name != "river" || r.Rev != "r-river" || r.Active != "river" {
 		t.Errorf("reply %+v", r)
@@ -102,7 +102,7 @@ func TestGetLayoutTemplateQuery(t *testing.T) {
 }
 
 func TestGetLayoutHallTemplateIsTheDefaultFileWithoutTheGenerator(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	a := decodeReply(t, e.send("GET", "/api/layout?template=hall", ""))
 	b := decodeReply(t, e.send("GET", "/api/layout?template=hall", ""))
 	if a.Layout.V != 1 || a.Layout.Name != "default" || a.Rev == "" || a.Rev != b.Rev {
@@ -114,7 +114,7 @@ func TestGetLayoutHallTemplateIsTheDefaultFileWithoutTheGenerator(t *testing.T) 
 }
 
 func TestGetLayoutUnknownTemplateIs400(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	for _, q := range []string{"nope", "..%2Fx", "default", "mine", "ROWS", "rows%00"} {
 		if rec := e.send("GET", "/api/layout?template="+q, ""); rec.Code != 400 {
 			t.Errorf("template=%s = %d", q, rec.Code)
@@ -126,14 +126,14 @@ func TestGetLayoutUnknownTemplateIs400(t *testing.T) {
 }
 
 func TestGetLayoutTemplateQueryNeedsTheToken(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	if rec := e.send("GET", "/api/layout?template=river", "", noCookie); rec.Code != 401 {
 		t.Errorf("no cookie = %d", rec.Code)
 	}
 }
 
 func TestGeneratorErrorFallsBackToTheHall(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	e.gen.fail = errors.New("boom")
 	rec := e.send("GET", "/api/layout?template=village", "")
 	r := decodeReply(t, rec)
@@ -149,7 +149,7 @@ func TestGeneratorErrorFallsBackToTheHall(t *testing.T) {
 }
 
 func TestNoGeneratorServesTheHall(t *testing.T) {
-	e := newLayoutEnv(t, false)
+	e := newLayoutEnv(t)
 	r := decodeReply(t, e.send("GET", "/api/layout?template=rows", ""))
 	if r.Layout.Name != "default" || r.Layout.V != 1 || len(r.Templates) != 5 || r.Rev == "" {
 		t.Errorf("reply %+v", r)
@@ -157,7 +157,7 @@ func TestNoGeneratorServesTheHall(t *testing.T) {
 }
 
 func TestActiveJSONMayNameASavedLayout(t *testing.T) {
-	e := newGenEnv(t, false, "")
+	e := newGenEnv(t, "")
 	l := layout.Minimal()
 	l.Name, l.Title = "mine", "Mine"
 	if err := e.store.Save(l); err != nil {
@@ -173,7 +173,7 @@ func TestActiveJSONMayNameASavedLayout(t *testing.T) {
 }
 
 func TestStartTemplateOverridesActiveWithoutWriting(t *testing.T) {
-	e := newGenEnv(t, true, "village")
+	e := newGenEnv(t, "village")
 	if r := decodeReply(t, e.send("GET", "/api/layout", "")); r.Layout.Name != "village" {
 		t.Errorf("start template ignored: %+v", r.Layout.Name)
 	}
@@ -204,7 +204,7 @@ func TestBadStartTemplateIsRefused(t *testing.T) {
 }
 
 func TestUseAcceptsTemplateNames(t *testing.T) {
-	e := newGenEnv(t, true, "")
+	e := newGenEnv(t, "")
 	for _, name := range []string{"river", "hall"} {
 		rec := e.send("POST", "/api/layout/use", fmt.Sprintf(`{"name":%q}`, name))
 		r := decodeReply(t, rec)
@@ -224,7 +224,7 @@ func TestUseAcceptsTemplateNames(t *testing.T) {
 }
 
 func TestPutRefusesATemplateLayout(t *testing.T) {
-	e := newGenEnv(t, true, "")
+	e := newGenEnv(t, "")
 	l := layout.Layout{V: 2, Name: "x", Title: "X", Template: "river"}
 	raw, _ := layout.Encode(l)
 	rec := e.send("PUT", "/api/layout", string(raw))
@@ -237,7 +237,7 @@ func TestPutRefusesATemplateLayout(t *testing.T) {
 }
 
 func TestPutHallEditWhileATemplateIsActiveSavesHallCustom(t *testing.T) {
-	e := newGenEnv(t, true, "")
+	e := newGenEnv(t, "")
 	l := layout.Minimal()
 	l.Title = "Edited"
 	raw, _ := layout.Encode(l)
@@ -257,7 +257,7 @@ func TestPutHallEditWhileATemplateIsActiveSavesHallCustom(t *testing.T) {
 }
 
 func TestListRepliesWithTemplates(t *testing.T) {
-	e := newGenEnv(t, true, "")
+	e := newGenEnv(t, "")
 	rec := e.send("GET", "/api/layouts", "")
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"templates"`) {
 		t.Errorf("list = %d %s", rec.Code, rec.Body)

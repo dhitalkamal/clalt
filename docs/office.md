@@ -4,11 +4,12 @@
 account is a character at a desk, every subagent is a character too. It is a
 viewer: nothing on the page starts, stops or changes a session.
 
-    clalt office [--port N] [--no-open] [--edit] [--template <id>]
+    clalt office [--port N] [--no-open] [--template <id>]
 
 It prints a link, opens it in your default browser, and runs until you press
 Ctrl-C. `--no-open` only prints the link. `--port N` picks the port, by default
-a free one.
+a free one. `--edit` is still accepted and does nothing: saving from the page no
+longer needs it.
 
 ## How it looks
 
@@ -69,8 +70,8 @@ the campus grows with them. `hall` is the built-in layout and never changes.
   writes nothing: `active.json` stays as it was.
 - On the page you can switch templates while watching. That is a read
   (`GET /api/layout?template=<id>`), the page remembers the pick, and no file
-  is written. Making a template the saved default is a write like any other:
-  `clalt office layout use <id>` or, with `--edit`, the page.
+  is written. The default template is chosen in the page's settings and saved
+  for every run (the same as `clalt office layout use <id>`).
 - `clalt office layout list` shows the templates next to your layouts.
   `active.json` may name a template or a saved layout. With nothing set the
   active one is `rows`.
@@ -92,9 +93,9 @@ there yet, build mode edits version 1 layouts.
 
 ## Build mode
 
-`clalt office --edit` lets you change the floor plan from the page: move rooms
-and furniture, then save. Without `--edit` the server has no write routes at
-all: with the run's token they answer 404, without it 401 like every route.
+Build mode opens from the page and lets you change the floor plan: move rooms
+and furniture, then save. It needs no flag. The write routes are served in every
+run and are protected by the guards below, not by a switch.
 
 - A layout is one json file in `~/.config/clalt/office/layouts/<name>.json`.
   The active one is named in `~/.config/clalt/office/active.json`. With no valid
@@ -138,9 +139,11 @@ changes nothing.
   read the page or the data, and a request that names another host (a DNS
   rebinding attempt) is refused. Anyone who has the link while the office runs
   can look, so do not paste it in a chat.
-- The page only reads, unless you start it with `--edit`. Only GET requests
-  are answered, and only the embedded page files, the snapshot and the active
-  layout. With `--edit` three more routes accept layout changes, see build mode.
+- The page watches, and saves only layouts and the default template. Reads are
+  GET requests for the embedded page files, the snapshot and the active layout.
+  Three more routes (`PUT /api/layout`, `GET /api/layouts`,
+  `POST /api/layout/use`) change or list layouts, behind the guards in build
+  mode.
 - What the snapshot holds: the account ids and labels, the 5h and 7d limit
   percentages and reset times, and per session its handle, account, the name of
   its project folder (not the path), the model, its state, a short reason when it

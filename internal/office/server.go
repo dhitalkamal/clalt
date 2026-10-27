@@ -34,8 +34,6 @@ type Config struct {
 	Hosts    []string
 	Snapshot func() (Snapshot, error)
 	Logf     func(format string, args ...any)
-	// Edit turns on the layout write routes. without it the server has none.
-	Edit bool
 	// Layouts is where layouts live, nil serves the default one and nothing else.
 	Layouts *layout.Store
 	// Generator builds the garden templates, nil serves the hall for all of them.

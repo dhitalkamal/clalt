@@ -9,7 +9,7 @@ import (
 )
 
 func TestListAndUse(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	rec := e.send("GET", "/api/layouts", "")
 	var list struct {
 		Active  string
@@ -40,7 +40,7 @@ func TestListAndUse(t *testing.T) {
 }
 
 func TestSnapshotRouteIsUnchanged(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	rec := e.send("GET", "/api/snapshot", "")
 	if rec.Code != 200 || strings.Contains(rec.Body.String(), "layout") {
 		t.Errorf("%d %s", rec.Code, rec.Body)

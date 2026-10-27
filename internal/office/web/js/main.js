@@ -7,7 +7,6 @@ import { applySnapshot } from './sync.js';
 import { loadFirst } from './layoutload.js';
 import { applyLayout } from './scene/apply.js';
 import { startView } from './viewctl.js';
-import { parseHash, pickTemplate, recall } from './viewstate.js';
 
 const loadingEl = document.getElementById('loading');
 
@@ -39,7 +38,7 @@ function onError(e) {
 async function boot() {
   const bar = document.getElementById('loadbar');
   await loadAll((p) => { bar.style.width = p * 100 + '%'; });
-  const first = await firstLayout();
+  const first = await loadFirst();
   await applyLayout(first.layout);
   loadingEl.hidden = true;
   bindInput();
@@ -48,14 +47,6 @@ async function boot() {
   const view = startView(first);
   startPoll((snap) => { try { applySnapshot(snap); } catch (e) { console.error(e); ui.setNotice('the page could not read the snapshot'); } }, onError, () => view.check());
   loop();
-}
-
-// the template from the url hash or the last pick, else the server default. an id the server does not list is dropped.
-async function firstLayout() {
-  let store = null;
-  try { store = localStorage; } catch (e) { /* blocked */ }
-  const want = pickTemplate({ hash: parseHash(location.hash).template, stored: store ? recall(store) : null, templates: null });
-  return loadFirst(want);
 }
 
 boot().catch((e) => { console.error(e); loadingEl.textContent = 'load failed: ' + e.message; });

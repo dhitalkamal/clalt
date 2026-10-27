@@ -20,13 +20,13 @@ type layoutEnv struct {
 	store *layout.Store
 }
 
-func newLayoutEnv(t *testing.T, edit bool) layoutEnv {
+func newLayoutEnv(t *testing.T) layoutEnv {
 	t.Helper()
 	st := layout.NewStore(t.TempDir(), nil)
 	st.Catalog = layout.Catalog{}
 	st.Builtin = fstest.MapFS{"default.json": {Data: encode(t, "default")}, "loft.json": {Data: encode(t, "loft")}}
 	h, err := NewHandler(Config{
-		Token: testToken, Port: 4242, Hosts: []string{"127.0.0.1:4242", "localhost:4242"}, Edit: edit, Layouts: st,
+		Token: testToken, Port: 4242, Hosts: []string{"127.0.0.1:4242", "localhost:4242"}, Layouts: st,
 		Snapshot: func() (Snapshot, error) { return Snapshot{V: 1}, nil },
 	})
 	if err != nil {
@@ -88,23 +88,21 @@ func decodeReply(t *testing.T, rec *httptest.ResponseRecorder) reply {
 }
 
 func TestGetLayoutAlwaysAnswersWithTheActiveLayoutAndTheEditFlag(t *testing.T) {
-	for _, edit := range []bool{false, true} {
-		e := newLayoutEnv(t, edit)
-		rec := e.send("GET", "/api/layout", "")
-		if rec.Code != 200 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") {
-			t.Fatalf("edit=%v: %d %s", edit, rec.Code, rec.Body)
-		}
-		if r := decodeReply(t, rec); r.Edit != edit || r.Layout.Name != "default" || r.Layout.V != 1 {
-			t.Errorf("edit=%v: reply %+v", edit, r)
-		}
-		if rec.Header().Get("Cache-Control") != "no-store" {
-			t.Error("layout may be cached")
-		}
+	e := newLayoutEnv(t)
+	rec := e.send("GET", "/api/layout", "")
+	if rec.Code != 200 || !strings.HasPrefix(rec.Header().Get("Content-Type"), "application/json") {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	if r := decodeReply(t, rec); !r.Edit || r.Layout.Name != "default" || r.Layout.V != 1 {
+		t.Errorf("reply %+v", r)
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Error("layout may be cached")
 	}
 }
 
 func TestGetLayoutNeedsTheToken(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	if rec := e.send("GET", "/api/layout", "", noCookie); rec.Code != 401 {
 		t.Errorf("no cookie = %d", rec.Code)
 	}
@@ -117,25 +115,10 @@ func TestGetLayoutWithoutAStoreServesTheDefault(t *testing.T) {
 	}
 }
 
-func TestWithoutEditTheWriteRoutesAre404(t *testing.T) {
-	e := newLayoutEnv(t, false)
-	for _, c := range [][2]string{{"PUT", "/api/layout"}, {"GET", "/api/layouts"}, {"POST", "/api/layout/use"}, {"POST", "/api/layouts"}, {"DELETE", "/api/layout"}, {"GET", "/api/layout/use"}} {
-		body := string(encode(t, "mine"))
-		if rec := e.send(c[0], c[1], body); rec.Code != 404 {
-			t.Errorf("%s %s = %d, want 404", c[0], c[1], rec.Code)
-		}
-	}
-	if _, err := e.store.Load("mine"); err == nil {
-		t.Error("a layout was saved")
-	}
-}
-
 func TestEditRoutesNeedTheTokenFirst(t *testing.T) {
-	for _, edit := range []bool{false, true} {
-		e := newLayoutEnv(t, edit)
-		if rec := e.send("PUT", "/api/layout", string(encode(t, "mine")), noCookie); rec.Code != 401 {
-			t.Errorf("edit=%v: PUT without cookie = %d", edit, rec.Code)
-		}
+	e := newLayoutEnv(t)
+	if rec := e.send("PUT", "/api/layout", string(encode(t, "mine")), noCookie); rec.Code != 401 {
+		t.Errorf("PUT without cookie = %d", rec.Code)
 	}
 }
 
@@ -157,7 +140,7 @@ func TestWritesNeedEveryGuard(t *testing.T) {
 		},
 	}
 	for name, mod := range cases {
-		e := newLayoutEnv(t, true)
+		e := newLayoutEnv(t)
 		if rec := e.send("PUT", "/api/layout", body, mod); rec.Code != 403 {
 			t.Errorf("%s: PUT = %d, want 403", name, rec.Code)
 		}
@@ -174,7 +157,7 @@ func TestWritesNeedEveryGuard(t *testing.T) {
 }
 
 func TestWritesRefuseTheWrongContentTypeAndAnOversizeBody(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	body := string(encode(t, "mine"))
 	if rec := e.send("PUT", "/api/layout", body, set("Content-Type", "text/plain")); rec.Code != 415 {
 		t.Errorf("text/plain = %d", rec.Code)
@@ -189,7 +172,7 @@ func TestWritesRefuseTheWrongContentTypeAndAnOversizeBody(t *testing.T) {
 }
 
 func TestEditRoutesRefuseOtherMethods(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	for _, c := range [][2]string{{"POST", "/api/layout"}, {"DELETE", "/api/layout"}, {"PUT", "/api/layouts"}, {"GET", "/api/layout/use"}, {"PUT", "/api/layout/use"}} {
 		if rec := e.send(c[0], c[1], "{}"); rec.Code != 405 {
 			t.Errorf("%s %s = %d, want 405", c[0], c[1], rec.Code)
@@ -198,7 +181,7 @@ func TestEditRoutesRefuseOtherMethods(t *testing.T) {
 }
 
 func TestPutRefusesBadLayouts(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	for name, body := range map[string]string{
 		"junk":        `nope`,
 		"unknown key": `{"v":1,"extra":1}`,
@@ -212,7 +195,7 @@ func TestPutRefusesBadLayouts(t *testing.T) {
 }
 
 func TestPutOverABuiltInSavesACustomCopyAndSwitchesToIt(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	if err := e.store.SetActive("default"); err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +223,7 @@ func TestPutOverABuiltInSavesACustomCopyAndSwitchesToIt(t *testing.T) {
 }
 
 func TestPutOverAUserLayoutSavesUnderItsName(t *testing.T) {
-	e := newLayoutEnv(t, true)
+	e := newLayoutEnv(t)
 	mine := layout.Minimal()
 	mine.Name = "mine"
 	if err := e.store.Save(mine); err != nil {
@@ -267,7 +250,7 @@ func TestPutAcceptsLocalhostOriginOrAMatchingReferer(t *testing.T) {
 			r.Header.Set("Referer", "http://127.0.0.1:4242/some/page")
 		},
 	} {
-		e := newLayoutEnv(t, true)
+		e := newLayoutEnv(t)
 		if rec := e.send("PUT", "/api/layout", body, mod); rec.Code != 200 {
 			t.Errorf("%s: %d %s", name, rec.Code, rec.Body)
 		}
