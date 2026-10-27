@@ -14,6 +14,8 @@ type Real struct {
 	Feed     feed.Store
 	Accounts AccountSource
 	Team     TeamSource
+	// Projects are the folders that hold the project folders of transcripts.
+	Projects []string
 	Now      func() time.Time
 }
 

@@ -98,16 +98,23 @@ func (o officeAccounts) Accounts() ([]office.Account, error) {
 	return out, nil
 }
 
-// officeSources is the office's view of this machine.
-func (a *App) officeSources() office.Sources {
-	return office.RealSources(office.Real{
+// officeReal is this machine's registry, feed, accounts and transcripts.
+func (a *App) officeReal() office.Real {
+	r := office.Real{
 		Registry: registry.Registry{Dir: config.SessionsDir()},
 		Feed:     feed.Store{Dir: config.FeedDir()},
 		Accounts: officeAccounts{app: a},
 		Team:     office.NewTeamFiles(userAgentsDir(), a.clock),
 		Now:      a.clock,
-	})
+	}
+	if dir := config.ClaudeProjectsDir(); dir != "" {
+		r.Projects = []string{dir}
+	}
+	return r
 }
+
+// officeSources is the office's view of this machine.
+func (a *App) officeSources() office.Sources { return office.RealSources(a.officeReal()) }
 
 // userAgentsDir is the agents folder of the claude home, found the way the
 // account folders find it. empty when there is no home.
@@ -136,13 +143,15 @@ func (a *App) cmdOffice(args []string) error {
 		ctx, stop = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
 	}
-	src := a.officeSources()
+	real := a.officeReal()
+	src := office.RealSources(real)
 	// every snapshot also feeds the garden generators their desk needs
 	gen := office.NewGardenFeed(a.clock)
 	return cleanedOrNil(office.Run(ctx, office.Options{
 		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Template: opt.template,
 		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
 		Generator: gen,
+		Activity:  real,
 		Snapshot: func() (office.Snapshot, error) {
 			snap, err := office.Build(src)
 			if err == nil {

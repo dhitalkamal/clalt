@@ -140,7 +140,8 @@ changes nothing.
   rebinding attempt) is refused. Anyone who has the link while the office runs
   can look, so do not paste it in a chat.
 - The page watches, and saves only layouts and the default template. Reads are
-  GET requests for the embedded page files, the snapshot and the active layout.
+  GET requests for the embedded page files, the snapshot, the active layout and
+  the activity log of one session (see below).
   Three more routes (`PUT /api/layout`, `GET /api/layouts`,
   `POST /api/layout/use`) change or list layouts, behind the guards in build
   mode.
@@ -148,12 +149,49 @@ changes nothing.
   percentages and reset times, and per session its handle, account, the name of
   its project folder (not the path), the model, its state, a short reason when it
   waits for you, when it started, and its subagents (type, a short description,
-  state, times). It holds no prompts, no transcript text, no emails, no tokens,
+  state, times). It holds no prompts, no transcript text (the activity panel is
+  the one place that does, on request), no emails, no tokens,
   no environment and no full paths. Text is cleaned of control characters. An
   account label that looks like an email address is cut at the at sign, so the
   page never shows an address.
 - Nothing is written to disk except errors, one line each, in
   `~/.config/clalt/logs/office.log`, and layouts you save in build mode. The token is never logged.
+
+## Activity panel
+
+Opening a session, a team desk or an intern shows what that session did:
+prompts and replies as text, tool calls as compact rows (tool, files, how long,
+whether it worked), and subagent runs as groups. It comes from
+`GET /api/activity?handle=<session handle>[&agent=<subagent id>][&before=<cursor>][&after=<cursor>][&limit=<n>]`,
+which has the same guards as the snapshot (the token and the Host check).
+
+- clalt reads the session's transcript when the panel asks and keeps nothing:
+  no copy, no index, no file written. A reply is reused for one second so a
+  page that polls costs one read. The only thing that persists is claude's own
+  transcript, which clalt never changes.
+- It reads backwards from the end of the transcript, so the newest entries are
+  cheap, and scans at most 64 MB per request. `next` in the reply is the cursor
+  for older entries and is empty when there are none. `limit` is 100 by default
+  and at most 300. `newest` in the reply of the newest page is the cursor to
+  pass back as `after` to get only what came since, newest first; a poll that
+  finds more than a page follows `next` with `before` and the same `after`. A
+  page can run a few entries over it to keep a tool call
+  with its result.
+- Text is cleaned of control and format characters (newlines and tabs stay),
+  each text is cut at 20000 characters with a `[cut]` marker, and a reply holds
+  about 2 MB at most. Lines that cannot be read are skipped and counted in
+  `skipped`.
+- The transcript is found the way usage and `clalt resume` find it:
+  the session's claude id, then the project folder named after its working
+  folder, with a scan of the projects folders as fallback. A session without
+  a transcript yet, or an unknown handle, answers 404 with a short reason.
+- A subagent run is the file `agent-<id>.jsonl` in the session's `subagents`
+  folder, which is where claude writes them now. For older transcripts that
+  kept sidechain lines in the main file, those lines of that agent are used.
+  The main view shows a run as a start and an end entry. A run started in the
+  background has a start entry only, since its end is not in the transcript.
+- Unlike the snapshot, this does carry transcript text (your prompts, replies,
+  tool inputs and results), to the page of this browser only.
 
 ## Where the data comes from
 

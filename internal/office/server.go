@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
@@ -41,6 +42,8 @@ type Config struct {
 	// Template is the template shown first in this run instead of the one in
 	// active.json, which it does not touch. empty means the active one.
 	Template string
+	// Activity finds the transcript behind GET /api/activity, nil answers 404.
+	Activity ActivitySource
 }
 
 type handler struct {
@@ -53,6 +56,9 @@ type handler struct {
 	mu sync.Mutex
 	// start is Config.Template until a write from the page picks another layout.
 	start string
+	// now is the clock of the activity cache.
+	now      func() time.Time
+	actCache activityCache
 }
 
 var importMap = regexp.MustCompile(`(?s)<script type="importmap">(.*?)</script>`)
@@ -86,7 +92,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	if cfg.Template != "" && !layout.IsTemplate(cfg.Template) {
 		return nil, errors.New("office: unknown start template " + cfg.Template)
 	}
-	h := &handler{start: cfg.Template, cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page), store: cfg.Layouts}
+	h := &handler{now: time.Now, start: cfg.Template, cfg: cfg, hosts: map[string]bool{}, web: web, csp: contentSecurityPolicy(page), store: cfg.Layouts}
 	if h.store == nil {
 		h.store = layout.NewStore("", cfg.Logf)
 	}
@@ -135,6 +141,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/api/snapshot" {
 		h.snapshot(w)
+		return
+	}
+	if r.URL.Path == "/api/activity" {
+		h.activity(w, r)
 		return
 	}
 	if r.URL.Path == "/api/layout" {

@@ -5,6 +5,7 @@ import { app, stage, ui, canvas } from './app.js';
 import { regionInfo } from './regioncard.js';
 import { isGarden } from './garden/index.js';
 import { goCam } from './camseam.js';
+import { openActivity } from './activity/index.js';
 
 // the nav manager owns the camera of every template once it runs (nav/input.js reads the same events)
 const navOwns = () => isGarden() || !!stage.nav;
@@ -52,6 +53,9 @@ const endPointer = (e) => {
       app.selected = app.hover || null;
       app.selectedRegion = app.hover ? null : pickRegion(e.clientX, e.clientY);
       app.selectPos = { x: e.clientX, y: e.clientY };
+      // a click on a character opens its activity log (a touch tap has no hover, so it picks here)
+      const hit = app.hover || pickAgent(e.clientX, e.clientY);
+      if (hit) openActivity(hit.s);
     }
     down = null;
   }
@@ -78,15 +82,22 @@ function onMove(e) {
   else orbit(stage, dx, dy);
 }
 
+// the agent under a screen point, or null
+function pickAgent(x, y) {
+  castFrom(x, y);
+  const targets = [...app.agents.values()].flatMap((a) => [a.rig, a.model]);
+  const hit = ray.intersectObjects(targets, true)[0];
+  if (!hit) return null;
+  let o = hit.object;
+  while (o && !o.userData.agent) o = o.parent;
+  return o?.userData.agent || null;
+}
+
 export function updateHover() {
   // the pointer left the canvas: nothing is hovered any more
   if (!mouse && app.hover) { app.hover.setHighlight(false); app.hover = null; }
   if (mouse && !app.dragging) {
-    castFrom(mouse.x, mouse.y);
-    const targets = [...app.agents.values()].flatMap((a) => [a.rig, a.model]);
-    const hit = ray.intersectObjects(targets, true)[0];
-    let agent = null;
-    if (hit) { let o = hit.object; while (o && !o.userData.agent) o = o.parent; agent = o?.userData.agent || null; }
+    const agent = pickAgent(mouse.x, mouse.y);
     if (agent !== app.hover) { app.hover?.setHighlight(false); app.hover = agent; agent?.setHighlight(true); }
     canvas.style.cursor = agent ? 'pointer' : 'grab';
   }

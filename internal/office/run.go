@@ -28,6 +28,8 @@ type Options struct {
 	// see Config.
 	Generator Generator
 	Template  string
+	// Activity finds transcripts for GET /api/activity, see Config.
+	Activity ActivitySource
 }
 
 // Instance is a running server.
@@ -63,7 +65,7 @@ func Start(opt Options) (*Instance, error) {
 	h, err := NewHandler(Config{
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
-		Generator: opt.Generator, Template: opt.Template,
+		Generator: opt.Generator, Template: opt.Template, Activity: opt.Activity,
 	})
 	if err != nil {
 		ln.Close()
