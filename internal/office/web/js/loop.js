@@ -3,7 +3,7 @@ import { stage, render, app } from './app.js';
 import { step } from './step.js';
 import { updateHover } from './input.js';
 import { createSched } from './sched.js';
-import { agentsMoving } from './motion.js';
+import { agentsMoving, fading } from './motion.js';
 import { createHud } from './perfhud.js';
 
 const camKey = () => {
@@ -47,7 +47,7 @@ export function startLoop() {
         sched.ran(now);
         sched.setAgents(agentsMoving(app.agents.values()) || !!app.editing);
         const k = camKey();
-        if (!same(k, cam)) sched.cameraMoved(now);
+        if (!same(k, cam) || fading(app)) sched.cameraMoved(now);
         cam = k;
         hud.frame(now, performance.now() - t0, sched.mode(now));
       }

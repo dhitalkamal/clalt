@@ -96,6 +96,7 @@ export function step(dt) {
   // the nav manager drives the hall camera (the garden ticks it itself), the build editor pauses it while open
   const hall = app.layoutJson && app.layoutJson.v !== 2;
   if (stage.nav && hall) { stage.nav.pause(!!app.editing); stage.nav.update(dt); } else if (!stage.nav) tickCamera(stage, app.dragging);
+  app.cutBusy = !!(hall && app.cutaway && app.cutaway.update(stage.camera, dt));
   for (const [id, a] of app.agents) {
     if (a.isMain && a.s.state === 'needs-you' && a.prevState !== 'needs-you' && a.slot.stand) {
       const p = a.slot.stand[a.slot.stand.length - 1];

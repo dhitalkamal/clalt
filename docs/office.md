@@ -84,6 +84,9 @@ until the server stops. On other systems the checkbox is disabled.
   drag (or right drag) moves the view, wheel zooms to the cursor, two fingers
   pinch on a touch screen. W A S D or the arrows move (Shift is faster), Q and E
   turn, Z and X tilt, R and C go higher and lower, double-click flies there.
+  The view stays over the walkable area of the template (the hall floor, the island): it
+  cannot zoom out past the point where that area fills the screen, a low camera stays inside
+  the hall walls, and in the hall the walls between the camera and the room fade out.
 - G goes down to ground level and walks (W A S D, drag to look, Shift runs,
   Space jumps, not on the stairs). The third person camera pulls in when a wall,
   tree or deck edge is in the way. V switches between first and third person.

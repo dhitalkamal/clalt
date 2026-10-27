@@ -1,7 +1,7 @@
 // which agents count as moving for the frame scheduler
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { agentsMoving } from '../motion.js';
+import { agentsMoving, fading } from '../motion.js';
 
 const ag = (mode, state, scale = 1) => ({ mode, scale, s: { state } });
 
@@ -25,3 +25,9 @@ test('an agent still growing or shrinking moves', () => {
 });
 
 test('an agent fully away and shrunk does not', () => assert.equal(agentsMoving([ag('away', 'ended', 0.001)]), false));
+
+test('a wall still fading keeps the scheduler awake', () => {
+  assert.equal(fading({ cutBusy: true }), true);
+  assert.equal(fading({ cutBusy: false }), false);
+  assert.equal(fading({}), false);
+});

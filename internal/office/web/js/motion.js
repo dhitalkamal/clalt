@@ -10,3 +10,6 @@ export function agentsMoving(agents) {
   }
   return false;
 }
+
+// the hall cutaway is easing a wall: it fades without the camera moving, so it needs frames of its own
+export const fading = (app) => !!app.cutBusy;

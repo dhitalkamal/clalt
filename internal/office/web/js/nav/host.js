@@ -37,7 +37,11 @@ export function createNavHost(deps) {
         const r = rig();
         return r && mods.presetPose(id, { bb: r.bb, aspect: r.aspect(), safe: r.safe, eye: r.eye });
       },
-      fitFog: (dist) => mods.fitFog(stage, dist),
+      fitFog: (dist) => {
+        mods.fitFog(stage, dist);
+        // no ground or haze behind the hall: keep the whole box clear so its edges stay crisp
+        if (hall() && stage.scene && stage.scene.fog) { stage.scene.fog.near = dist * 3; stage.scene.fog.far = dist * 9; }
+      },
       onChange: (s) => changeCb(s),
       onNotice: (m) => console.warn(m),
     };
