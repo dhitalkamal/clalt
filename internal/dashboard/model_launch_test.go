@@ -43,12 +43,12 @@ func TestARunCommandSuspendsTheProgramThroughExec(t *testing.T) {
 	act := &fakeActions{cmd: helperCmd(0)}
 	m, _ := actionModel(act)
 	_, cmd := Press(m, "enter")
-	launch, ok := RunCmd(cmd, time.Second).(launchMsg)
+	launch, ok := RunCmd(cmd, Patience).(launchMsg)
 	if !ok || launch.launch == nil || launch.err != nil {
 		t.Fatalf("enter asks the actions for a command off the update loop, got %#v", launch)
 	}
 	_, exec := upd(m, launch)
-	if got := fmt.Sprintf("%T", RunCmd(exec, time.Second)); got != "tea.execMsg" {
+	if got := fmt.Sprintf("%T", RunCmd(exec, Patience)); got != "tea.execMsg" {
 		t.Errorf("the dashboard hands the command to tea.Exec so the screen is released, got %s", got)
 	}
 }
@@ -71,7 +71,7 @@ func TestSignInAlsoGoesThroughExec(t *testing.T) {
 	act := &fakeActions{cmd: helperCmd(0)}
 	m, _ := actionModel(act)
 	_, cmd := Press(m, "s")
-	launch, ok := RunCmd(cmd, time.Second).(launchMsg)
+	launch, ok := RunCmd(cmd, Patience).(launchMsg)
 	if !ok || launch.launch == nil {
 		t.Fatalf("s asks for an interactive command, got %#v", launch)
 	}

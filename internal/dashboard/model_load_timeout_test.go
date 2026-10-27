@@ -32,14 +32,14 @@ func shortLimit(src Source) model {
 func TestALoadThatIgnoresItsContextStillTimesOut(t *testing.T) {
 	d := deafSource{release: make(chan struct{})}
 	defer close(d.release)
-	l, ok := RunCmd(shortLimit(d).loadCmd(), 2*time.Second).(loadedMsg)
+	l, ok := RunCmd(shortLimit(d).loadCmd(), Patience).(loadedMsg)
 	if !ok || l.err == nil || l.err.Error() != "load timed out after 30ms" || len(l.snap.Accounts) != 0 {
 		t.Errorf("the dashboard stops waiting on its own: %#v", l)
 	}
 }
 
 func TestANilErrorAfterTheContextEndedIsATimeout(t *testing.T) {
-	l, ok := RunCmd(shortLimit(lateSource{}).loadCmd(), 2*time.Second).(loadedMsg)
+	l, ok := RunCmd(shortLimit(lateSource{}).loadCmd(), Patience).(loadedMsg)
 	if !ok || l.err == nil || l.err.Error() != "load timed out after 30ms" {
 		t.Errorf("a read that finished after the deadline may be partial: %#v", l)
 	}
@@ -47,7 +47,7 @@ func TestANilErrorAfterTheContextEndedIsATimeout(t *testing.T) {
 
 func TestALoadInTimeIsNotATimeout(t *testing.T) {
 	m := shortLimit(&fakeSource{snap: fiveSnapshot()})
-	l, ok := RunCmd(m.loadCmd(), 2*time.Second).(loadedMsg)
+	l, ok := RunCmd(m.loadCmd(), Patience).(loadedMsg)
 	if !ok || l.err != nil || len(l.snap.Accounts) != 5 {
 		t.Errorf("a quick source loads: %#v", l)
 	}

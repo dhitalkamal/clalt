@@ -178,7 +178,7 @@ func loadedModelIn(ctx context.Context, src *fakeSource, act *fakeActions, opt O
 	m := newModel(ctx, src, act, opt)
 	next, _ := m.Update(tea.WindowSizeMsg{Width: w, Height: h})
 	m = next.(model)
-	msg := RunCmd(m.loadCmd(), time.Second)
+	msg := RunCmd(m.loadCmd(), Patience)
 	next, _ = m.Update(msg)
 	return next.(model)
 }

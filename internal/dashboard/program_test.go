@@ -55,14 +55,14 @@ func wait(t *testing.T, what string, ch <-chan struct{}) {
 	t.Helper()
 	select {
 	case <-ch:
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatalf("timed out waiting for %s", what)
 	}
 }
 
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(Patience)
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("timed out waiting for %s", what)
@@ -94,7 +94,7 @@ func TestTheProgramRunsTheCommandAndResumesWithAFreshLoad(t *testing.T) {
 		if err != nil {
 			t.Errorf("the program ended with %v", err)
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the program did not quit after q")
 	}
 }
@@ -114,7 +114,7 @@ func TestTheProgramShowsACommandThatCouldNotStart(t *testing.T) {
 		if err != nil {
 			t.Errorf("ctrl+c ends the program cleanly, got %v", err)
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the program did not quit after ctrl+c")
 	}
 }
@@ -130,7 +130,7 @@ func TestTheProgramSaysWhenTheCommandEndedWithAStatus(t *testing.T) {
 	p.Send(KeyMsg("ctrl+c"))
 	select {
 	case <-done:
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the program did not quit after ctrl+c")
 	}
 }

@@ -166,18 +166,18 @@ func TestFlashExpiresAndAnOldTimerDoesNotClearANewerFlash(t *testing.T) {
 	m := demoModel(dashboard.Options{ASCII: true, NoColor: true, FlashFor: 5 * time.Millisecond}, 100, 30)
 	flash := func(m tea.Model, key string) (tea.Model, tea.Cmd) {
 		m, cmd := press(m, key)
-		return m.Update(dashboard.RunCmd(cmd, time.Second))
+		return m.Update(dashboard.RunCmd(cmd, dashboard.Patience))
 	}
 	m, first := flash(m, "enter")
 	if !strings.Contains(screen(m), "Demo: would start claude as robin.") {
 		t.Fatalf("setup: the first flash is showing:\n%s", screen(m))
 	}
 	m, second := flash(m, "s")
-	stale, _ := m.Update(dashboard.RunCmd(first, time.Second))
+	stale, _ := m.Update(dashboard.RunCmd(first, dashboard.Patience))
 	if !strings.Contains(screen(stale), "Demo: would sign in to robin.") {
 		t.Error("an old timer must not clear a newer flash")
 	}
-	done, _ := stale.Update(dashboard.RunCmd(second, time.Second))
+	done, _ := stale.Update(dashboard.RunCmd(second, dashboard.Patience))
 	if out := screen(done); strings.Contains(out, "Demo:") || !strings.Contains(out, "q quit") {
 		t.Error("flash should clear and the key hints should return")
 	}

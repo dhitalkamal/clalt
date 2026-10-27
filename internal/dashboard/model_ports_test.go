@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 )
 
 type ctxKey struct{}
@@ -36,7 +35,7 @@ func TestEveryActionGetsTheProgramContext(t *testing.T) {
 // actions, leaving the process it returns unrun
 func pressSettleNoExec(m model, keys ...string) model {
 	next, cmd := Press(m, keys...)
-	if msg, ok := RunCmd(cmd, time.Second).(launchMsg); ok {
+	if msg, ok := RunCmd(cmd, Patience).(launchMsg); ok {
 		got, _ := upd(next.(model), launchMsg{err: msg.err})
 		return got
 	}
@@ -66,7 +65,7 @@ func TestAnActionRunsWhileALoadIsInFlight(t *testing.T) {
 	src.mu.Unlock()
 	m, load := m.startLoad()
 	loaded := make(chan struct{})
-	go func() { RunCmd(load, 3*time.Second); close(loaded) }()
+	go func() { RunCmd(load, Patience); close(loaded) }()
 	waitFor(t, "the second load to start", func() bool { return src.calls.Load() == 2 })
 
 	pressSettle(m, "enter")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -139,13 +140,7 @@ func fakeSession(dir string, args []string, stdin io.Reader, on func(string) boo
 	fakeutil.WriteEnv(filepath.Join(dir, "session.env"))
 	cwd, _ := os.Getwd()
 	fakeutil.WriteFile(filepath.Join(dir, "session.cwd"), cwd+"\n")
-	records, _ := filepath.Glob(filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "clalt", "sessions", "*.json"))
-	var all []byte
-	for _, p := range records {
-		b, _ := fsutil.ReadFile(p)
-		all = append(all, b...)
-	}
-	fakeutil.WriteFile(filepath.Join(dir, "session.records"), string(all))
+	fakeutil.WriteFile(filepath.Join(dir, "session.records"), string(readRecords()))
 
 	if on("SESSION_HOLDS") {
 		hold(dir)
@@ -162,6 +157,33 @@ func fakeSession(dir string, args []string, stdin io.Reader, on func(string) boo
 	}
 	n, _ := strconv.Atoi(exit)
 	return n
+}
+
+// readRecords is what clalt has in its sessions folder. clalt adds claude's
+// pid right after the start, so a record without one is waited for: the child
+// can get here first when the machine is busy.
+func readRecords() []byte {
+	glob := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "clalt", "sessions", "*.json")
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		records, _ := filepath.Glob(glob)
+		var all []byte
+		pending := false
+		for _, p := range records {
+			b, _ := fsutil.ReadFile(p)
+			var rec struct {
+				PID int `json:"pid"`
+			}
+			if json.Unmarshal(b, &rec) == nil && rec.PID == 0 {
+				pending = true
+			}
+			all = append(all, b...)
+		}
+		if !pending || time.Now().After(deadline) {
+			return all
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
 }
 
 // hold waits for session.release, noting any TERM, HUP or INT on the way and

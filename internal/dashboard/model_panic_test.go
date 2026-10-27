@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -28,7 +27,7 @@ func (p *panicActions) StopSession(context.Context, string, string) error { pani
 
 func TestAPanicInLoadBecomesAnError(t *testing.T) {
 	m := newModel(context.Background(), panicSource{"disk on fire"}, &fakeActions{}, testOptions())
-	l, ok := RunCmd(m.loadCmd(), 2*time.Second).(loadedMsg)
+	l, ok := RunCmd(m.loadCmd(), Patience).(loadedMsg)
 	if !ok || l.err == nil || l.err.Error() != "load panicked: disk on fire" {
 		t.Fatalf("the panic is the error: %#v", l)
 	}
@@ -41,7 +40,7 @@ func TestAPanicInLoadBecomesAnError(t *testing.T) {
 
 func TestAPanicWithAnErrorValueKeepsItsMessage(t *testing.T) {
 	m := newModel(context.Background(), panicSource{errors.New("nil map")}, &fakeActions{}, testOptions())
-	if l, _ := RunCmd(m.loadCmd(), 2*time.Second).(loadedMsg); l.err == nil || l.err.Error() != "load panicked: nil map" {
+	if l, _ := RunCmd(m.loadCmd(), Patience).(loadedMsg); l.err == nil || l.err.Error() != "load panicked: nil map" {
 		t.Errorf("an error value reads as its text: %#v", l.err)
 	}
 }

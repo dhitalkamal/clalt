@@ -28,7 +28,7 @@ func TestFlashArmsATimerOfFlashFor(t *testing.T) {
 	opt.FlashFor = 5 * time.Millisecond
 	m := loadedModel(&fakeSource{snap: fiveSnapshot()}, &fakeActions{}, opt, 100, 30)
 	m, cmd := m.say("hello", false)
-	msg := RunCmd(cmd, time.Second)
+	msg := RunCmd(cmd, Patience)
 	expired, ok := msg.(flashExpiredMsg)
 	if !ok || expired.id != m.flash.id {
 		t.Errorf("the timer reports the flash it belongs to, got %#v", msg)
