@@ -62,9 +62,9 @@ test('v2 interns take the stools of their agent desk, three at most', () => {
   assert.equal(new Set(stools.map((e) => e.seat)).size, 3);
 });
 
-test('v2 the fourth intern is hidden and counts toward the badge of its agent', () => {
-  const l = campus();
-  const roster = [...team(), ...['a', 'b', 'c', 'd', 'e'].map((k) => intern('s1/' + k, 'plan'))];
+test('v2 an intern past the stools and every work desk is hidden and counts toward the badge', () => {
+  const l = campus({ workspace: 0 });
+  const roster = [...MEMBERS.map((m) => member(m, 'busy')), ...['a', 'b', 'c', 'd', 'e'].map((k) => intern('s1/' + k, 'plan'))];
   const p = plan(l, roster);
   const hidden = [...p.entries()].filter(([, e]) => e.kind === 'hidden');
   assert.equal(hidden.length, 2);
@@ -81,9 +81,16 @@ test('v2 interns keep their stool between polls and a new intern does not push a
   assert.equal(p2.get('s1/b').seat, p1.get('s1/b').seat);
 });
 
-test('v2 interns of a member without a team desk wait in the lobby', () => {
+test('v2 interns of a member without a team desk take a free work desk', () => {
   const l = campus({ members: MEMBERS.slice(0, 3), desks: 3 });
   const p = plan(l, [...team(), intern('s1/a', 'code-reviewer')]);
+  assert.equal(p.get('s1/a').kind, 'seat');
+  assert.notEqual(p.get('s1/a').room, 'tm');
+});
+
+test('v2 interns of a member without a team desk wait in the lobby when no desk is free', () => {
+  const l = campus({ members: MEMBERS.slice(0, 3), desks: 3, workspace: 0 });
+  const p = plan(l, [...MEMBERS.map((m) => member(m, 'busy')), intern('s1/a', 'code-reviewer')]);
   assert.equal(p.get('s1/a').kind, 'stand');
 });
 
@@ -118,19 +125,19 @@ test('hall members take workspace desks first, then research desks, extras stand
   assert.equal(p.get('team:m6').kind, 'stand');
 });
 
-test('hall members get their desks before generic subagents and sessions keep theirs', () => {
+test('hall busy members and subagents get desks before idle members and sessions keep theirs', () => {
   const l = hall(2, 0);
-  const roster = [main('s1'), { key: 's1/x', kind: 'sub', account: 'a', type: 'mystery', state: 'busy' }, member('m1'), member('m2')];
+  const roster = [main('s1'), { key: 's1/x', kind: 'sub', account: 'a', type: 'mystery', state: 'busy' }, member('m1', 'busy'), member('m2')];
   const p = hallPlan(l, roster);
   assert.equal(p.get('team:m1').room, 'ws');
-  assert.equal(p.get('team:m2').room, 'ws');
+  assert.equal(p.get('s1/x').room, 'ws');
   assert.equal(p.get('s1').room, 'cab');
-  assert.equal(p.get('s1/x').kind, 'stand');
+  assert.equal(p.get('team:m2').kind, 'stand');
 });
 
 test('hall interns stand on free floor beside their member desk', () => {
-  const l = hall(3, 0);
-  const roster = [member('m1'), member('m2'), intern('s1/a', 'm2'), intern('s1/b', 'm2')];
+  const l = hall(2, 0);
+  const roster = [member('m1', 'busy'), member('m2', 'busy'), intern('s1/a', 'm2'), intern('s1/b', 'm2')];
   const p = hallPlan(l, roster);
   const m = p.get('team:m2');
   for (const k of ['s1/a', 's1/b']) {

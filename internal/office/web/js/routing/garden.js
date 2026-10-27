@@ -2,6 +2,7 @@
 // no dom, no three.js. coordinates are world units, entries carry world: true so callers do not
 // treat them as grid cells.
 import { RANK } from './team.js';
+import { allocDesks } from './alloc.js';
 
 // where the seat list comes from. the page registers gardenSeats here at boot; tests pass a source in.
 let source = null;
@@ -13,6 +14,36 @@ const seatKey = (s) => s.id || [s.pavilionId, s.kind, f2(s.x), f2(s.z)].join('|'
 const spotKey = (o) => 'o|' + f2(o.x) + '|' + f2(o.z);
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+
+const idle = (a) => a.state === 'idle';
+// working agents first (sessions, members, interns, subs), then resting members, then other resting agents
+const priority = (a) => (idle(a) ? (a.kind === 'team' ? 10 : 11) : (RANK[a.kind] ?? 2));
+
+// seats of a pavilion type that count as working desks for any busy agent
+const isWork = (s) => s.kind === 'desk' && WORK_TYPES.includes(s.type);
+const near = (list, at) => (at ? list.map((s) => [dist(s, at), s]).sort((p, q) => p[0] - q[0]).map((p) => p[1]) : list);
+// workspace and research desks nearest first, team desks (they belong to members) last
+const nearest = (list, at) => near(list.filter((s) => s.type !== 'team'), at).concat(near(list.filter((s) => s.type === 'team'), at));
+
+// seats an agent may use in preference order. members: their own team desk, then desks nearby. interns: the
+// stools of their member, then the free desks nearest to it. subs: the kind of desk their type wants, then any work desk.
+function poolFor(a, layout, desks, got) {
+  if (a.kind === 'main') return desks.filter((s) => s.type === 'cabin' && s.kind === 'desk' && s.account === a.account);
+  const work = desks.filter(isWork);
+  if (a.kind === 'team') {
+    const own = teamDesk(layout, desks, a.team);
+    return (own ? [own] : []).concat(nearest(work.filter((s) => s !== own), own || null));
+  }
+  if (a.kind === 'intern') {
+    const stools = desks.filter((s) => s.kind === 'stool' && s.member === a.team);
+    const m = got.get('team:' + a.team);
+    const at = m || stools[0] || anchorOf(a, wantOf(a), layout);
+    return stools.concat(nearest(work, at));
+  }
+  const w = wantOf(a);
+  const own = desks.filter((s) => s.type === w.type && s.kind === w.kind);
+  return own.concat(nearest(work.filter((s) => !own.includes(s)), anchorOf(a, w, layout)));
+}
 
 // which seat kind and pavilion type a subagent type wants
 function wantOf(agent) {
@@ -38,28 +69,6 @@ function teamDesk(layout, seats, id) {
   return null;
 }
 
-// interns sit on the stools of their member's team desk (seats of kind stool carrying the member id).
-// beyond the stools they are hidden and counted in the badge. a member without a team desk or stools: fallback.
-function placeInterns(interns, seats, plan, prev, claimed, fallback) {
-  const stoolsOf = new Map();
-  for (const s of seats) if (s.kind === 'stool') { if (!stoolsOf.has(s.member)) stoolsOf.set(s.member, []); stoolsOf.get(s.member).push(s); }
-  const onDesk = (a) => {
-    const m = plan.get('team:' + a.team);
-    return m && m.kind === 'seat' && (stoolsOf.get(a.team) || []).length > 0 && seats.some((s) => seatKey(s) === m.seat && s.type === 'team');
-  };
-  const rest = [];
-  for (const a of interns) {
-    if (!onDesk(a)) { fallback(a); continue; }
-    const old = prev?.get(a.key);
-    const s = old?.kind === 'seat' ? stoolsOf.get(a.team).find((x) => seatKey(x) === old.seat) : null;
-    if (s && !claimed.has(seatKey(s))) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); } else rest.push(a);
-  }
-  for (const a of rest) {
-    const s = stoolsOf.get(a.team).find((x) => !claimed.has(seatKey(x)));
-    if (s) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); } else plan.set(a.key, { kind: 'hidden', badgeFor: a.team, member: 'team:' + a.team });
-  }
-}
-
 const resolve = (layout, garden) => {
   const g = garden || (source ? source(layout) : null) || {};
   return { seats: g.seats || [], overflow: g.overflow || layout.overflow || [] };
@@ -77,42 +86,22 @@ function anchorOf(agent, want, layout) {
   return { x: list.reduce((n, p) => n + p.x, 0) / list.length, z: list.reduce((n, p) => n + p.z, 0) / list.length };
 }
 
+const LOUNGE = ['cafe', 'play', 'lobby'];
+const WORK_TYPES = ['workspace', 'research', 'team'];
+
 // planSeats for v2. same contract as the v1 planner, entries have world coordinates.
-// roster state "arriving" sends an agent to the lobby first.
+// working agents get desks first (stools, then free desks nearby, for interns), resting ones take what is
+// left and otherwise wait in the cafe, play area or lobby. state "arriving" sends an agent to the lobby first.
 export function planGarden(layout, roster, prev, garden) {
   const { seats, overflow } = resolve(layout, garden);
-  const desks = seats.filter((s) => s.kind !== 'lobby' && s.kind !== 'cafe' && s.kind !== 'play' && s.kind !== 'stool');
+  const desks = seats.filter((s) => s.kind !== 'lobby' && s.kind !== 'cafe' && s.kind !== 'play');
   const lobby = seats.filter((s) => s.kind === 'lobby');
-  const byDesk = new Map(desks.map((s) => [seatKey(s), s]));
   const spots = new Map(overflow.map((o) => [spotKey(o), o]));
-  const lobbyBy = new Map(lobby.map((s) => [seatKey(s), s]));
   const first = new Map();
   for (const a of roster) if (!first.has(a.key)) first.set(a.key, a);
-  const everyone = [...first.values()].sort((a, b) => (a.kind === b.kind ? byKey(a, b) : (RANK[a.kind] ?? 2) - (RANK[b.kind] ?? 2)));
-  const interns = everyone.filter((a) => a.kind === 'intern');
-  const agents = everyone.filter((a) => a.kind !== 'intern');
-  const fits = (a, s) => {
-    const w = wantOf(a);
-    return s.type === w.type && s.kind === w.kind && (a.kind !== 'main' || s.account === a.account);
-  };
+  const everyone = [...first.values()].sort((a, b) => (priority(a) - priority(b)) || byKey(a, b));
   const plan = new Map();
   const claimed = new Set();
-
-  // team members sit at the desk of their place in the members list of a team pavilion
-  for (const a of agents) {
-    if (a.kind !== 'team') continue;
-    const s = teamDesk(layout, seats, a.team);
-    if (s && !claimed.has(seatKey(s))) { claimed.add(seatKey(s)); plan.set(a.key, seatEntry(s)); }
-  }
-
-  // keep previous desks that still exist and still fit
-  for (const a of agents) {
-    if (plan.has(a.key)) continue;
-    const old = prev?.get(a.key);
-    const s = old?.kind === 'seat' ? byDesk.get(old.seat) : null;
-    if (s && !claimed.has(old.seat) && fits(a, s)) { claimed.add(old.seat); plan.set(a.key, seatEntry(s)); }
-  }
-
   const take = (a, list, keyOf, make) => {
     const s = list.find((x) => !claimed.has(keyOf(x)));
     if (!s) return false;
@@ -121,7 +110,6 @@ export function planGarden(layout, roster, prev, garden) {
     return true;
   };
   const toLobby = (a) => take(a, lobby, seatKey, (s) => standEntry(s, s.pavilionId, seatKey(s)));
-  const toDesk = (a) => take(a, desks.filter((s) => fits(a, s)), seatKey, seatEntry);
   const toSpot = (a) => {
     const old = prev?.get(a.key);
     const kept = old?.kind === 'stand' ? spots.get(old.seat) : null;
@@ -132,16 +120,43 @@ export function planGarden(layout, roster, prev, garden) {
     return take(a, free, spotKey, (o) => standEntry(o, null, spotKey(o)));
   };
 
+  // fresh arrivals walk in through the lobby before they get a desk
+  const fresh = (a) => a.state === 'arriving' && a.kind !== 'team' && prev?.get(a.key)?.kind !== 'seat';
+  const arrived = everyone.filter((a) => fresh(a) && toLobby(a));
+  const agents = everyone.filter((a) => !arrived.includes(a));
+
+  // the allocator holds desks and stools in one pool, claimed ones from the lobby step stay out of it
+  const pool = (a, got) => poolFor(a, layout, desks, got).filter((s) => !claimed.has(seatKey(s)));
+  // a member on a desk that is not its own goes home as soon as its team desk is free
+  const carryOk = (a, s, isFree) => {
+    const own = a.kind === 'team' ? teamDesk(layout, desks, a.team) : null;
+    return !own || s === own || !isFree(own);
+  };
+  const { got } = allocDesks({ agents, prev, seats: desks, idOf: seatKey, pool, idle, evictable: (a) => a.kind !== 'main', carryOk });
+  for (const [key, s] of got) plan.set(key, seatEntry(s));
+
+  // nobody found a desk: interns past the stools are hidden behind a badge, the rest wait
+  const stoolMembers = new Set(desks.filter((s) => s.kind === 'stool').map((s) => s.member));
   const loose = [];
+  const resting = [];
   for (const a of agents) {
     if (plan.has(a.key)) continue;
-    if (a.state === 'arriving' && toLobby(a)) continue;
-    if (!toDesk(a) && !toSpot(a) && !toLobby(a)) loose.push(a);
+    if (a.kind === 'intern' && stoolMembers.has(a.team)) plan.set(a.key, { kind: 'hidden', badgeFor: a.team, member: 'team:' + a.team });
+    else if (idle(a)) resting.push(a);
+    else if (!toSpot(a) && !toLobby(a)) loose.push(a);
   }
-  placeInterns(interns, seats, plan, prev, claimed, (a) => (toLobby(a) || toSpot(a)) || loose.push(a));
+  const lounge = seats.filter((s) => LOUNGE.includes(s.kind));
+  const loungeBy = new Map(lounge.map((s) => [seatKey(s), s]));
+  for (const a of resting) {
+    const old = prev?.get(a.key);
+    const kept = old?.kind === 'stand' ? loungeBy.get(old.seat) : null;
+    if (kept && !claimed.has(old.seat)) { claimed.add(old.seat); plan.set(a.key, standEntry(kept, kept.pavilionId, old.seat)); continue; }
+    const ordered = LOUNGE.flatMap((k) => lounge.filter((s) => s.kind === k));
+    if (!take(a, ordered, seatKey, (s) => standEntry(s, s.pavilionId, seatKey(s))) && !toSpot(a)) loose.push(a);
+  }
   const home = (layout.pavilions || []).find((p) => p.type === 'lobby') || (layout.pavilions || [])[0] || { x: 0, z: 0 };
-  const pool = lobby.length ? lobby.map((s) => ({ x: s.x, z: s.z, rot: s.rot, y: s.y })) : [{ x: home.x, z: home.z + 1.5, rot: 0, y: 0 }];
-  loose.forEach((a, i) => plan.set(a.key, standEntry(pool[i % pool.length], home.id || null, null)));
+  const pad = lobby.length ? lobby.map((s) => ({ x: s.x, z: s.z, rot: s.rot, y: s.y })) : [{ x: home.x, z: home.z + 1.5, rot: 0, y: 0 }];
+  loose.forEach((a, i) => plan.set(a.key, standEntry(pad[i % pad.length], home.id || null, null)));
   return plan;
 }
 

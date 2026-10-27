@@ -6,11 +6,11 @@ import { planSeats, breakSpots } from '../routing.js';
 const seat = (pavilionId, type, kind, x, z, extra = {}) => ({ pavilionId, type, account: '', y: 0, x, z, rot: 0, kind, ...extra });
 
 // a small campus: lobby, one cabin per account, research, workspace, treehouse, cafe, play
-function campus({ cabinDesks = 2, wsDesks = 2, extra = [] } = {}) {
+function campus({ cabinDesks = 2, wsDesks = 2, resDesks = 2, extra = [] } = {}) {
   const seats = [];
   for (let i = 0; i < cabinDesks; i++) seats.push(seat('cab-a', 'cabin', 'desk', 0 + i * 2, 0, { account: 'a' }));
   for (let i = 0; i < cabinDesks; i++) seats.push(seat('cab-b', 'cabin', 'desk', 0 + i * 2, 8, { account: 'b' }));
-  seats.push(seat('res', 'research', 'desk', 20, 0), seat('res', 'research', 'desk', 22, 0));
+  for (let i = 0; i < resDesks; i++) seats.push(seat('res', 'research', 'desk', 20 + i * 2, 0));
   for (let i = 0; i < wsDesks; i++) seats.push(seat('ws', 'workspace', 'desk', 20 + i * 2, 10));
   seats.push(seat('th', 'treehouse', 'review', 40, 0, { y: 2 }), seat('th', 'treehouse', 'meeting', 44, 0, { y: 2 }));
   seats.push(seat('cafe', 'cafe', 'cafe', 30, 20), seat('cafe', 'cafe', 'cafe', 31, 20));
@@ -66,7 +66,7 @@ test('a seat entry carries world coordinates and rotation', () => {
 });
 
 test('a full room spills to overflow nearest the wanted room, then the lobby', () => {
-  const l = campus({ wsDesks: 1 });
+  const l = campus({ wsDesks: 1, resDesks: 0 });
   const roster = ['a', 'b', 'c', 'd', 'e'].map((k) => sub(k, 'general-purpose'));
   const p = plan(l, roster);
   assert.equal(p.get('a').kind, 'seat');
@@ -80,7 +80,7 @@ test('a full room spills to overflow nearest the wanted room, then the lobby', (
 });
 
 test('with no overflow left the lobby seats take the rest and then reuse', () => {
-  const l = campus({ wsDesks: 1 });
+  const l = campus({ wsDesks: 1, resDesks: 0 });
   l.overflow = [];
   const roster = ['a', 'b', 'c', 'd', 'e', 'f'].map((k) => sub(k, 'general-purpose'));
   const p = plan(l, roster);
