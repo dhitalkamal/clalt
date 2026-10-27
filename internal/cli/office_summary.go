@@ -2,8 +2,10 @@ package cli
 
 import (
 	"sort"
+	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/feed"
 	"github.com/dhitalkamal/clalt/internal/office"
 	"github.com/dhitalkamal/clalt/internal/office/summary"
 	"github.com/dhitalkamal/clalt/internal/usage"
@@ -35,7 +37,19 @@ func (a *App) officeSummary() *summary.Service {
 			return out, nil
 		},
 		Attribute: a.attributeRecords,
-		// the live reading, for today only: the feed keeps no older ones
+		// the readings log of the feed gives every day its percent; the live
+		// reading only stands in for today before the log has a line
+		Readings: func(id string, since time.Time) []summary.Reading {
+			rs, err := feed.Store{Dir: config.FeedDir()}.Readings(id, since)
+			if err != nil {
+				return nil
+			}
+			out := make([]summary.Reading, len(rs))
+			for i, r := range rs {
+				out[i] = summary.Reading{T: r.T, FiveHour: r.FiveHour, SevenDay: r.SevenDay}
+			}
+			return out
+		},
 		Limits: func(id string) (*float64, *float64) {
 			l, ok := real.Limits(id)
 			if !ok {

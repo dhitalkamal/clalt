@@ -27,9 +27,18 @@ export function failureText(f) {
   return f.tool + ': ' + f.text + (f.count > 1 ? ' (x' + f.count + ')' : '');
 }
 
+// 5h limit: peak 70%, now 35%. empty when the day has no reading
+export function limitLine(a) {
+  a = a || {};
+  const pct = (v) => Math.round(v) + '%';
+  if (!Number.isFinite(a.peak5hPct)) return '';
+  return '5h limit: peak ' + pct(a.peak5hPct) + (Number.isFinite(a.last5hPct) ? ', now ' + pct(a.last5hPct) : '');
+}
+
 function section(title, s) {
   return {
-    title, facts: facts(s), line: factLine(s),
+    title, limit: limitLine(s), peak5h: Number.isFinite(s.peak5hPct) ? s.peak5hPct : null,
+    now5h: Number.isFinite(s.last5hPct) ? s.last5hPct : null, facts: facts(s), line: factLine(s),
     subagents: countList(s.subagents), tools: countList(s.tools), files: countList(s.files, false),
     failureCount: num(s.failureCount), failures: list(s.failures).map(failureText),
   };

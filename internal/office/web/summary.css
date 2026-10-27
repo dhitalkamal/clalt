@@ -41,6 +41,14 @@
 .summary .col { fill: #4f86c6; }
 .summary .peak .col { fill: #cf8a1c; }
 .summary .col.cur { stroke: var(--ink); stroke-width: 1.5; }
+.summary .col.hot { fill: #c2452d; }
+.summary .guide { stroke: #c2452d; stroke-width: 1; stroke-dasharray: 4 3; }
+.summary .guidelab { font: 9px system-ui, sans-serif; fill: #a8321f; }
+.summary .pct .col { fill: #4f86c6; }
+.summary .pct.pct7 .col { fill: #7a6bb5; }
+.summary .pct .col.hot { fill: #c2452d; }
+.summary .limit { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 12px; }
+.summary .limmeter { flex: 1; max-width: 160px; height: 10px; }
 .summary .hit { fill: transparent; }
 .summary .readout { margin: 2px 0 0; min-height: 15px; font-size: 12px; overflow-wrap: anywhere; }
 @media (max-width: 700px) {

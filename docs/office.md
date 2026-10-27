@@ -155,7 +155,7 @@ changes nothing.
   no environment and no full paths. Text is cleaned of control characters. An
   account label that looks like an email address is cut at the at sign, so the
   page never shows an address.
-- Nothing is written to disk except errors, one line each, in
+- The office itself writes nothing to disk except errors, one line each, in
   `~/.config/clalt/logs/office.log`, and layouts you save in build mode. The token is never logged.
 
 ## Activity panel
@@ -193,6 +193,21 @@ which has the same guards as the snapshot (the token and the Host check).
   background has a start entry only, since its end is not in the transcript.
 - Unlike the snapshot, this does carry transcript text (your prompts, replies,
   tool inputs and results), to the page of this browser only.
+
+## Today and History
+
+The Today tab shows the day of every account that did something: sessions,
+active time, tokens, cost, tools, files and failures. Per account it also
+shows the 5h limit as the day's peak and the latest reading, with a meter. Copy
+as text carries that line too.
+
+The History tab charts, per account and for 7, 30 or 90 days, the highest 5h
+percent and the highest 7d percent read on each local day (0 to 100, with a
+line at 90 percent), then the tokens per day and the busiest 5h window in
+tokens. A day with no reading is a gap, not 0. The percents come from the
+readings log of the feed, which began when you installed this version, so older
+days show tokens only and the page says when the readings began. See
+[feed.md](feed.md#the-readings-log) for what the log holds and how long.
 
 ## Where the data comes from
 

@@ -21,6 +21,7 @@ export function summaryText(sum) {
     if (m.truncated) out.push('note: some transcripts were not read (size limit), numbers may be low.');
     for (const a of m.accounts) {
       out.push('', a.title + ': ' + a.line);
+      if (a.limit) out.push('  ' + a.limit);
       for (const p of a.projects) {
         out.push('  ' + p.title + ': ' + p.line);
         if (p.subagents) out.push('    subagents: ' + p.subagents);

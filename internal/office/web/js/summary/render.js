@@ -7,6 +7,19 @@ function factsRow(facts) {
   return dl;
 }
 
+// the 5h percent of the day: the text, and a meter of the latest reading
+function limitRow(a) {
+  const row = el('div', 'limit', el('span', 'limtext', a.limit));
+  const m = el('meter', 'limmeter');
+  m.min = 0;
+  m.max = 100;
+  m.high = 90;
+  m.value = a.now5h == null ? a.peak5h : a.now5h;
+  m.setAttribute('aria-label', 'latest 5h limit reading');
+  row.append(m);
+  return row;
+}
+
 function detail(label, text) {
   return el('div', 'detail', el('dt', '', label), el('dd', '', text));
 }
@@ -40,6 +53,7 @@ export function renderDay(m) {
   }
   for (const a of m.accounts) {
     const sec = el('section', 'acct', el('h3', '', a.title), factsRow(a.facts));
+    if (a.limit) sec.append(limitRow(a));
     for (const p of a.projects) sec.append(project(p));
     root.append(sec);
   }
