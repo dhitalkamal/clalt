@@ -32,7 +32,7 @@ export function makeSession(snap, account) {
   return {
     id: snap.handle, role: 'main', seed: hash(snap.handle), account, leaving: false, subs: [],
     state: snap.state, reason: snap.needsYouReason || '', handle: snap.handle, project: snap.project,
-    model: modelName(snap.model), startedAt: Date.parse(snap.startedAt) || 0,
+    model: modelName(snap.model), actions: snap.actions, startedAt: Date.parse(snap.startedAt) || 0,
   };
 }
 

@@ -122,6 +122,9 @@ func RemoveRequests(dir, handle string) {
 	_ = os.Remove(path)
 	_ = os.Remove(path + ".claimed")
 	_ = os.Remove(path + ".result")
+	if stop, err := stopPath(dir, handle); err == nil {
+		_ = os.Remove(stop)
+	}
 }
 
 // Result is why a request to move was not carried out.

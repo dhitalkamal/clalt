@@ -1,6 +1,7 @@
 package office
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/feed"
@@ -44,7 +45,7 @@ func (r Real) Sessions() ([]Session, error) {
 		if !e.Alive {
 			continue
 		}
-		s := Session{Handle: e.Handle, Account: e.Account, Cwd: e.Cwd, State: string(feed.StateStarting), StartedAt: e.StartedAt}
+		s := Session{Handle: e.Handle, Account: e.Account, Cwd: e.Cwd, State: string(feed.StateStarting), StartedAt: e.StartedAt, Can: actionsFor(e.Record, runtime.GOOS)}
 		if st, ok := r.Feed.Session(e.Handle); ok {
 			s.State, s.Reason, s.Model = string(st.State), st.Reason, st.Model
 			if st.Cwd != "" {

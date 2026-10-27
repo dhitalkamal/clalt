@@ -9,9 +9,6 @@ import (
 const (
 	fiveHours = 5 * time.Hour
 	sevenDays = 7 * 24 * time.Hour
-	// no forecast until this share of the window has passed, or the first
-	// minutes would promise a run out that is not coming
-	minElapsed = 0.05
 
 	slotsPerDay = 8
 	chartDays   = 7
@@ -41,18 +38,14 @@ func mapWindow(w Window, observed time.Time, length time.Duration, now time.Time
 		return dashboard.Window{}
 	}
 	out := dashboard.Window{Percent: clamp(w.Percent), ResetsAt: w.ResetsAt}
-	if w.ResetsAt.IsZero() || out.Percent <= 0 {
+	perHour, full, ok := dashboard.PaceFill(float64(out.Percent), w.ResetsAt, observed, length)
+	if !ok {
 		return out
 	}
-	elapsed := observed.Sub(w.ResetsAt.Add(-length))
-	if float64(elapsed) < minElapsed*float64(length) || elapsed > length {
-		return out
-	}
-	pace := float64(out.Percent) / float64(elapsed)
-	out.Projected = min(int(pace*float64(length)+0.5), 999)
+	out.Projected = min(int(perHour*length.Hours()+0.5), 999)
 	if out.Percent >= 100 {
 		out.RunsOutAt = observed
-	} else if full := observed.Add(time.Duration(float64(100-out.Percent) / pace)); full.Before(w.ResetsAt) {
+	} else if full.Before(w.ResetsAt) {
 		out.RunsOutAt = full
 	}
 	return out

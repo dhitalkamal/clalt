@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { CHARACTERS } from './assets.js';
 import { createStage, frameRoom } from './stage.js';
 import { Agent } from './agent.js';
-import { UI, renderWing } from './ui.js';
+import { UI, renderWing, wingKey } from './ui.js';
 import { disposeTree } from './dispose.js';
 import { pickLook } from './looks.js';
 import { agentRecords } from './roster.js';
@@ -49,8 +49,8 @@ export function refreshLabels() {
   const labels = [];
   for (const w of app.dynamic ? app.dynamic.wings : []) {
     const info = app.accounts.get(w.account) || { label: w.account, limits: null };
-    labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits]),
-      x: (w.x0 + w.x1) / 2, y: 1.25, z: w.z0, render: (div) => renderWing(div, info.label, info.limits) });
+    labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(w.account)]),
+      x: (w.x0 + w.x1) / 2, y: 1.25, z: w.z0, render: (div) => renderWing(div, info.label, info.limits, w.account) });
   }
   const used = new Map();
   for (const slot of L.slots ? L.slots.values() : []) if (slot.room) used.set(slot.room, (used.get(slot.room) || 0) + 1);

@@ -9,9 +9,11 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/feed"
+	"github.com/dhitalkamal/clalt/internal/notify"
 	"github.com/dhitalkamal/clalt/internal/office"
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 	"github.com/dhitalkamal/clalt/internal/registry"
@@ -155,16 +157,19 @@ func (a *App) cmdOffice(args []string) error {
 	defer func() { stopRevs(); <-revsDone }()
 	// every snapshot also feeds the garden generators their desk needs
 	gen := office.NewGardenFeed(a.clock)
+	warner := notify.Default()
 	return cleanedOrNil(office.Run(ctx, office.Options{
 		Port: opt.port, NoOpen: opt.noOpen, Open: a.officeOpen, Out: a.Out, Template: opt.template,
 		Layouts:   layout.NewStore(config.OfficeDir(), officeLogf(dashboardLogger(officeLogPath()))),
 		Generator: gen,
 		Activity:  real,
 		Reviews:   revs,
+		Actions:   a.officeActions(),
 		Snapshot: func() (office.Snapshot, error) {
 			snap, err := office.Build(src)
 			if err == nil {
 				gen.Observe(snap)
+				a.warnLimits(snap, warner)
 			}
 			return snap, err
 		},
@@ -174,4 +179,24 @@ func (a *App) cmdOffice(args []string) error {
 
 func officeLogf(log func(string)) func(string, ...any) {
 	return func(format string, args ...any) { log(fmt.Sprintf(format, args...)) }
+}
+
+// warnLimits sends the 5h limit warnings of a snapshot in the background, so
+// the page never waits for the desktop notification. once per window is the
+// warner's own marker.
+func (a *App) warnLimits(snap office.Snapshot, w office.LimitWarner) {
+	soon := false
+	for _, acc := range snap.Accounts {
+		soon = soon || acc.Forecast.FiveHourAt != nil
+	}
+	if !soon {
+		return
+	}
+	now := a.clock()
+	logf := officeLogf(dashboardLogger(officeLogPath()))
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		office.WarnLimits(ctx, snap, now, w, logf)
+	}()
 }

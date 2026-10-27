@@ -46,6 +46,8 @@ type Config struct {
 	Activity ActivitySource
 	// Reviews serves /api/reviews, nil answers 404.
 	Reviews ReviewSource
+	// Actions runs the session actions of the page, nil turns the routes off.
+	Actions SessionActions
 }
 
 type handler struct {
@@ -119,6 +121,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// a name that resolves to this machine from another site would pass the token check by cookie, so the Host must be ours
 	if !h.hosts[strings.ToLower(r.Host)] {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/session/") {
+		h.sessionRoute(w, r)
 		return
 	}
 	if isEditRoute(r) {

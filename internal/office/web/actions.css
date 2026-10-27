@@ -1,0 +1,24 @@
+/* session actions in the drawer, the forecast line on account cards, and the Move all dialog */
+.activity .actions { margin: 0 0 8px; }
+.activity .arow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.activity .arow .confirm { flex: 1 1 100%; margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+.activity .actions button:disabled { opacity: .45; cursor: not-allowed; }
+.activity .picker { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin: 6px 0 0; padding: 6px; border-radius: 8px; background: rgba(40,30,50,.06); }
+.activity .picker button { text-align: left; border-radius: 8px; }
+.activity .actions .why { margin: 6px 0 0; }
+.activity .actions .msg { margin: 6px 0 0; font-size: 12px; font-weight: 600; }
+.activity .actions .msg.bad { color: #a3261b; }
+
+.zone .fc { margin-top: 3px; font-size: 11px; font-weight: 700; }
+.zone .fc.amber { color: #a86a00; }
+.zone .fc.red { color: #b3261e; }
+.zone.warn-red { box-shadow: 0 0 0 2px #b3261e; }
+.zone .fc-btn { pointer-events: auto; margin-top: 4px; padding: 2px 8px; font-size: 11px; border-radius: 999px; cursor: pointer; }
+.zone.compact .fc, .zone.compact .fc-btn { display: none; }
+
+.moveall { position: fixed; z-index: 9; left: 50%; top: 22%; transform: translateX(-50%); width: min(380px, calc(100% - 32px)); box-sizing: border-box;
+  padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,.98); color: var(--ink); box-shadow: 0 10px 36px rgba(40,30,50,.35); font-size: 13px; }
+.moveall p { margin: 0 0 8px; }
+.moveall .arow { display: flex; gap: 8px; justify-content: flex-end; }
+.moveall button { border-radius: 999px; padding: 5px 14px; }
+.moveall :focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }

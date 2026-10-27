@@ -3,6 +3,8 @@ package office
 import (
 	"sort"
 	"time"
+
+	"github.com/dhitalkamal/clalt/internal/feed"
 )
 
 // Version is the contract version of the snapshot.
@@ -25,6 +27,8 @@ type AccountOut struct {
 	ID     string    `json:"id"`
 	Label  string    `json:"label"`
 	Limits LimitsOut `json:"limits"`
+	// Forecast is when the 5h window fills at the current pace, see forecastOf.
+	Forecast ForecastOut `json:"forecast"`
 }
 
 // LimitsOut holds the two windows, null when unknown, and when they were read.
@@ -50,7 +54,21 @@ type SessionOut struct {
 	NeedsYouReason string     `json:"needsYouReason"`
 	StartedAt      time.Time  `json:"startedAt"`
 	Subagents      []Subagent `json:"subagents"`
+	// Actions says what the page may offer for this session, see ActionsOut.
+	Actions ActionsOut `json:"actions"`
 }
+
+// ActionsOut is what can be done to a session from the page. Why is the reason
+// when some of it cannot.
+type ActionsOut struct {
+	Move  bool   `json:"move"`
+	Focus bool   `json:"focus"`
+	Stop  bool   `json:"stop"`
+	Why   string `json:"why"`
+}
+
+// outsideWhy is why a plain claude session cannot be controlled.
+const outsideWhy = "started outside clalt: use clalt run to control it"
 
 // Build reads the sources once and returns the snapshot. every string in it is
 // cleaned, and lists are never nil so they encode as [].
@@ -104,6 +122,7 @@ func Build(src Sources) (Snapshot, error) {
 	}
 	snap.Team = teamOut(defs, snap.Sessions)
 	snap.Reviews, snap.Team = withReviews(src.Reviews, snap.Team)
+	snap.fillForecasts(src, now())
 	return snap, nil
 }
 
@@ -136,6 +155,10 @@ func sessionOut(s Session, subs SubagentSource) SessionOut {
 	if out.Project == "" {
 		out.Project = "unknown"
 	}
+	out.Actions = s.Can
+	if feed.IsExt(s.Handle) {
+		out.Actions = ActionsOut{Why: outsideWhy}
+	}
 	// the reason is the notification type of the hook, and only means something while the session waits
 	if s.State == "needs-you" {
 		out.NeedsYouReason = clean(s.Reason, 40)
@@ -158,4 +181,20 @@ func sessionOut(s Session, subs SubagentSource) SessionOut {
 		})
 	}
 	return out
+}
+
+// fillForecasts gives each account with a live session its forecast.
+func (s *Snapshot) fillForecasts(src Sources, now time.Time) {
+	live := map[string]bool{}
+	for _, x := range s.Sessions {
+		if x.State != "ended" {
+			live[x.Account] = true
+		}
+	}
+	for i := range s.Accounts {
+		a := &s.Accounts[i]
+		if l, ok := src.Limits.Limits(a.ID); ok {
+			a.Forecast = forecastOf(l, live[a.ID], now)
+		}
+	}
 }

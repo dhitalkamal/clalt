@@ -7,6 +7,7 @@ import { applySnapshot } from './sync.js';
 import { loadFirst } from './layoutload.js';
 import { applyLayout } from './scene/apply.js';
 import { startView } from './viewctl.js';
+import { installActions } from './actions/index.js';
 
 const loadingEl = document.getElementById('loading');
 
@@ -42,6 +43,7 @@ async function boot() {
   await applyLayout(first.layout);
   loadingEl.hidden = true;
   bindInput();
+  installActions();
   resize();
   addEventListener('resize', resize);
   const view = startView(first);

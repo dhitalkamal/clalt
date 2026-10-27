@@ -31,74 +31,111 @@ func (a *App) cmdMove(args []string) error {
 	if err != nil {
 		return err
 	}
+	out, err := a.requestMove(ref, label, false)
+	if err != nil {
+		return err
+	}
+	if out.note != "" {
+		fmt.Fprintf(a.Err, "note: %s\n", out.note)
+	}
+	if a.JSON {
+		return a.emitJSON(map[string]any{
+			"handle": out.rec.Handle, "from": out.from, "to": out.to, "requested": true, "replaced": out.replaced,
+		})
+	}
+	a.printf("asked session %s (%s, %s) to move to %s at its next pause\n", short8(out.rec.Handle), out.from, clean(out.rec.Cwd), out.to)
+	if out.replaced {
+		a.printf("replaced the earlier request for this session\n")
+	}
+	return nil
+}
+
+// moveOutcome is a request that was left for a wrapper.
+type moveOutcome struct {
+	rec      wrapper.Record
+	from, to string
+	replaced bool
+	// note is why the earlier request of the session was not carried out
+	note string
+}
+
+// requestMove makes every check that can be made from here and leaves the
+// request. exact says ref must be the whole handle, which the office wants: it
+// names a session it already knows. the office page uses this too.
+func (a *App) requestMove(ref, label string, exact bool) (moveOutcome, error) {
 	if !moveSupported {
-		return errors.New("moving a session is not supported on windows: claude cannot be asked to end cleanly there")
+		return moveOutcome{}, errors.New("moving a session is not supported on windows: claude cannot be asked to end cleanly there")
 	}
 	reg, err := openRegistry()
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	recs, err := reg.List()
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
-	rec, err := wrapper.Match(recs, ref)
+	rec, err := matchRecord(recs, ref, exact)
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	acc, err := a.findVisible(label)
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	labels, err := a.labelsByID()
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	from := labels[rec.Account]
 	if from == "" {
 		from = clean(rec.Account)
 	}
 	if acc.Name == rec.Account {
-		return fmt.Errorf("the session %s is already running as %s", short8(rec.Handle), from)
+		return moveOutcome{}, fmt.Errorf("the session %s is already running as %s", short8(rec.Handle), from)
 	}
 	if rec.ClaudeSessionID == "" {
-		return errors.New("claude has not reported the session id of this session yet, so there is nothing to resume: try again in a moment")
+		return moveOutcome{}, errors.New("claude has not reported the session id of this session yet, so there is nothing to resume: try again in a moment")
 	}
 	info, err := moveFeedState(rec)
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	r, err := a.Store.RulesOf(acc.Name)
 	if err != nil {
-		return err
+		return moveOutcome{}, err
 	}
 	for _, cwd := range uniqueNonEmpty(rec.Cwd, info.Cwd) {
 		if !rules.Allows(r.Folders, cwd) {
-			return fmt.Errorf("the folder rules of %s do not include %s, so the session cannot move there. 'clalt rules %s' shows them",
+			return moveOutcome{}, fmt.Errorf("the folder rules of %s do not include %s, so the session cannot move there. 'clalt rules %s' shows them",
 				shown(acc), clean(cwd), shown(acc))
 		}
 	}
 	if why := a.notReady(acc); why != "" {
-		return fmt.Errorf("%s is not ready to take a session: %s", shown(acc), why)
+		return moveOutcome{}, fmt.Errorf("%s is not ready to take a session: %s", shown(acc), why)
 	}
 
+	out := moveOutcome{rec: rec, from: from, to: shown(acc)}
 	if res, ok := wrapper.TakeResult(reg.Dir(), rec.Handle); ok {
-		fmt.Fprintf(a.Err, "note: the earlier request for this session was not carried out: %s\n", clean(res.Error))
+		out.note = "the earlier request for this session was not carried out: " + clean(res.Error)
 	}
-	replaced := wrapper.HasRequest(reg.Dir(), rec.Handle)
+	out.replaced = wrapper.HasRequest(reg.Dir(), rec.Handle)
 	if err := wrapper.WriteRequest(reg.Dir(), rec.Handle, wrapper.Request{To: acc.Name, RequestedAt: time.Now()}); err != nil {
-		return err
+		return moveOutcome{}, err
 	}
-	if a.JSON {
-		return a.emitJSON(map[string]any{
-			"handle": rec.Handle, "from": from, "to": shown(acc), "requested": true, "replaced": replaced,
-		})
+	return out, nil
+}
+
+// matchRecord is wrapper.Match, or with exact only the record of that handle.
+func matchRecord(recs []wrapper.Record, ref string, exact bool) (wrapper.Record, error) {
+	if !exact {
+		return wrapper.Match(recs, ref)
 	}
-	a.printf("asked session %s (%s, %s) to move to %s at its next pause\n", short8(rec.Handle), from, clean(rec.Cwd), shown(acc))
-	if replaced {
-		a.printf("replaced the earlier request for this session\n")
+	for _, r := range recs {
+		if r.Handle == ref {
+			return r, nil
+		}
 	}
-	return nil
+	return wrapper.Record{}, fmt.Errorf("no running session %s", clean(ref))
 }
 
 func parseMoveArgs(args []string) (ref, label string, err error) {

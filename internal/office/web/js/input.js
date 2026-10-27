@@ -94,6 +94,8 @@ function pickAgent(x, y) {
 }
 
 export function updateHover() {
+  // the drawer shows the same session in full, so the pinned card would only cover it
+  if (document.body.classList.contains('activity-open')) { ui.showCard(null); return; }
   // the pointer left the canvas: nothing is hovered any more
   if (!mouse && app.hover) { app.hover.setHighlight(false); app.hover = null; }
   if (mouse && !app.dragging) {

@@ -15,6 +15,9 @@ import (
 // or that auto-switch wants. exit is true when the wrapper is done, with err.
 func (l *loop) tick() (exit bool, err error) {
 	info, ok := l.d.Feed.Session(l.s.Handle)
+	if ok && (l.paused(info) || info.State == NeedsYou) && ClaimStop(l.d.Registry.Dir(), l.s.Handle) {
+		return l.stopNow()
+	}
 	if !ok || !l.paused(info) {
 		return false, nil
 	}

@@ -24,6 +24,7 @@ function updateKnown(snapSessions) {
     s.state = stateOf(snap.state);
     s.reason = snap.needsYouReason || '';
     s.model = modelName(snap.model);
+    s.actions = snap.actions;
     const subBy = new Map((snap.subagents || []).map((x) => [s.id + '/' + x.id, x]));
     for (const sub of s.subs) {
       if (sub.leaving) continue;
@@ -80,7 +81,7 @@ export function applySnapshot(snap) {
   const reorder = orderKey !== lastOrder;
   lastOrder = orderKey;
   order.forEach(tintFor);
-  app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || a.id, limits: a.limits }]));
+  app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || a.id, limits: a.limits, forecast: a.forecast }]));
   ui.accounts = app.accounts;
   updateKnown(snap.sessions);
   const born = [];

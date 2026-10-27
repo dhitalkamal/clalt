@@ -95,7 +95,7 @@ function groupNode(r, view) {
       else if (view.openRun) {
         // the main log holds only the start and end of a run, its steps are in its own log
         const go = button('more', 'Open this run\'s log', r.id + ':run');
-        go.addEventListener('click', () => view.openRun(r.agent));
+        go.addEventListener('click', () => view.openRun(r.agent, r.title));
         body.append(el('p', 'quiet', 'the steps of this run are in its own log'), go);
       } else body.append(el('p', 'quiet', 'no steps logged for this run'));
     }

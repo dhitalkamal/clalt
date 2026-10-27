@@ -32,6 +32,8 @@ type Options struct {
 	Activity ActivitySource
 	// Reviews serves the PR reviews, see Config.
 	Reviews ReviewSource
+	// Actions runs the session actions, see Config.
+	Actions SessionActions
 }
 
 // Instance is a running server.
@@ -68,6 +70,7 @@ func Start(opt Options) (*Instance, error) {
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
 		Generator: opt.Generator, Template: opt.Template, Activity: opt.Activity, Reviews: opt.Reviews,
+		Actions: opt.Actions,
 	})
 	if err != nil {
 		ln.Close()

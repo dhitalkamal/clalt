@@ -7,6 +7,7 @@ import { fetchActivity as defaultFetch, errorText } from './api.js';
 import { renderRows } from './render.js';
 import { activityTarget, describeTarget } from './target.js';
 import { fetchNewer } from './catchup.js';
+import { createActionBar } from '../actions/bar.js';
 import { newPager, pagerKey, matches, applyFirst, applyNewer, applyOlder, startOlder, failOlder, canLoadOlder, shouldRefresh, activityPath } from './pager.js';
 
 const PAGE = 100;
@@ -16,7 +17,7 @@ const NEAR = 48;
 
 // h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, fetch: optional }
 export function createActivityPanel(h) {
-  const newView = () => ({ expanded: new Set(), opened: new Set(), openRun: (a) => openRun(a) });
+  const newView = () => ({ expanded: new Set(), opened: new Set(), openRun: (a, t) => openRun(a, t) });
   const fetchIt = h.fetch || defaultFetch;
   const root = el('aside', 'activity');
   root.setAttribute('role', 'dialog');
@@ -48,7 +49,8 @@ export function createActivityPanel(h) {
   const fresh = el('button', 'fresh', 'New activity below');
   fresh.type = 'button';
   fresh.hidden = true;
-  root.append(el('header', '', backBtn, title, closeBtn), meta, note, err, log, fresh);
+  const bar = createActionBar({ ctx: h.ctx });
+  root.append(el('header', '', backBtn, title, closeBtn), bar.el, meta, note, err, log, fresh);
   document.body.append(root);
 
   let st = null;
@@ -62,7 +64,9 @@ export function createActivityPanel(h) {
   function header() {
     const c = h.ctx();
     const d = describeTarget(st.rec, c.accounts, c.sessions);
-    title.textContent = d.title;
+    // a run opened from its group is named by the run, Back returns to the session
+    title.textContent = st.back ? st.runTitle || 'subagent run' : d.title;
+    bar.update(st.target.handle);
     meta.replaceChildren();
     const add = (k, v) => meta.append(el('div', '', el('dt', '', k), el('dd', '', v)));
     add('account', d.account);
@@ -168,12 +172,14 @@ export function createActivityPanel(h) {
   }
 
   // a run clicked in the main log opens as its own log, Back returns to the main one
-  function openRun(agent) {
+  function openRun(agent, runTitle) {
     if (!st || st.back || !agent) return;
     st.back = st.target;
+    st.runTitle = runTitle || '';
     st.target = { handle: st.target.handle, agent, kind: 'run' };
     st.view = newView();
     backBtn.hidden = false;
+    header();
     load();
     title.focus();
   }
@@ -182,8 +188,10 @@ export function createActivityPanel(h) {
     if (!st || !st.back) return;
     st.target = st.back;
     st.back = null;
+    st.runTitle = '';
     st.view = newView();
     backBtn.hidden = true;
+    header();
     load();
     title.focus();
   }
@@ -229,6 +237,7 @@ export function createActivityPanel(h) {
     root.hidden = true;
     document.body.classList.remove('activity-open');
     st = null;
+    bar.update('');
     const back = opener && opener.isConnected ? opener : h.fallback;
     opener = null;
     if (back) back.focus({ preventScroll: true });

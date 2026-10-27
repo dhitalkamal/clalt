@@ -36,6 +36,9 @@ type Session struct {
 	State     string
 	Reason    string
 	StartedAt time.Time
+	// Can is what the source says can be done to it, Build refuses it all for
+	// a plain claude session.
+	Can ActionsOut
 }
 
 // Subagent is one subagent of a session. it is also the snapshot's own shape,

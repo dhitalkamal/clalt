@@ -1,6 +1,6 @@
 // floating labels of the garden: an account card over each cabin and a pill over every other pavilion, with the
 // number of agents in the busy rooms. items follow ui.setLabels: {id, cls, key, render(div), x, y, z}.
-import { renderWing } from '../ui.js';
+import { renderWing, wingKey } from '../ui.js';
 import { toWorld, sizeOf } from './footprints.js';
 import { TH_X } from './local.js';
 import { badgeItems } from './badge.js';
@@ -34,7 +34,7 @@ export function gardenLabels(L, accounts) {
     if (p.type === 'cabin') {
       const info = accounts.get(p.account) || { label: p.label || p.account, limits: null };
       const [x, z] = at(0, -d / 2);
-      out.push({ id: 'w-' + p.id, cls: 'zone', key: JSON.stringify([info.label, info.limits]), x, y: 1.55, z, render: (div) => renderWing(div, info.label, info.limits) });
+      out.push({ id: 'w-' + p.id, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(p.account)]), x, y: 1.55, z, render: (div) => renderWing(div, info.label, info.limits, p.account) });
     } else if (p.type === 'treehouse') {
       const [rx, rz] = at(TH_X - 2.1, 0.4);
       const [mx, mz] = at(TH_X + 2.1, 0.4);
