@@ -1,6 +1,6 @@
 // draws rows from rows.js into the log. text only: every string goes in through textContent,
 // nothing from a transcript is ever parsed as markup. toggles change their own node in place,
-// so a focused button stays focused.
+// so a focused button stays focused. every row is a time gutter (time) and a body (div.rb).
 import { el } from '../dom.js';
 
 // view: {expanded: Set of row ids, opened: Set of group ids, openRun: optional fn(agent id)}
@@ -30,7 +30,8 @@ function rowNode(r, view, nested) {
 
 function textNode(r, view) {
   const body = el('div', 'body');
-  const node = el('article', 'row text ' + r.role, el('div', 'who', el('span', '', r.label), stamp(r)), body);
+  const rb = el('div', 'rb', el('div', 'who', el('span', '', r.label)), body);
+  const node = el('article', 'row text ' + r.role, stamp(r), rb);
   const show = () => { body.textContent = view.expanded.has(r.id) ? r.full : r.text; };
   show();
   if (r.cut) {
@@ -38,7 +39,7 @@ function textNode(r, view) {
     const label = () => { more.textContent = view.expanded.has(r.id) ? 'Show less' : 'Show more (' + r.hidden + ' more characters)'; more.setAttribute('aria-expanded', String(view.expanded.has(r.id))); };
     label();
     more.addEventListener('click', () => { view.expanded.has(r.id) ? view.expanded.delete(r.id) : view.expanded.add(r.id); show(); label(); });
-    node.append(more);
+    rb.append(more);
   }
   return node;
 }
@@ -46,16 +47,17 @@ function textNode(r, view) {
 const statusNode = (s) => el('span', 'st ' + s, s === 'failed' ? 'failed' : 'ok');
 
 function toolNode(r) {
-  const node = el('div', 'row tool ' + r.status, el('span', 'tn', r.tool));
-  if (r.files.text) { const f = el('span', 'files', r.files.text); f.title = r.files.title; node.append(f); }
-  if (r.detail) node.append(el('span', 'detail', r.detail));
-  node.append(el('span', 'meta', r.duration), statusNode(r.status), stamp(r));
-  return node;
+  const rb = el('div', 'rb', el('span', 'tn', r.tool));
+  if (r.files.text) { const f = el('span', 'files', r.files.text); f.title = r.files.title; rb.append(f); }
+  if (r.detail) rb.append(el('span', 'detail', r.detail));
+  rb.append(el('span', 'meta', r.duration), statusNode(r.status));
+  return el('div', 'row tool ' + r.status, stamp(r), rb);
 }
 
 function resultNode(r, view) {
   const text = el('span', 'detail', r.snippet || '(empty)');
-  const node = el('div', 'row result ' + r.status, el('span', 'tn', 'result'), text, statusNode(r.status), stamp(r));
+  const rb = el('div', 'rb', el('span', 'tn', 'result'), text, statusNode(r.status));
+  const node = el('div', 'row result ' + r.status, stamp(r), rb);
   if (!r.cut) return node;
   const full = el('pre', 'full');
   full.hidden = true;
@@ -70,7 +72,7 @@ function resultNode(r, view) {
   };
   sync();
   more.addEventListener('click', () => { view.expanded.has(r.id) ? view.expanded.delete(r.id) : view.expanded.add(r.id); sync(); });
-  node.append(more, full);
+  rb.append(more, full);
   return node;
 }
 
@@ -82,7 +84,7 @@ function groupNode(r, view) {
   head.setAttribute('aria-controls', bodyId);
   const caret = el('span', 'caret');
   caret.setAttribute('aria-hidden', 'true');
-  head.append(caret, el('span', 'gt', r.title), el('span', 'meta', meta), stamp(r));
+  head.append(caret, el('span', 'atype', 'subagent'), el('span', 'gt', r.title), el('span', 'meta', meta));
   const body = el('div', 'gbody');
   body.id = bodyId;
   const sync = () => {
@@ -102,5 +104,5 @@ function groupNode(r, view) {
   };
   sync();
   head.addEventListener('click', () => { view.opened.has(r.id) ? view.opened.delete(r.id) : view.opened.add(r.id); sync(); });
-  return el('section', 'row group ' + r.state, head, body);
+  return el('section', 'row group ' + r.state, stamp(r), el('div', 'rb', head, body));
 }

@@ -37,6 +37,7 @@ func (s *Service) buildHistory(today time.Time, days int) (History, error) {
 	}
 	for _, id := range accountOrder(order, have) {
 		acct := HistoryAccount{ID: id, Label: labelOf(order, id), Days: s.accountDays(by[id], first, end, days)}
+		s.historyPercents(acct.Days, id, first, end)
 		if id != usage.Unattributed || hasUsage(acct.Days) {
 			h.Accounts = append(h.Accounts, acct)
 		}
@@ -100,8 +101,8 @@ func dayIndex(t, first time.Time, loc *time.Location) int {
 	return int(a.Sub(b) / (24 * time.Hour))
 }
 
-// todayReading puts the live percent on today's day. the feed keeps only the
-// latest reading, so no other day has one.
+// todayReading puts the live percent on today's day when the readings log has
+// nothing for it, say before the log began.
 func (s *Service) todayReading(h *History, today time.Time) {
 	if s.cfg.Limits == nil {
 		return
@@ -109,6 +110,11 @@ func (s *Service) todayReading(h *History, today time.Time) {
 	for i := range h.Accounts {
 		five, seven := s.cfg.Limits(h.Accounts[i].ID)
 		d := &h.Accounts[i].Days[len(h.Accounts[i].Days)-1]
-		d.Peak5hPct, d.Peak7dPct = five, seven
+		if d.Peak5hPct == nil {
+			d.Peak5hPct = five
+		}
+		if d.Peak7dPct == nil {
+			d.Peak7dPct = seven
+		}
 	}
 }

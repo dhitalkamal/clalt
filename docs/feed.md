@@ -37,6 +37,23 @@ Limits come from the status line, which claude only fills for claude.ai Pro and 
 accounts and after the first reply of a session. Several sessions of one account
 report: for each window the later reset wins, and inside a window the higher use.
 
+## The readings log
+
+The files in `accounts/` keep only the latest reading. So that the office can
+chart the percents over time, every time the feed records a limit reading for an
+account it also appends one line to
+`~/.config/clalt/feed/readings/<id>.jsonl` (folder mode 0700, file mode 0600):
+
+    {"t":"2026-10-23T12:00:00Z","fiveHour":41.5,"fiveHourResetsAt":"2026-10-23T14:00:00Z","sevenDay":12,"sevenDayResetsAt":"2026-10-25T12:00:00Z"}
+
+A window with no reading is `null`. These numbers are all it stores: no
+prompts, no paths, no session handles. A line is skipped when the numbers are
+the same as the last line and it is less than 5 minutes after it, so a busy
+account adds at most about 290 lines a day. Lines older than 90 days are
+dropped: the first append after the oldest line is 91 days old rewrites the
+file once, so it stays near 90 days. The append is one write on an open-for-append
+file, so two hooks never interleave a line. Delete the folder to forget it.
+
 Known gaps: an interrupt (Esc) fires no hook, so `busy` stays until the next
 prompt; `needs-you` ends at the next tool result, and a permission notification
 that arrives within 6 seconds of a tool result is ignored as late (a denied prompt

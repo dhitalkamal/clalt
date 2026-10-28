@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/feed"
 	"github.com/dhitalkamal/clalt/internal/usage"
 )
 
@@ -62,6 +63,40 @@ func TestOfficeServesTheSummaryAndHistoryByAccount(t *testing.T) {
 	}
 	code, body = fetch(t, base+"/api/history?days=3", token)
 	if code != 200 || !strings.Contains(body, `"tokens":42`) {
+		t.Errorf("history = %d %s", code, body)
+	}
+	if code := stop(); code != 0 {
+		t.Errorf("exit %d: %s", code, e.errOut.String())
+	}
+}
+
+// the readings log of the feed fills the percents of /api/history and the
+// peak of /api/summary
+func TestOfficeServesPercentHistoryFromTheReadingsLog(t *testing.T) {
+	e := newEnv(t)
+	e.signIn("work", "me@example.com")
+	id := e.account("work").Name
+	now := time.Now()
+	st := feed.Store{Dir: config.FeedDir()}
+	// an old reading, as a day ago, written straight to the log
+	old := feed.Reading{T: now.Add(-26 * time.Hour)}
+	v, r := 73.0, now.Add(time.Hour)
+	old.FiveHour, old.FiveHourResetsAt = &v, &r
+	raw, _ := json.Marshal(old)
+	p := filepath.Join(config.FeedDir(), "readings", id+".jsonl")
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.MergeLimits(id, &feed.Window{UsedPct: 20, ResetsAt: now.Add(time.Hour)}, nil, now); err != nil {
+		t.Fatal(err)
+	}
+	url, stop := startOffice(t, e, func(string) error { return nil }, "--no-open")
+	base, token, _ := strings.Cut(url, "/?t=")
+	code, body := fetch(t, base+"/api/history?days=3", token)
+	if code != 200 || !strings.Contains(body, `"peak5hPct":73`) || !strings.Contains(body, `"peak5hPct":20`) {
 		t.Errorf("history = %d %s", code, body)
 	}
 	if code := stop(); code != 0 {

@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { SKY } from './ground.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { pickPixelRatio } from './pixelratio.js';
 
 // renderer, lights, camera and controls. no scene content in here.
 export function createStage(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  // cap at 2: crisp on 4K and retina, without paying for dpr 3 on phones
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // capped at 1.5: pixels past that cost a lot of fill rate and are hard to tell apart
+  renderer.setPixelRatio(pickPixelRatio(window.devicePixelRatio));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -36,6 +37,12 @@ export function createStage(canvas) {
   const controls = { target: new THREE.Vector3(), update() { camera.lookAt(this.target); } };
 
   return { renderer, scene, camera, controls, sun, canvas, zoom: { min: 0.4, base: 30 } };
+}
+
+// the garden bakes its shadow map once: call this when static geometry or the sun changed
+export function refreshShadows(stage) {
+  stage.renderer.shadowMap.needsUpdate = true;
+  stage.wake?.();
 }
 
 // view presets and the orbit state. start view: 75 degrees down, front view: 32 degrees.

@@ -95,6 +95,11 @@ func Screen(m tea.Model) string { return ansi.Strip(m.View().Content) }
 // Raw is the view as drawn, escape codes included.
 func Raw(m tea.Model) string { return m.View().Content }
 
+// Patience is how long a test waits for something that should happen. it is
+// a ceiling, not a delay: every wait returns as soon as its condition holds, so
+// a loaded machine gets room and a passing run costs nothing.
+const Patience = 30 * time.Second
+
 // RunCmd runs cmd and returns its message, or nil when it has not finished
 // after wait. a timer command counts as blocked.
 func RunCmd(cmd tea.Cmd, wait time.Duration) tea.Msg {

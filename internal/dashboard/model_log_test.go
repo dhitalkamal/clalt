@@ -51,7 +51,7 @@ func TestATimeoutAndABadSnapshotAreLogged(t *testing.T) {
 	d := deafSource{release: make(chan struct{})}
 	defer close(d.release)
 	slow := newModel(context.Background(), d, &fakeActions{}, opt)
-	l, _ := RunCmd(slow.loadCmd(), 2*time.Second).(loadedMsg)
+	l, _ := RunCmd(slow.loadCmd(), Patience).(loadedMsg)
 	upd(slow, l)
 	bad := fiveSnapshot()
 	bad.Accounts[1].ID = bad.Accounts[0].ID

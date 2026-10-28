@@ -24,8 +24,8 @@ test('loadFirst asks for the active layout, never a template', async () => {
 
 test('viewstate keeps no template pick', () => {
   for (const name of ['pickTemplate', 'remember', 'recall', 'orderTemplates']) assert.equal(name in view, false, name);
-  assert.deepEqual(view.parseHash('#template=river&cam=hero'), { cam: 'hero' });
-  assert.equal(view.buildHash({ cam: 'hero' }), '#cam=hero');
+  assert.deepEqual(view.parseHash('#template=river&cam=hero'), { cam: 'sky' });
+  assert.equal(view.buildHash({ cam: 'ground' }), '#cam=ground');
   assert.equal(view.buildHash({ cam: null }), '');
 });
 

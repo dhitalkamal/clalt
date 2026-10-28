@@ -96,6 +96,8 @@ func run(app *App, args []string) int {
 		err = app.cmdDashboard(cmdArgs)
 	case "office":
 		err = app.cmdOffice(cmdArgs)
+	case "mcp":
+		err = app.cmdMcp(cmdArgs)
 	case "migrate":
 		err = app.cmdMigrate(cmdArgs)
 	case "rules":
@@ -191,8 +193,15 @@ usage:
   clalt office [--port N] [--no-open] [--template <id>]
                               live 3D office of your agents in the browser (local
                               only; --edit is accepted and does nothing)
+  clalt office on|off|open   run the office in the background (no terminal), stop it,
+                              or open it in the browser
+  clalt office status [--link]  on or off, port, pid, uptime (the link has a token)
+  clalt office autostart on|off|status
+                              start the office when you log in (macOS)
   clalt office layout list|use <name>|export <name> [file]|import <file>|reset
                               the office floor plans (see docs/office.md)
+  clalt mcp                   read-only MCP server on stdin and stdout, so Claude can
+                              answer questions about your accounts (see docs/mcp.md)
   clalt version               print build version (--json for machine-readable)
 
 global:

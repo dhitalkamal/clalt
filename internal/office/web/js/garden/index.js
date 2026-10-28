@@ -30,7 +30,7 @@
 import * as THREE from 'three';
 import { findRecord, agentRecords } from '../roster.js';
 import { app, world, stage, ui, drop, makeAgent, removeAgent } from '../app.js';
-import { applyView } from '../stage.js';
+import { applyView, refreshShadows } from '../stage.js';
 import { tintFor } from '../model.js';
 import { compileGarden } from './compat.js';
 import { buildGarden } from './build.js';
@@ -115,6 +115,7 @@ export function refreshGardenSeats() {
   for (const [id, a] of [...app.agents]) reslot(L, id, a, slots.get(id));
   unhide(slots);
   ui.setLabels(gardenLabels(L, app.accounts));
+  refreshShadows(stage);
 }
 
 // the page camera follows the rig: a pose is applied by mutating stage.view in place, so a fresh stage.view object
@@ -212,5 +213,6 @@ export async function applyGarden(layout) {
   // agents that survived the rebuild were handled by refreshGardenSeats; the rest are what the page already had.
   // an intern without a stool gets no character (makeAgent marks it hidden)
   for (const rec of agentRecords(app.sessions, app.members)) if (!app.agents.has(rec.id)) makeAgent(rec, true);
+  refreshShadows(stage);
 }
 

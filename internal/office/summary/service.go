@@ -31,7 +31,9 @@ type Account struct {
 // Config is what the service reads. Roots are the folders that hold the
 // project folders of transcripts. Attribute places records on accounts, as
 // internal/usage does. Limits gives the live 5h and 7d percent of an account,
-// nil when unknown. Now and Loc are the clock and the zone that days are cut
+// nil when unknown. Readings gives the logged readings of an account from a
+// time on, nil when there is no log; they fill the percents of past days and
+// Limits only stands in for today when they have nothing. Now and Loc are the clock and the zone that days are cut
 // in, time.Now and time.Local when unset. zero MaxFiles or MaxBytes mean the
 // defaults.
 type Config struct {
@@ -39,6 +41,7 @@ type Config struct {
 	Accounts  func() ([]Account, error)
 	Attribute func([]usage.Record) (map[string][]usage.Record, error)
 	Limits    func(accountID string) (five, seven *float64)
+	Readings  func(accountID string, since time.Time) []Reading
 	Now       func() time.Time
 	Loc       *time.Location
 	MaxFiles  int
@@ -175,6 +178,9 @@ func (s *Service) buildDay(start time.Time) (Summary, error) {
 		return Summary{}, err
 	}
 	sum := buildDay(sc, by, w, order)
+	for i := range sum.Accounts {
+		s.dayPercents(&sum.Accounts[i], w)
+	}
 	sum.Truncated = truncated
 	return sum, nil
 }

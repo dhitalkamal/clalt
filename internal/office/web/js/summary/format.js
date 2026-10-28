@@ -71,3 +71,9 @@ export function dayLabel(day, today) {
 
 // 10-07, for an axis
 export function shortDay(day) { return typeof day === 'string' ? day.slice(5) : ''; }
+
+// colour step of the limit meter: amber above 60, red above 90
+export function limitTone(v) { return v > 90 ? 'hot' : v > 60 ? 'warn' : 'ok'; }
+
+// a percent as a whole number inside 0..100
+export function meterPct(v) { return Number.isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : 0; }

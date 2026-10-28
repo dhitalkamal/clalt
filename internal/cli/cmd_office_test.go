@@ -159,8 +159,8 @@ func TestOfficeOpensTheBrowserWithTheURLUnlessNoOpen(t *testing.T) {
 	}
 }
 
-func TestOfficeLogsToTheLogFolder(t *testing.T) {
-	if want := filepath.Join(config.LogsDir(), "office.log"); officeLogPath() != want {
+func TestOfficeLogsInTheOfficeFolder(t *testing.T) {
+	if want := filepath.Join(config.OfficeDir(), "office.log"); officeLogPath() != want {
 		t.Errorf("log path %s, want %s", officeLogPath(), want)
 	}
 }

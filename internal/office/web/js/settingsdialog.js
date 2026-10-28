@@ -1,10 +1,41 @@
 // the settings dialog: pick the default office, open build mode. a modal <dialog>, so the browser
 // keeps focus inside, closes on Esc and makes the page behind it inert. the model lives in settings.js.
 import { el, clear } from './dom.js';
-import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault } from './settings.js';
+import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault, AUTOSTART_LABEL, loadAutostart, saveAutostart } from './settings.js';
 
 const GROUPS = [['template', 'Templates'], ['saved', 'Saved layouts']];
 let serial = 0;
+
+// the "start at login" section: one checkbox that saves on change. {el, load()}
+function createAutostartSection(api = { load: loadAutostart, save: saveAutostart }) {
+  const box = el('input');
+  box.type = 'checkbox';
+  box.id = 'settings-autostart-' + ++serial;
+  const note = el('p', 'note');
+  const err = el('p', 'err');
+  err.setAttribute('role', 'alert');
+  err.hidden = true;
+  const root = el('div', 'sec autostart-sec', el('h3', '', 'Start at login'), el('label', '', box, el('span', '', AUTOSTART_LABEL)), note, err);
+  const show = (m) => { box.checked = m.enabled; box.disabled = m.disabled; note.textContent = m.note; };
+  const fail = (msg) => { err.textContent = msg || ''; err.hidden = !msg; };
+  box.addEventListener('change', async () => {
+    const want = box.checked;
+    fail('');
+    box.disabled = true;
+    try { show(await api.save(want)); } catch (e) { box.checked = !want; box.disabled = false; fail(e.message); }
+  });
+  async function load() {
+    fail('');
+    root.hidden = false;
+    show({ enabled: false, disabled: true, note: '' });
+    try { show(await api.load()); } catch (e) {
+      // an office without the route answers 404: the section stays out of the way
+      root.hidden = /404/.test(e.message);
+      if (!root.hidden) fail('could not load start at login: ' + e.message);
+    }
+  }
+  return { el: root, load };
+}
 
 // h: { gear, loadList() -> reply of /api/layouts, save(id) -> promise, build: the editor's toggle button }
 export function createSettingsDialog(h) {
@@ -27,7 +58,8 @@ export function createSettingsDialog(h) {
   close.type = 'button';
   const build = h.build;
   // more sections (PR reviews): {el, load()}
-  const extra = h.sections || [];
+  const autostart = createAutostartSection(h.autostart);
+  const extra = [...(h.sections || []), autostart];
   const buildNote = el('p', 'note');
   dlg.append(
     title,

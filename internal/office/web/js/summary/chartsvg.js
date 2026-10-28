@@ -12,10 +12,12 @@ function svgEl(tag, attrs, text) {
   return n;
 }
 
-// opts: { title, who, days, key, cls, width }
+// opts: { title, who, days, key, cls, width }, and for another scale a ready
+// model and the line to read a day aloud: { model, read(day) }
 export function drawChart(opts) {
   const { title, who, days, key, cls, width } = opts;
-  const m = chartModel({ days, key, width, height: HEIGHT });
+  const m = opts.model || chartModel({ days, key, width, height: HEIGHT });
+  const read = opts.read || readout;
   const fig = document.createElement('figure');
   fig.className = 'chart';
   const cap = document.createElement('figcaption');
@@ -28,10 +30,14 @@ export function drawChart(opts) {
     svg.append(svgEl('text', { x: p.x - 5, y: t.y + 3, class: 'ylab', 'text-anchor': 'end' }, t.label));
   }
   const rects = m.bars.map((b) => {
-    const r = svgEl('rect', { x: b.x, y: b.y, width: b.w, height: b.h, class: 'col' });
+    const r = svgEl('rect', { x: b.x, y: b.y, width: b.w, height: b.h, class: b.hot ? 'col hot' : 'col' });
     svg.append(r);
     return r;
   });
+  if (m.guide) {
+    svg.append(svgEl('line', { x1: p.x, x2: p.x + p.w, y1: m.guide.y, y2: m.guide.y, class: 'guide' }));
+    svg.append(svgEl('text', { x: p.x + p.w, y: m.guide.y - 2, class: 'guidelab', 'text-anchor': 'end' }, m.guide.value + '%'));
+  }
   for (const t of m.xTicks) svg.append(svgEl('text', { x: t.x, y: p.y + p.h + 14, class: 'xlab', 'text-anchor': 'middle' }, t.text));
   // a slot per day that takes the pointer, wider than a thin bar
   const slot = p.w / Math.max(1, days.length);
@@ -43,7 +49,7 @@ export function drawChart(opts) {
     if (!days.length) return;
     cur = Math.max(0, Math.min(days.length - 1, i));
     rects.forEach((r, k) => r.classList.toggle('cur', k === cur));
-    out.textContent = readout(days[cur]);
+    out.textContent = read(days[cur]);
   };
   days.forEach((_, i) => {
     const hit = svgEl('rect', { x: p.x + i * slot, y: p.y, width: slot, height: p.h, class: 'hit' });

@@ -29,21 +29,27 @@ export function dayTicks(days, maxLabels) {
   return out.reverse();
 }
 
-// bars, ticks and the plot box for width x height pixels. key is the day field to draw
-export function chartModel({ days, key, width, height }) {
+// the plot box, the slot of each day and the x labels, shared by every chart
+export function frame(days, width, height) {
   const plot = { x: M.left, y: M.top, w: Math.max(10, width - M.left - M.right), h: Math.max(10, height - M.top - M.bottom) };
-  const vals = days.map((d) => (Number.isFinite(d[key]) && d[key] > 0 ? d[key] : 0));
-  const { top, ticks } = niceTicks(Math.max(0, ...vals));
   const n = days.length;
   const slot = n ? plot.w / n : plot.w;
   const bw = Math.max(1, slot * 0.7);
+  const xTicks = dayTicks(days.map((d) => d.day), Math.floor(plot.w / LABEL_W)).map((t) => ({ ...t, x: plot.x + t.i * slot + slot / 2 }));
+  return { plot, slot, bw, xTicks };
+}
+
+// bars, ticks and the plot box for width x height pixels. key is the day field to draw
+export function chartModel({ days, key, width, height }) {
+  const { plot, slot, bw, xTicks } = frame(days, width, height);
+  const vals = days.map((d) => (Number.isFinite(d[key]) && d[key] > 0 ? d[key] : 0));
+  const { top, ticks } = niceTicks(Math.max(0, ...vals));
   const bars = vals.map((value, i) => {
     let h = (value / top) * plot.h;
     if (value > 0 && h < 1) h = 1;
     return { i, day: days[i].day, value, x: plot.x + i * slot + (slot - bw) / 2, w: bw, h, y: plot.y + plot.h - h };
   });
   const yTicks = ticks.map((value) => ({ value, label: fmtTokens(value), y: plot.y + plot.h - (value / top) * plot.h }));
-  const xTicks = dayTicks(days.map((d) => d.day), Math.floor(plot.w / LABEL_W)).map((t) => ({ ...t, x: plot.x + t.i * slot + slot / 2 }));
   return { plot, top, bars, yTicks, xTicks };
 }
 

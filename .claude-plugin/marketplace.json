@@ -1,0 +1,12 @@
+{
+  "name": "clalt",
+  "description": "Plugins for clalt, the multi-account manager for Claude Code",
+  "owner": { "name": "dhitalkamal" },
+  "plugins": [
+    {
+      "name": "clalt",
+      "source": "./plugin",
+      "description": "Read-only MCP server: ask Claude about your clalt accounts, limits, sessions and daily summary. Needs clalt on PATH."
+    }
+  ]
+}

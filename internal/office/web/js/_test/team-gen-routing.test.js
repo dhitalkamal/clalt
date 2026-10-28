@@ -23,14 +23,13 @@ for (const name of TEAM) {
       assert.equal(s.type, 'team');
       assert.equal(s.member, id);
     }
-    const stools = interns.map((i) => plan.get(i.key)).filter((e) => e && e.kind === 'seat');
+    const seated = interns.map((i) => plan.get(i.key)).filter((e) => e && e.kind === 'seat');
+    const stools = seated.filter((e) => byId.get(e.seat).kind === 'stool');
     assert.equal(stools.length, 3);
-    for (const e of stools) {
-      const s = byId.get(e.seat);
-      assert.equal(s.kind, 'stool');
-      assert.equal(s.member, ids[0]);
-    }
-    assert.equal(badgeCounts(plan).get(ids[0]), 2);
+    for (const e of stools) assert.equal(byId.get(e.seat).member, ids[0]);
+    // interns past the stools take a free work desk, the badge counts only those that found none
+    for (const e of seated.filter((x) => !stools.includes(x))) assert.equal(byId.get(e.seat).kind, 'desk');
+    assert.equal(seated.length - 3 + (badgeCounts(plan).get(ids[0]) || 0), 2);
     const used = [...plan.values()].filter((e) => e.kind === 'seat').map((e) => e.seat);
     assert.equal(new Set(used).size, used.length);
     assert.equal(byId.get(plan.get('s1').seat).type, 'cabin');
@@ -51,9 +50,9 @@ test('hidden interns get no slot and a badge, the others get slots', async () =>
   classifySubs([s], new Set(ids));
   const members = updateMembers([], team, [s]);
   const { slots, badges } = assignGardenSeats(compileGarden(L), [s], null, null, members);
-  assert.equal(badges.get(ids[0]), 2);
   assert.ok(slots.has('team:' + ids[0]));
-  assert.equal([...slots.keys()].filter((k) => k.startsWith('s1/a')).length, 3);
+  // 5 interns: 3 stools, the other two sit at a free desk or hide behind the badge
+  assert.equal([...slots.keys()].filter((k) => k.startsWith('s1/a')).length + (badges.get(ids[0]) || 0), 5);
   for (const sl of slots.values()) assert.ok(Number.isFinite(sl.x) && Number.isFinite(sl.z));
 });
 

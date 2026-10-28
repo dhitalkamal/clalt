@@ -34,6 +34,10 @@ export function buildShell(L) {
   const walls = new THREE.Group();
   g.add(walls);
   const put = (obj, x, y, z, ry = 0, parent = g) => { obj.position.set(x, y, z); obj.rotation.y = ry; parent.add(obj); return obj; };
+  // marks a piece as part of a wall for the cutaway: the wall's outward normal and a point on its plane
+  const cut = (obj, nx, nz, x, z) => { obj.userData.cut = { nx, nz, x, z }; return obj; };
+  const x1 = xmin + W;
+  const z1 = zmin + D;
   const nW = Math.ceil(W);
   const nD = Math.ceil(D);
   const floor = new THREE.Color(lay.floorColor || '#bb9676');
@@ -59,32 +63,32 @@ export function buildShell(L) {
     const cx = xmin + i + 0.5;
     const win = i % 2 === 1 && i > 0 && i < nW - 1 && !(doorBack && i === door.tile);
     const isDoor = doorBack && i === door.tile;
-    put(furniture(isDoor ? 'wallDoorway' : win ? 'wallWindow' : 'wall'), cx, 0, zmin - 0.03, 0, walls);
+    cut(put(furniture(isDoor ? 'wallDoorway' : win ? 'wallWindow' : 'wall'), cx, 0, zmin - 0.03, 0, walls), 0, -1, 0, zmin);
     // second storey behind the deck so it has a back wall at its own level
     if (L.deck && cx > deckX0 - 0.6 && cx < deckX1 + 0.6) {
-      put(furniture(win ? 'wallWindow' : 'wall'), cx, MEZ, zmin - 0.03, 0, walls);
-      if (win) put(new THREE.Mesh(skyGeo, skyMat), cx, MEZ + 0.7, zmin - 0.25);
+      cut(put(furniture(win ? 'wallWindow' : 'wall'), cx, MEZ, zmin - 0.03, 0, walls), 0, -1, 0, zmin);
+      if (win) cut(put(new THREE.Mesh(skyGeo, skyMat), cx, MEZ + 0.7, zmin - 0.25), 0, -1, 0, zmin);
     }
-    if (win) put(new THREE.Mesh(skyGeo, skyMat), cx, 0.7, zmin - 0.25);
-    else if (!isDoor && i > 0 && i < nW - 1) put(framedPicture(art++), cx, 0.78, zmin + 0.04);
+    if (win) cut(put(new THREE.Mesh(skyGeo, skyMat), cx, 0.7, zmin - 0.25), 0, -1, 0, zmin);
+    else if (!isDoor && i > 0 && i < nW - 1) cut(put(framedPicture(art++), cx, 0.78, zmin + 0.04), 0, -1, 0, zmin);
   }
   for (let j = 0; j < nD; j++) {
     const isDoor = doorLeft && j === door.tile;
     const win = !isDoor && j % 2 === 0 && j < nD - 3;
-    put(furniture(isDoor ? 'wallDoorway' : win ? 'wallWindow' : 'wall'), xmin - 0.03, 0, zmin + j + 0.5, Math.PI / 2, walls);
+    cut(put(furniture(isDoor ? 'wallDoorway' : win ? 'wallWindow' : 'wall'), xmin - 0.03, 0, zmin + j + 0.5, Math.PI / 2, walls), -1, 0, xmin, 0);
     if (win) {
-      put(new THREE.Mesh(skyGeo, skyMat), xmin - 0.25, 0.7, zmin + j + 0.5, Math.PI / 2);
+      cut(put(new THREE.Mesh(skyGeo, skyMat), xmin - 0.25, 0.7, zmin + j + 0.5, Math.PI / 2), -1, 0, xmin, 0);
       // soft sun patch on the floor under the window
       const patch = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.8), patchMat);
       patch.rotation.x = -Math.PI / 2;
       put(patch, xmin + 1.2, 0.012, zmin + j + 0.55, 0.12);
       patch.rotation.x = -Math.PI / 2;
-    } else if (!isDoor && j > 0) put(framedPicture(art++), xmin + 0.04, 0.78, zmin + j + 0.5, Math.PI / 2);
+    } else if (!isDoor && j > 0) cut(put(framedPicture(art++), xmin + 0.04, 0.78, zmin + j + 0.5, Math.PI / 2), -1, 0, xmin, 0);
   }
   // a door on the open sides is a lone doorway piece, the camera looks in from there
-  if (door.side === 'right') put(furniture('wallDoorway'), xmin + W + 0.03, 0, zmin + door.tile + 0.5, Math.PI / 2, walls);
-  if (door.side === 'front') put(furniture('wallDoorway'), xmin + door.tile + 0.5, 0, zmin + D + 0.03, 0, walls);
-  put(furniture('wallCorner'), xmin - 0.03, 0, zmin - 0.03, 0, walls);
+  if (door.side === 'right') cut(put(furniture('wallDoorway'), x1 + 0.03, 0, zmin + door.tile + 0.5, Math.PI / 2, walls), 1, 0, x1, 0);
+  if (door.side === 'front') cut(put(furniture('wallDoorway'), xmin + door.tile + 0.5, 0, z1 + 0.03, 0, walls), 0, 1, 0, z1);
+  cut(put(furniture('wallCorner'), xmin - 0.03, 0, zmin - 0.03, 0, walls), -0.7071, -0.7071, xmin, zmin);
   // doormat just inside the door
   const mat = furniture('rugDoormat', { scale: 1.2, noCast: true });
   const yaw = { left: Math.PI / 2, right: -Math.PI / 2, back: 0, front: Math.PI }[door.side];

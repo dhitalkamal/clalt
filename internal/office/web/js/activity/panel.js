@@ -8,6 +8,7 @@ import { renderRows } from './render.js';
 import { activityTarget, describeTarget } from './target.js';
 import { fetchNewer } from './catchup.js';
 import { createActionBar } from '../actions/bar.js';
+import { stampNode, chipNode } from '../notebook.js';
 import { newPager, pagerKey, matches, applyFirst, applyNewer, applyOlder, startOlder, failOlder, canLoadOlder, shouldRefresh, activityPath } from './pager.js';
 
 const PAGE = 100;
@@ -15,7 +16,7 @@ const PAGE = 100;
 const EVERY = 3000;
 const NEAR = 48;
 
-// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, fetch: optional }
+// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, onClose: optional, fetch: optional }
 export function createActivityPanel(h) {
   const newView = () => ({ expanded: new Set(), opened: new Set(), openRun: (a, t) => openRun(a, t) });
   const fetchIt = h.fetch || defaultFetch;
@@ -69,9 +70,9 @@ export function createActivityPanel(h) {
     bar.update(st.target.handle);
     meta.replaceChildren();
     const add = (k, v) => meta.append(el('div', '', el('dt', '', k), el('dd', '', v)));
-    add('account', d.account);
-    add('project', d.project);
-    add('state', el('span', '', el('span', 'dot ' + d.state), d.stateText));
+    add('state', stampNode(d.state, d.stateText));
+    add('account', chipNode(d.account));
+    add('project', el('span', 'projname', d.project));
     const gone = st.rec.leaving || (st.rec.role === 'main' && st.rec.state === 'ended') || st.rec.role === 'review';
     note.hidden = !gone && !st.idle;
     note.textContent = gone ? 'this run has ended, the log stays readable' : st.idle ? 'no run right now, showing the last one' : '';
@@ -241,6 +242,7 @@ export function createActivityPanel(h) {
     const back = opener && opener.isConnected ? opener : h.fallback;
     opener = null;
     if (back) back.focus({ preventScroll: true });
+    if (h.onClose) h.onClose();
   }
 
   closeBtn.addEventListener('click', close);

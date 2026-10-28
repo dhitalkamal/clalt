@@ -1,0 +1,67 @@
+/* field notebook: shared tokens and parts for the activity drawer, hover cards, Today and Reviews.
+   system fonts only, the paper grain is gradients, no images. */
+.activity, .summary, .reviews, #card {
+  --nb-ink: #3a2d1f; --nb-pencil: #7b6b55; --nb-faint: #a29274; --nb-rule: rgb(90 130 160 / .22);
+  --nb-paper: #f8f1de; --nb-paper2: #efe4c8; --nb-wood: #6d4c2a; --nb-card: #fffaf0;
+  --nb-busy: #3f7a2e; --nb-idle: #5d7388; --nb-need: #e0980f; --nb-ok: #3f7a2e; --nb-bad: #bf3f26; --nb-marker: #f2b53c;
+  --nb-work: #4a79a8; --nb-personal: #6a9a3a; --nb-client: #b5593c;
+  --nb-hand: "Bradley Hand", "Segoe Print", "Chalkboard SE", "Comic Sans MS", cursive;
+  --nb-serif: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
+  --nb-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --nb-grain: radial-gradient(rgb(110 80 40 / .07) 1px, transparent 1.3px) 0 0 / 7px 7px, radial-gradient(rgb(110 80 40 / .05) 1px, transparent 1.4px) 3px 4px / 11px 11px;
+  --nb-sheet: var(--nb-grain), linear-gradient(170deg, var(--nb-paper), var(--nb-paper2));
+  font-family: var(--nb-serif); color: var(--nb-ink); font-size: 13.5px;
+}
+
+/* the paper: drawer and left panels */
+.activity, .summary, .reviews { background: var(--nb-sheet); border: 1.5px solid var(--nb-wood); border-radius: 6px 16px 8px 14px;
+  box-shadow: 0 0 0 4px rgb(138 90 46 / .22), 5px 7px 0 rgb(70 45 20 / .28), 0 24px 40px -10px rgb(50 30 10 / .45); }
+/* spiral holes down the left panels */
+.summary::before, .reviews::before { content: ""; position: absolute; left: 7px; top: 14px; bottom: 14px; width: 10px; pointer-events: none; opacity: .75;
+  background: radial-gradient(circle at 5px 5px, var(--nb-ink) 0 3.2px, transparent 3.6px) 0 0 / 10px 26px repeat-y; }
+/* clipboard strip on the drawer */
+.activity::before { content: ""; position: absolute; left: 50%; top: -12px; width: 110px; height: 26px; transform: translateX(-50%); pointer-events: none;
+  border-radius: 6px; background: linear-gradient(#c9ccd0, #8f949b); border: 1.5px solid #565b62; box-shadow: 0 2px 0 rgb(0 0 0 / .25); }
+
+:is(.activity, .summary, .reviews) h2 { margin: 0; flex: 1; min-width: 0; font-size: 24px; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
+:is(.activity, .summary, .reviews) h2:focus { outline: none; }
+:is(.activity, .summary, .reviews) h2:focus-visible, :is(.activity, .summary, .reviews) :focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+:is(.activity, .summary, .reviews) header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+:is(.activity, .summary, .reviews, #card) h3 { font-family: var(--nb-hand); font-size: 17px; font-weight: 700; }
+:is(.activity, .summary, .reviews) .quiet { margin: 4px 0; font-size: 12.5px; font-style: italic; color: var(--nb-pencil); opacity: 1; }
+:is(.activity, .summary, .reviews) dt { font: 700 14px var(--nb-hand); color: var(--nb-pencil); opacity: 1; }
+
+/* hand-set buttons with a hard shadow */
+:is(.activity, .summary, .reviews) button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 30px; padding: 0 13px;
+  border: 2px solid var(--nb-ink); border-radius: 6px 10px 7px 9px; background: var(--nb-card); color: var(--nb-ink); font: 700 14px var(--nb-hand);
+  box-shadow: 2px 2px 0 var(--nb-ink); transition: transform .08s, box-shadow .08s; cursor: pointer; }
+:is(.activity, .summary, .reviews) button:hover:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--nb-ink); background: #fff; }
+:is(.activity, .summary, .reviews) button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--nb-ink); }
+:is(.activity, .summary, .reviews) button:disabled { opacity: .5; cursor: not-allowed; }
+:is(.activity, .summary, .reviews) button.close { width: 32px; min-height: 32px; padding: 0; border-radius: 50%; font-size: 0; box-shadow: none; position: relative; }
+:is(.activity, .summary, .reviews) button.close::before { content: "\00d7"; font: 700 22px/1 var(--nb-serif); }
+:is(.activity, .summary, .reviews) button.close:hover:not(:disabled) { background: var(--nb-bad); color: #fff; border-color: var(--nb-bad); transform: none; box-shadow: none; }
+:is(.activity, .summary, .reviews) button.back { width: 32px; padding: 0; font-size: 0; }
+:is(.activity, .summary, .reviews) button.back::before { content: "\2039"; font: 700 24px/1 var(--nb-serif); }
+:is(.activity, .summary, .reviews) button.primary { background: var(--nb-marker); }
+
+/* state stamps: the state is the word, the colour only backs it up */
+.stamp { --c: var(--nb-idle); display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px 1px 7px; border: 2px solid var(--c); border-radius: 5px; color: var(--c);
+  font: 700 14px var(--nb-hand); letter-spacing: .03em; text-transform: uppercase; transform: rotate(-2deg); background: rgb(255 255 255 / .35); white-space: nowrap; }
+.stamp i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+.stamp.s-busy { --c: var(--nb-busy); }
+.stamp.s-need { background: var(--nb-need); color: #3a2400; border-color: #9c6405; }
+.stamp.s-need i { background: #3a2400; animation: nb-blink 1.2s steps(2) infinite; }
+@keyframes nb-blink { 50% { opacity: .2; } }
+
+/* account tape label (class chip) */
+.chip { display: inline-block; padding: 1px 9px; font: 700 13px var(--nb-hand); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--ac, var(--nb-work));
+  transform: rotate(1.2deg); clip-path: polygon(0 8%, 4% 0, 100% 4%, 98% 100%, 3% 94%); }
+.chip.a-work { --ac: var(--nb-work); } .chip.a-personal { --ac: var(--nb-personal); } .chip.a-client { --ac: var(--nb-client); }
+
+/* rotated review flags */
+.flag { display: inline-flex; align-items: center; font: 700 14px var(--nb-hand); text-transform: uppercase; border: 2px solid var(--nb-pencil); color: var(--nb-pencil); padding: 0 7px; border-radius: 4px; transform: rotate(-2deg); }
+.flag.error { color: var(--nb-bad); border-color: var(--nb-bad); } .flag.clean { color: var(--nb-ok); border-color: var(--nb-ok); }
+
+.nb-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { :is(.activity, .summary, .reviews, #card) * { transition: none !important; animation: none !important; } }

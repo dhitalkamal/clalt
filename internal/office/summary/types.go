@@ -4,6 +4,8 @@
 // bytes, and cached for a short time by the service.
 package summary
 
+import "time"
+
 // Version is the contract version of both replies.
 const Version = 1
 
@@ -40,11 +42,22 @@ type ProjectOut struct {
 	Stats
 }
 
-// AccountOut is one account's stats and its projects.
+// Reading is one logged limit reading of an account: the 5h and 7d used
+// percent at T, nil for a window that had none.
+type Reading struct {
+	T        time.Time
+	FiveHour *float64
+	SevenDay *float64
+}
+
+// AccountOut is one account's stats and its projects. Peak5hPct and Last5hPct
+// are the highest and the latest 5h percent read that day, null when none was.
 type AccountOut struct {
-	ID       string       `json:"id"`
-	Label    string       `json:"label"`
-	Projects []ProjectOut `json:"projects"`
+	ID        string       `json:"id"`
+	Label     string       `json:"label"`
+	Peak5hPct *float64     `json:"peak5hPct"`
+	Last5hPct *float64     `json:"last5hPct"`
+	Projects  []ProjectOut `json:"projects"`
 	Stats
 }
 
@@ -59,8 +72,8 @@ type Summary struct {
 	Accounts  []AccountOut `json:"accounts"`
 }
 
-// HistoryDay is one account's day. the percents are null unless a reading is
-// known: only today has one, the feed keeps no history of readings.
+// HistoryDay is one account's day. the percents are the highest reading of the
+// day from the feed's readings log, null when the day has none.
 type HistoryDay struct {
 	Day          string   `json:"day"`
 	Tokens       int64    `json:"tokens"`

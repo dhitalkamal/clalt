@@ -64,7 +64,11 @@ func (s Store) MergeLimits(account string, five, seven *Window, now time.Time) e
 	cur.FiveHour = mergeWindow(cur.FiveHour, five, now)
 	cur.SevenDay = mergeWindow(cur.SevenDay, seven, now)
 	cur.ObservedAt = now
-	return writeJSON(s.limitsPath(account), cur)
+	if err := writeJSON(s.limitsPath(account), cur); err != nil {
+		return err
+	}
+	s.recordReading(account, cur, now)
+	return nil
 }
 
 // Limits reads the limits of an account. missing or corrupt is "not there".

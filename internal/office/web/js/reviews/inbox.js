@@ -2,6 +2,7 @@
 // summary, "Open run log"). the run log opens in the activity panel through openRun(rec).
 import { el, clear } from '../dom.js';
 import { fetchReviews, fetchReview } from './api.js';
+import { chipNode, toneFlag } from '../notebook.js';
 import { inboxRows, groupFindings, runLogRec, lastCheckedText } from './model.js';
 
 const EVERY = 10000;
@@ -46,7 +47,9 @@ export function createInbox(h) {
     const rows = inboxRows(last, Date.now());
     if (!rows.length) body.append(el('p', 'quiet', last.enabled ? 'no reviews yet. pull requests that ask for your review show up here.' : 'PR reviews are off. Turn them on in Settings.'));
     for (const r of rows) {
-      const b = el('button', 'item ' + r.tone, el('span', 'itl', r.title), el('span', 'meta', r.ref + ' by ' + r.author + ', ' + r.when + ' ago'), el('span', 'sum', r.summary));
+      const flag = toneFlag(r.tone);
+      const tail = el('span', 'tail', flag ? el('span', flag.cls, flag.text) : null, el('span', 'sum', r.summary));
+      const b = el('button', 'item ' + r.tone, el('span', 'itl', r.title), el('span', 'meta', r.ref + ' by ' + r.author + ', ' + r.when + ' ago', r.account ? chipNode(r.account) : null), tail);
       b.type = 'button';
       b.addEventListener('click', () => openOne(r.id));
       body.append(b);
@@ -63,7 +66,7 @@ export function createInbox(h) {
     add('pull request', r.repo + '#' + r.number);
     add('author', r.author || '-');
     add('commit', (r.sha || '').slice(0, 7));
-    if (r.account) add('account', r.account);
+    if (r.account) add('account', chipNode(r.account));
     body.append(meta);
     if (r.error) body.append(el('p', 'err inline', 'the review failed: ' + r.error));
     if (r.skipped) body.append(el('p', 'quiet', r.skipped));

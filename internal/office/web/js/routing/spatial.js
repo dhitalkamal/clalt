@@ -45,10 +45,11 @@ export function spotsWithTags(layout, by, wanted) {
   return out;
 }
 
-// cells covered by furniture, as "level,x,z" keys
+// cells covered by furniture, as "level,x,z" keys. floor decor (rugs, pergolas) is walked over
 export function blockedCells(layout, by) {
   const set = new Set();
   for (const f of layout.furniture || []) {
+    if (tagsOf(f, by).includes('floor')) continue;
     const fp = footprintOf(f, by);
     for (let i = 0; i < fp.w; i++) for (let j = 0; j < fp.d; j++) set.add((f.level || 0) + ',' + (f.x + i) + ',' + (f.z + j));
   }

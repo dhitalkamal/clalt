@@ -63,7 +63,7 @@ func TestNewModelHasItsFirstLoadComing(t *testing.T) {
 	if !m.loading {
 		t.Error("a new model counts its first load as in flight")
 	}
-	batch, ok := RunCmd(m.Init(), time.Second).(tea.BatchMsg)
+	batch, ok := RunCmd(m.Init(), Patience).(tea.BatchMsg)
 	if !ok || len(batch) != 2 {
 		t.Errorf("Init batches the first load and the refresh tick, got %v", batch)
 	}
@@ -76,7 +76,7 @@ func TestFirstScreenSaysLoadingUntilTheSnapshotArrives(t *testing.T) {
 	if !strings.Contains(out, "Loading") || strings.Contains(out, "morgan") {
 		t.Errorf("before the first snapshot the panes say they are loading:\n%s", out)
 	}
-	m, _ = upd(m, RunCmd(m.loadCmd(), time.Second))
+	m, _ = upd(m, RunCmd(m.loadCmd(), Patience))
 	out = Screen(m)
 	if strings.Contains(out, "Loading") || !strings.Contains(out, "morgan") || !strings.Contains(out, "5 accounts, 3 running") {
 		t.Errorf("the snapshot replaces the loading text:\n%s", out)
@@ -149,14 +149,14 @@ func TestASlowLoadNeverStacksUp(t *testing.T) {
 
 	var cmd tea.Cmd
 	m, cmd = upd(m, tickMsg{})
-	batch, ok := RunCmd(cmd, time.Second).(tea.BatchMsg)
+	batch, ok := RunCmd(cmd, Patience).(tea.BatchMsg)
 	if !ok {
 		t.Fatal("the tick command batches the refresh tick and the load")
 	}
 	for _, member := range batch {
 		go member()
 	}
-	deadline := time.Now().Add(time.Second)
+	deadline := time.Now().Add(Patience)
 	for src.calls.Load() < 2 && time.Now().Before(deadline) {
 		time.Sleep(time.Millisecond)
 	}
@@ -194,7 +194,7 @@ func TestHungLoadEndsAsAnErrorNotAnEternalSpinner(t *testing.T) {
 	opt.LoadTimeout = 20 * time.Millisecond
 	m := newModel(context.Background(), src, &fakeActions{}, opt)
 	m, _ = upd(m, tea.WindowSizeMsg{Width: 100, Height: 30})
-	msg := RunCmd(m.loadCmd(), 2*time.Second)
+	msg := RunCmd(m.loadCmd(), Patience)
 	loaded, ok := msg.(loadedMsg)
 	if !ok || loaded.err == nil || loaded.err.Error() != "load timed out after 20ms" {
 		t.Fatalf("a hung source should end with a timeout, got %#v", msg)
@@ -218,7 +218,7 @@ func TestCancellingTheProgramContextStopsALoad(t *testing.T) {
 		if l, ok := msg.(loadedMsg); !ok || !errors.Is(l.err, context.Canceled) {
 			t.Errorf("a canceled context ends the load with its error, got %#v", msg)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the load did not stop when the context was canceled")
 	}
 }

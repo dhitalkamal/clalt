@@ -40,7 +40,7 @@ func (e statusError) ExitCode() int { return e.code }
 func TestALaunchThatIsNotAProgramGoesThroughExec(t *testing.T) {
 	m, _ := actionModel(&fakeActions{})
 	_, cmd := upd(m, launchMsg{launch: &recordLaunch{}})
-	if got := fmt.Sprintf("%T", RunCmd(cmd, time.Second)); got != "tea.execMsg" {
+	if got := fmt.Sprintf("%T", RunCmd(cmd, Patience)); got != "tea.execMsg" {
 		t.Errorf("the dashboard hands any launch to tea.Exec so the screen is released, got %s", got)
 	}
 }
@@ -64,7 +64,7 @@ func TestTheProgramRunsALaunchInProcessAndResumesWithAFreshLoad(t *testing.T) {
 		if err != nil {
 			t.Errorf("the program ended with %v", err)
 		}
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the program did not quit after q")
 	}
 }
@@ -90,7 +90,7 @@ func TestTheProgramHoldsALaunchThatReturnsAtOnce(t *testing.T) {
 	p.Send(KeyMsg("ctrl+c"))
 	select {
 	case <-done:
-	case <-time.After(3 * time.Second):
+	case <-time.After(Patience):
 		t.Fatal("the program did not quit after ctrl+c")
 	}
 }

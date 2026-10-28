@@ -1,10 +1,33 @@
 // the day view as dom, from the model of model.js. everything is set as text.
 import { el } from '../dom.js';
+import { chipNode } from '../notebook.js';
+import { limitTone, meterPct } from './format.js';
 
 function factsRow(facts) {
   const dl = el('dl', 'facts');
   for (const [k, v] of facts) dl.append(el('div', '', el('dt', '', k), el('dd', '', v)));
   return dl;
+}
+
+// the 5h percent of the day: the text, and a paper-framed meter of the latest reading with a tick at the peak
+function limitRow(a) {
+  const row = el('div', 'limit', el('span', 'limtext', a.limit));
+  const v = meterPct(a.now5h == null ? a.peak5h : a.now5h);
+  const m = el('div', 'limmeter tone-' + limitTone(v), el('i', 'limfill'));
+  m.setAttribute('role', 'meter');
+  m.setAttribute('aria-valuemin', '0');
+  m.setAttribute('aria-valuemax', '100');
+  m.setAttribute('aria-valuenow', String(v));
+  m.setAttribute('aria-valuetext', v + ' percent');
+  m.setAttribute('aria-label', 'latest 5h limit reading');
+  m.firstChild.style.width = v + '%';
+  if (a.now5h != null && a.peak5h != null) {
+    const tick = el('b', 'limpeak');
+    tick.style.left = meterPct(a.peak5h) + '%';
+    m.append(tick);
+  }
+  row.append(m);
+  return row;
 }
 
 function detail(label, text) {
@@ -39,7 +62,8 @@ export function renderDay(m) {
     return root;
   }
   for (const a of m.accounts) {
-    const sec = el('section', 'acct', el('h3', '', a.title), factsRow(a.facts));
+    const sec = el('section', 'acct', el('h3', '', chipNode(a.title)), factsRow(a.facts));
+    if (a.limit) sec.append(limitRow(a));
     for (const p of a.projects) sec.append(project(p));
     root.append(sec);
   }

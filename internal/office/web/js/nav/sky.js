@@ -6,6 +6,7 @@ import { panVector, rayFromPose, hitGround, zoomToCursor, dirOf, MAX_H } from '.
 import { orbitAround, clampOrbit, keyTurn, shortenForWall, stepMomentum } from './orbit.js';
 import { dragMode } from './input.js';
 import { createPicker } from './skypick.js';
+import { boundPose } from './orbitbounds.js';
 import { flyToPoint, flyToPose, stepTween } from './flyto.js';
 
 const down = (k, ...codes) => codes.some((c) => k.has(c));
@@ -98,7 +99,7 @@ export function createSky() {
       wallAt = key; wallT = 0.07;
       // steep views look over props, and a prop right at the pivot is not a wall: start 2 units out, only below 50 degrees
       const d = dirOf(p.az, p.el);
-      const o = { x: p.target.x + d.x * 2, y: p.target.y + d.y * 2 + 0.3, z: p.target.z + d.z * 2 };
+      const o = { x: p.target.x + d.x * 2, y: Math.max(0.3, p.target.y + d.y * 2 + 0.3), z: p.target.z + d.z * 2 };
       const h = p.el < 0.87 && p.dist > 2 ? picker.wallAlong(o, d, p.dist - 2) : null;
       wallHit = h == null ? null : h + 2;
     }
@@ -189,6 +190,8 @@ export function createSky() {
     } else {
       const cxz = camXZ();
       p = clampOrbit(p, { ...limits(ctx), groundY: groundAt(ctx, cxz.x, cxz.z) });
+      // the walkable box: target inside it, distance fitted to it, a low camera kept inside its walls
+      p = boundPose(p, { bounds: ctx.garden && ctx.garden.bounds, fov, aspect, k: damp(20, dt) });
       if (c.spin && !moved && !drag) p.az += 0.12 * dt;
       eff = wallDistance(ctx, dt);
     }

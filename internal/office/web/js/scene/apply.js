@@ -4,7 +4,8 @@ import * as THREE from 'three';
 import { loadCatalog } from '../catalog.js';
 import { app, world, stage, ui, drop, resize, refreshLabels, makeAgent, removeAgent, syncHidden } from '../app.js';
 import { frameRoom } from '../stage.js';
-import { buildGround } from '../ground.js';
+import { setBackdrop } from './backdrop.js';
+import { createCutaway } from './cutaway.js';
 import { buildLife } from '../life.js';
 import { SPACE_TINT, flat } from '../zones.js';
 import { tintFor } from '../model.js';
@@ -114,7 +115,7 @@ function clearHall() {
   drop(app.statics && app.statics.group);
   drop(app.life && app.life.group);
   drop(app.dynamic && app.dynamic.group);
-  Object.assign(app, { shell: null, statics: null, life: null, dynamic: null, layout: null, seatPlan: null, ticks: [], printers: [], pongs: [] });
+  Object.assign(app, { cutaway: null, shell: null, statics: null, life: null, dynamic: null, layout: null, seatPlan: null, ticks: [], printers: [], pongs: [] });
   setLamps([]);
 }
 
@@ -124,6 +125,7 @@ export async function applyLayout(layout) {
   if (layout && layout.v === 2) {
     // a garden rebuilding itself keeps its agents and seat plan: only a hall has to be cleared
     if (!isGarden()) clearHall();
+    setBackdrop(stage, null);
     return applyGarden(layout);
   }
   teardownGarden();
@@ -137,9 +139,12 @@ export async function applyLayout(layout) {
   if (!prev || prev.key !== L.key) {
     drop(app.shell);
     app.shell = new THREE.Group();
-    app.shell.add(buildShell(L), buildGround(L));
+    const shell = buildShell(L);
+    app.shell.add(shell);
+    app.cutaway = createCutaway(shell);
     world.add(app.shell);
   }
+  setBackdrop(stage, layout);
   drop(app.statics && app.statics.group);
   app.statics = buildStatic(L);
   world.add(app.statics.group);

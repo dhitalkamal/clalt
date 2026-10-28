@@ -11,6 +11,54 @@ Ctrl-C. `--no-open` only prints the link. `--port N` picks the port, by default
 a free one. `--edit` is still accepted and does nothing: saving from the page no
 longer needs it.
 
+## Running it in the background
+
+You do not need to keep a terminal open. The PR review watcher and the limit
+warnings run as long as the office server runs, so a background server keeps
+them going.
+
+    clalt office on             start it in the background and open the browser
+    clalt office open           open the running one again
+    clalt office status [--link]  on or off, port, pid, uptime, version
+    clalt office off            stop it
+    clalt office autostart on|off|status   start it when you log in (macOS)
+
+- `on` starts `clalt office serve` detached (its own session, no stdin) and
+  opens the link. The port is 47321, or the next free one up to 47340. If it
+  already runs, `on` only opens it. It is not available on Windows yet: run
+  `clalt office` in a terminal there.
+- `off` asks the server to stop (SIGTERM) and waits up to 5 seconds. It only
+  signals a process that proved itself: the pid in the run file must answer a
+  token-checked `GET /api/ping` on the saved port as the clalt office server
+  with that same pid. A stale run file is removed and nothing is signalled.
+- `open` says so and suggests `clalt office on` when it is off.
+- `status` never prints the link unless you add `--link`, because the link
+  carries the token. It also shows the last error line of the log.
+- `clalt office` in the foreground still works as before. It refuses `--port N`
+  when the background office already uses that port.
+
+Files, all in `~/.config/clalt/office/` (the folder is 0700):
+
+- `run.json` (0600): `pid`, `port`, `token`, `startedAt`, `version`. This is the
+  only place the token is kept besides the browser cookie. It is removed when
+  the server stops.
+- `office.log`: output and errors of the background server, moved to
+  `office.log.old` at about 1 MB (one old file is kept). The token is never
+  written to it.
+
+### Start at login
+
+On macOS, Settings has a "Start office when I log in" checkbox, and
+`clalt office autostart on|off|status` does the same from a terminal. It writes
+`~/Library/LaunchAgents/com.dhitalkamal.clalt.office.plist` (runs the absolute
+path of the clalt binary with `office serve`, no token in it) and loads it with
+`launchctl bootstrap gui/<uid>`. Off runs `launchctl bootout` and removes the
+file. If you move or reinstall clalt, run `autostart on` again so the path is
+right. The server started by launchd writes `run.json` like any other, so
+`clalt office open` works. Turning it off from the page while launchd runs that
+very server removes the file but does not unload the job, so the page stays up
+until the server stops. On other systems the checkbox is disabled.
+
 ## How it looks
 
 - A glass cabin per session, grouped in a wing per account. The wing sign shows
@@ -36,20 +84,36 @@ longer needs it.
   drag (or right drag) moves the view, wheel zooms to the cursor, two fingers
   pinch on a touch screen. W A S D or the arrows move (Shift is faster), Q and E
   turn, Z and X tilt, R and C go higher and lower, double-click flies there.
+  The view stays over the walkable area of the template (the hall floor, the island): it
+  cannot zoom out past the point where that area fills the screen, a low camera stays inside
+  the hall walls, and in the hall the walls between the camera and the room fade out.
 - G goes down to ground level and walks (W A S D, drag to look, Shift runs,
   Space jumps, not on the stairs). The third person camera pulls in when a wall,
   tree or deck edge is in the way. V switches between first and third person.
   F follows the agent under the cursor or the selected one. Esc leaves ground
-  or follow, and from the sky goes to the top view, like Home.
-- Keys 6 to 9 pick the top, plan, iso and hero views (the template is the
-  default set in Settings), P turns auto spin on and off and L the labels.
+  or follow, and from the sky goes to the overview, like Home.
+- P turns auto spin on and off and L the labels. Old links with
+  `#cam=top`, `plan`, `iso` or `hero` open the sky camera at the overview.
   The keys do nothing while you edit.
 - The camera bar and these keys work the same in every template, the hall
-  included. The Overview button goes back to the top view.
+  included. The Overview button goes back to the overview.
 - Hover a character for a card with the handle, project, model, state and
   account label. Click a room for the number of agents in it.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows
   every tag, not only the ones of the main agents.
+
+## Battery
+
+The page draws at 60 frames per second only while you drag, zoom, walk or the
+camera flies, at about 15 while agents move or type, and about 2 when nothing
+moves. After 2 minutes without input it stays at the slow rate until the mouse
+or a key wakes it. Shadows of the scenery are baked once per layout, agents get
+a soft disc on the floor, and the pixel ratio is capped at 1.5. Shift+F shows
+fps, draw calls, triangles and frame time. To measure the real power on a Mac,
+open the office tab alone, leave the mouse still, and run
+`sudo powermetrics --samplers gpu_power,cpu_power -i 1000 -n 30` for 30
+seconds, once on the old build and once on this one, and compare the GPU power
+and CPU power lines (combined power in mW is the number to compare).
 
 ## Templates
 
@@ -131,10 +195,12 @@ changes nothing.
 ## Privacy
 
 - The page is served from your machine only. The server listens on `127.0.0.1`
-  and nothing else, with a random port unless you set one. It needs no network
+  and nothing else, with a random port unless you set one (the background
+  office uses 47321 or the next free port). It needs no network
   access and the page loads nothing from the internet: the 3D library, the
   models and the page are inside the clalt binary.
-- Every run makes a new random token. The printed link carries it, the first
+- Every run makes a new random token (the background office keeps it in
+  `run.json`, readable by you only). The printed link carries it, the first
   load turns it into a cookie that only this browser sends to this server, and
   every request without it is refused. Other websites in your browser cannot
   read the page or the data, and a request that names another host (a DNS
@@ -155,7 +221,7 @@ changes nothing.
   no environment and no full paths. Text is cleaned of control characters. An
   account label that looks like an email address is cut at the at sign, so the
   page never shows an address.
-- Nothing is written to disk except errors, one line each, in
+- The office itself writes nothing to disk except errors, one line each, in
   `~/.config/clalt/logs/office.log`, and layouts you save in build mode. The token is never logged.
 
 ## Activity panel
@@ -193,6 +259,21 @@ which has the same guards as the snapshot (the token and the Host check).
   background has a start entry only, since its end is not in the transcript.
 - Unlike the snapshot, this does carry transcript text (your prompts, replies,
   tool inputs and results), to the page of this browser only.
+
+## Today and History
+
+The Today tab shows the day of every account that did something: sessions,
+active time, tokens, cost, tools, files and failures. Per account it also
+shows the 5h limit as the day's peak and the latest reading, with a meter. Copy
+as text carries that line too.
+
+The History tab charts, per account and for 7, 30 or 90 days, the highest 5h
+percent and the highest 7d percent read on each local day (0 to 100, with a
+line at 90 percent), then the tokens per day and the busiest 5h window in
+tokens. A day with no reading is a gap, not 0. The percents come from the
+readings log of the feed, which began when you installed this version, so older
+days show tokens only and the page says when the readings began. See
+[feed.md](feed.md#the-readings-log) for what the log holds and how long.
 
 ## Where the data comes from
 
