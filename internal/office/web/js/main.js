@@ -9,6 +9,7 @@ import { applyLayout } from './scene/apply.js';
 import { startView } from './viewctl.js';
 import { installActions } from './actions/index.js';
 import { initSummary } from './summary/index.js';
+import { bindDock } from './dock.js';
 
 const loadingEl = document.getElementById('loading');
 
@@ -28,6 +29,7 @@ async function boot() {
   bindInput();
   installActions();
   initSummary();
+  bindDock();
   resize();
   addEventListener('resize', resize);
   const view = startView(first);

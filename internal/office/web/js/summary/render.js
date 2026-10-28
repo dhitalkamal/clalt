@@ -1,6 +1,7 @@
 // the day view as dom, from the model of model.js. everything is set as text.
 import { el } from '../dom.js';
 import { chipNode } from '../notebook.js';
+import { limitTone, meterPct } from './format.js';
 
 function factsRow(facts) {
   const dl = el('dl', 'facts');
@@ -8,15 +9,23 @@ function factsRow(facts) {
   return dl;
 }
 
-// the 5h percent of the day: the text, and a meter of the latest reading
+// the 5h percent of the day: the text, and a paper-framed meter of the latest reading with a tick at the peak
 function limitRow(a) {
   const row = el('div', 'limit', el('span', 'limtext', a.limit));
-  const m = el('meter', 'limmeter');
-  m.min = 0;
-  m.max = 100;
-  m.high = 90;
-  m.value = a.now5h == null ? a.peak5h : a.now5h;
+  const v = meterPct(a.now5h == null ? a.peak5h : a.now5h);
+  const m = el('div', 'limmeter tone-' + limitTone(v), el('i', 'limfill'));
+  m.setAttribute('role', 'meter');
+  m.setAttribute('aria-valuemin', '0');
+  m.setAttribute('aria-valuemax', '100');
+  m.setAttribute('aria-valuenow', String(v));
+  m.setAttribute('aria-valuetext', v + ' percent');
   m.setAttribute('aria-label', 'latest 5h limit reading');
+  m.firstChild.style.width = v + '%';
+  if (a.now5h != null && a.peak5h != null) {
+    const tick = el('b', 'limpeak');
+    tick.style.left = meterPct(a.peak5h) + '%';
+    m.append(tick);
+  }
   row.append(m);
   return row;
 }

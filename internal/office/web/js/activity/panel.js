@@ -16,7 +16,7 @@ const PAGE = 100;
 const EVERY = 3000;
 const NEAR = 48;
 
-// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, fetch: optional }
+// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, onClose: optional, fetch: optional }
 export function createActivityPanel(h) {
   const newView = () => ({ expanded: new Set(), opened: new Set(), openRun: (a, t) => openRun(a, t) });
   const fetchIt = h.fetch || defaultFetch;
@@ -242,6 +242,7 @@ export function createActivityPanel(h) {
     const back = opener && opener.isConnected ? opener : h.fallback;
     opener = null;
     if (back) back.focus({ preventScroll: true });
+    if (h.onClose) h.onClose();
   }
 
   closeBtn.addEventListener('click', close);

@@ -1,7 +1,7 @@
 /* Today panel: a ring-bound notebook page on the left on wide screens, a bottom sheet under 700px.
    shared paper, buttons and stamps are in notebook.css. aside.summary keeps the panel apart from
    the p.summary inside a review. */
-aside.summary { position: fixed; z-index: 7; top: 14px; left: 14px; bottom: 160px; width: 460px; max-width: calc(100% - 28px); box-sizing: border-box;
+aside.summary { position: fixed; z-index: 7; top: 14px; left: 14px; bottom: var(--dock-side, 160px); width: 460px; max-width: calc(100% - 28px); box-sizing: border-box;
   display: flex; flex-direction: column; padding: 22px 16px 0 30px; }
 aside.summary[hidden] { display: none; }
 .summary h2 { font-size: 25px; }
@@ -60,13 +60,18 @@ aside.summary[hidden] { display: none; }
 .summary .guide { stroke: var(--nb-bad); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .summary .guidelab { font: 700 11px var(--nb-hand); fill: var(--nb-bad); }
 .summary .limit { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font: 700 14px var(--nb-hand); color: var(--nb-pencil); }
-.summary .limmeter { flex: 1; max-width: 160px; height: 12px; accent-color: var(--nb-work); }
+.summary .limmeter { --c: var(--nb-work); position: relative; flex: 1; max-width: 160px; height: 14px; box-sizing: border-box; border: 2px solid var(--nb-ink);
+  border-radius: 4px 7px 5px 6px; background: var(--nb-card); overflow: hidden; }
+.summary .limmeter.tone-warn { --c: var(--nb-need); } .summary .limmeter.tone-hot { --c: var(--nb-bad); }
+.summary .limfill { position: absolute; left: 0; top: 0; bottom: 0; border-right: 2px solid var(--nb-ink);
+  background: repeating-linear-gradient(135deg, var(--c) 0 2px, transparent 2px 5px), rgb(255 255 255 / .35); }
+.summary .limpeak { position: absolute; top: 0; bottom: 0; width: 0; margin-left: -1px; border-left: 2px dashed var(--nb-ink); }
 .summary .col.cur { fill: var(--nb-marker); stroke-width: 2.2; }
 .summary .hit { fill: transparent; }
 .summary svg.plot:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
 .summary .readout { margin: 2px 0 6px; min-height: 17px; font: 13px var(--nb-mono); color: var(--nb-pencil); overflow-wrap: anywhere; }
 
 @media (max-width: 700px) {
-  aside.summary { top: auto; bottom: 0; left: 12px; right: 12px; width: auto; max-width: none; height: 78vh; border-radius: 14px 14px 0 0; padding: 20px 14px 0 28px; }
+  aside.summary { top: auto; bottom: var(--dock-sheet, 0); left: 12px; right: 12px; width: auto; max-width: none; height: 78vh; max-height: calc(100% - var(--dock-sheet, 0px) - 60px); border-radius: 14px 14px 0 0; padding: 20px 14px 0 28px; }
   .summary section.total .facts { grid-template-columns: repeat(2, 1fr); }
 }
