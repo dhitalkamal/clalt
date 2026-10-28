@@ -7,7 +7,7 @@
 .reviews .rbody { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin: 0 -16px 0 -30px; padding: 6px 16px 30px 30px; }
 
 /* inbox cards: tape stripe on the left carries the severity, a stamp says it in words */
-.reviews .item { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 0; text-align: left;
+.reviews .item { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; min-height: 30px; text-align: left;
   padding: 9px 12px 9px 18px; border: 1.5px solid var(--nb-wood); border-radius: 3px 10px 4px 9px; background: var(--nb-card); color: var(--nb-ink);
   font: 13.5px var(--nb-serif); box-shadow: 2px 3px 0 rgb(70 45 20 / .22); }
 .reviews .item::before { content: ""; position: absolute; left: -1.5px; top: 8px; bottom: 8px; width: 7px; border-radius: 0 4px 4px 0; background: var(--nb-faint); }
@@ -15,9 +15,9 @@
 .reviews .item.medium::before { background: var(--nb-need); } .reviews .item.low::before { background: var(--nb-work); } .reviews .item.clean::before { background: var(--nb-ok); }
 .reviews .item.skipped { background: var(--nb-paper2); border-style: dashed; }
 .reviews .item:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 3px 4px 0 rgb(70 45 20 / .3); background: var(--nb-card); }
-.reviews .itl { font-weight: 700; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.reviews .itl { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; max-width: 100%; font-weight: 700; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
 .reviews .meta { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; font-size: 12px; color: var(--nb-pencil); font-weight: 400; overflow-wrap: anywhere; }
-.reviews .tail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; font-weight: 400; }
+.reviews .tail { display: flex; max-width: 100%; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; font-weight: 400; }
 .reviews .sum { font: 700 14px var(--nb-hand); color: var(--nb-pencil); overflow-wrap: anywhere; }
 .reviews .item.skipped .sum, .reviews .item.error .sum { font: italic 12.5px var(--nb-serif); }
 .reviews .item.high .sum { color: var(--nb-bad); }
@@ -41,8 +41,8 @@
 .reviews .runlog { align-self: flex-start; margin-top: 6px; background: var(--nb-marker); }
 
 dialog.settings .reviews-sec .addrow { display: flex; gap: 6px; margin: 4px 0 6px; }
-dialog.settings .reviews-sec .addrow input { flex: 1; min-width: 0; padding: 5px 8px; border-radius: 8px; border: 1px solid rgba(60,50,40,.3); }
-dialog.settings .reviews-sec .group { max-height: 150px; overflow-y: auto; }
+dialog.settings .reviews-sec .addrow input { flex: 1; min-width: 0; }
+dialog.settings .reviews-sec .group { max-height: 170px; overflow-y: auto; padding: 0 4px 4px 0; }
 @media (max-width: 700px) {
   .reviews { top: auto; left: 0; right: 12px; margin-left: 12px; bottom: var(--dock-sheet, 0); width: auto; max-width: none; max-height: min(70vh, calc(100% - var(--dock-sheet, 0px) - 60px)); border-radius: 14px 14px 0 0; padding-left: 28px; }
 }

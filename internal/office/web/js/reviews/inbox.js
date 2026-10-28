@@ -51,6 +51,7 @@ export function createInbox(h) {
       const tail = el('span', 'tail', flag ? el('span', flag.cls, flag.text) : null, el('span', 'sum', r.summary));
       const b = el('button', 'item ' + r.tone, el('span', 'itl', r.title), el('span', 'meta', r.ref + ' by ' + r.author + ', ' + r.when + ' ago', r.account ? chipNode(r.account) : null), tail);
       b.type = 'button';
+      b.title = r.tip;
       b.addEventListener('click', () => openOne(r.id));
       body.append(b);
     }

@@ -33,7 +33,7 @@ export function inboxRows(reply, now) {
     id: r.id, title: r.title || '(no title)', ref: r.repo + '#' + r.number, author: r.author || '-', handle: r.handle || '',
     when: age(Math.max(0, now - Date.parse(r.endedAt))), at: Date.parse(r.endedAt) || 0,
     tone: toneOf(r), summary: summaryOf(r), account: r.account || '',
-  }));
+  })).map((r) => ({ ...r, tip: r.title + ' (' + r.ref + ')' }));
   return rows.sort((a, b) => b.at - a.at || (a.id < b.id ? -1 : 1));
 }
 

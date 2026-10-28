@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The Settings dialog uses the field notebook look: card-style options,
+  inked buttons with hover, pressed, focus and disabled states, amber main
+  actions (#76).
+
+### Fixed
+
+- PR review cards no longer overlap: long titles wrap inside the card (up to
+  three lines, full title on hover) and the counts stay inside (#76).
+
 ## [0.3.0] - 2026-10-28
 
 ### Added

@@ -46,6 +46,13 @@ test('inboxRows copes with nothing', () => {
   assert.deepEqual(inboxRows({ reviews: 'x' }, NOW), []);
 });
 
+test('inboxRows carry the full title and ref as a tooltip, also when the title is empty', () => {
+  const long = 'x'.repeat(200);
+  const rows = inboxRows({ reviews: [{ id: 'a', repo: 'o/r', number: 5, title: long, endedAt: '2026-10-27T11:00:00Z' }, { id: 'b', repo: 'o/r', number: 6, title: '', endedAt: '2026-10-27T10:00:00Z' }] }, NOW);
+  assert.equal(rows[0].tip, long + ' (o/r#5)');
+  assert.equal(rows[1].tip, '(no title) (o/r#6)');
+});
+
 test('groupFindings orders high, medium, low and drops empty groups', () => {
   const g = groupFindings([
     { severity: 'low', file: 'c.go', line: 0, title: 'c', detail: '' },

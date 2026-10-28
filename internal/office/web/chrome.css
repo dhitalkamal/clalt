@@ -14,29 +14,52 @@
 @media (max-width: 520px) { .hint { bottom: 166px; } }
 #b-settings svg { vertical-align: -2px; }
 
-/* settings dialog: a modal over the scene, same white rounded look as the bar */
-dialog.settings { box-sizing: border-box; width: 400px; max-width: calc(100% - 28px); max-height: calc(100% - 28px); overflow-y: auto; margin: auto;
-  padding: 16px 16px 12px; border: 1px solid rgba(255,255,255,.8); border-radius: 18px; background: rgba(255,255,255,.94); color: var(--ink);
-  box-shadow: 0 8px 32px rgba(60,50,40,.28); }
-dialog.settings::backdrop { background: rgba(43,36,51,.28); }
-dialog.settings h2 { margin: 0 0 8px; font-size: 16px; }
-dialog.settings h3 { margin: 0 0 2px; font-size: 13px; }
-dialog.settings .sec { margin-bottom: 12px; }
-dialog.settings .note { margin: 0 0 8px; font-size: 11px; opacity: .68; }
+/* settings dialog: a loose notebook page, same inked borders and hard shadows as the drawer and panels */
+dialog.settings { box-sizing: border-box; width: 420px; max-width: calc(100% - 28px); max-height: calc(100% - 28px); overflow-y: auto; margin: auto; padding: 20px 20px 16px;
+  background: var(--nb-sheet); border: 1.5px solid var(--nb-wood); border-radius: 6px 16px 8px 14px; box-shadow: 4px 5px 0 rgb(70 45 20 / .3), 0 18px 40px -10px rgb(50 30 10 / .5); }
+dialog.settings::backdrop { background: rgba(43,36,51,.32); }
+dialog.settings h2 { margin: 0 0 10px; font-size: 24px; line-height: 1.1; letter-spacing: -.01em; }
+dialog.settings h3 { margin: 0 0 4px; font: 700 18px var(--nb-hand); }
+dialog.settings .sec { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1.5px dashed rgb(109 76 42 / .35); }
+dialog.settings .sec:last-of-type { border-bottom: 0; }
+dialog.settings .note { margin: 0 0 8px; font-size: 12.5px; font-style: italic; color: var(--nb-pencil); }
 dialog.settings fieldset { margin: 0 0 6px; padding: 0; border: 0; min-width: 0; }
-dialog.settings legend { padding: 0; margin-bottom: 3px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .6; }
-dialog.settings label { display: flex; align-items: center; gap: 9px; padding: 7px 9px; margin-bottom: 4px; border-radius: 12px;
-  background: rgba(255,255,255,.55); border: 1px solid rgba(60,50,40,.1); cursor: pointer; }
-dialog.settings label:hover { background: #fff; }
-dialog.settings label:has(input:checked) { background: #fff; border-color: var(--amber); box-shadow: 0 0 0 2px rgba(242,181,60,.45); }
-dialog.settings input[type="radio"] { margin: 0; accent-color: var(--amber); width: 16px; height: 16px; flex: none; }
-dialog.settings .row { display: flex; justify-content: flex-end; gap: 8px; }
-dialog.settings button { border-radius: 999px; padding: 6px 14px; }
-dialog.settings button.primary { background: var(--amber); border-color: var(--amber); font-weight: 600; }
-dialog.settings button:disabled { opacity: .5; cursor: default; }
-dialog.settings .err { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #fde8e6; border: 1px solid var(--red); font-size: 12px; }
-dialog.settings .tag { margin-left: auto; padding: 1px 8px; border-radius: 999px; background: var(--amber); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-dialog.settings .ok { margin: 8px 0 0; padding: 6px 10px; border-radius: 8px; background: #e6f4ea; border: 1px solid #3a9d5d; font-size: 12px; }
+dialog.settings legend { padding: 0; margin-bottom: 4px; font: 700 15px var(--nb-hand); color: var(--nb-pencil); }
+dialog.settings label { display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 4px 10px; margin-bottom: 6px; box-sizing: border-box;
+  background: var(--nb-card); border: 1.5px solid var(--nb-wood); border-radius: 3px 8px 4px 7px; box-shadow: 2px 2px 0 rgb(70 45 20 / .22); cursor: pointer;
+  transition: transform .08s, box-shadow .08s; }
+dialog.settings label:hover:has(input:enabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 rgb(70 45 20 / .3); background: #fff; }
+dialog.settings label:active:has(input:enabled) { transform: translate(2px, 2px); box-shadow: none; }
+dialog.settings label:has(input:checked) { background: #fff; border-color: var(--nb-ink); box-shadow: 2px 2px 0 var(--nb-ink); }
+dialog.settings label:has(input:checked):hover { box-shadow: 1px 1px 0 var(--nb-ink); }
+dialog.settings label:has(input:focus-visible) { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+dialog.settings label:has(input:disabled) { opacity: .55; cursor: not-allowed; box-shadow: none; }
+dialog.settings input[type="radio"], dialog.settings input[type="checkbox"] { appearance: none; position: relative; flex: none; width: 18px; height: 18px; margin: 0;
+  background: var(--nb-card); border: 2px solid var(--nb-ink); cursor: inherit; }
+dialog.settings input[type="radio"] { border-radius: 50%; }
+dialog.settings input[type="checkbox"] { border-radius: 3px 5px 3px 5px; }
+dialog.settings input[type="radio"]:checked { background: var(--nb-marker); box-shadow: inset 0 0 0 3px var(--nb-card); }
+dialog.settings input[type="checkbox"]:checked { background: var(--nb-marker); }
+dialog.settings input[type="checkbox"]:checked::after { content: ""; position: absolute; left: 4px; top: 0; width: 5px; height: 10px; border: solid var(--nb-ink); border-width: 0 2.5px 2.5px 0; transform: rotate(40deg); }
+dialog.settings input:focus-visible { outline: none; }
+dialog.settings input[type="text"] { min-height: 30px; box-sizing: border-box; padding: 0 10px; border: 2px solid var(--nb-ink); border-radius: 6px 10px 7px 9px; background: var(--nb-card); color: var(--nb-ink); font: 14px var(--nb-serif); }
+dialog.settings input[type="text"]:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+dialog.settings .row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+/* hand-set buttons: inked border, hard shadow that collapses when pressed */
+dialog.settings button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 32px; padding: 0 16px; box-sizing: border-box;
+  border: 2px solid var(--nb-ink); border-radius: 6px 10px 7px 9px; background: var(--nb-card); color: var(--nb-ink); font: 700 15px var(--nb-hand);
+  box-shadow: 2px 2px 0 var(--nb-ink); transition: transform .08s, box-shadow .08s; cursor: pointer; }
+dialog.settings button:hover:not(:disabled) { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--nb-ink); background: #fff; }
+dialog.settings button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--nb-ink); }
+dialog.settings button:focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+dialog.settings button.primary { background: var(--nb-marker); }
+dialog.settings button.primary:hover:not(:disabled) { background: #f7c35c; }
+dialog.settings button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+dialog.settings .sec > button { margin-top: 4px; }
+dialog.settings .err, dialog.settings .ok { margin: 8px 0 0; padding: 6px 10px; border: 1.5px dashed var(--nb-bad); border-radius: 6px; background: rgb(191 63 38 / .1); color: var(--nb-bad); font-size: 12.5px; font-weight: 600; }
+dialog.settings .ok { border-color: var(--nb-ok); background: rgb(63 122 46 / .12); color: var(--nb-ok); }
+dialog.settings .tag { margin-left: auto; padding: 0 8px; border: 2px solid var(--nb-ink); border-radius: 4px; background: var(--nb-marker); font: 700 13px var(--nb-hand); text-transform: uppercase; transform: rotate(-2deg); }
 dialog.settings .autostart-sec .note { margin: 2px 0 0; }
 dialog.settings .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-dialog.settings :focus-visible { outline: 3px solid #2b6fd6; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { dialog.settings * { transition: none !important; } }
