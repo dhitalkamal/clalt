@@ -20,6 +20,8 @@ type Autostart struct {
 	Exe     string // absolute path of the clalt binary
 	LogPath string
 	GOOS    string
+	// PATH is the search path the job runs with, launchd gives jobs a bare one
+	PATH string
 	// Run is launchctl, args without the program name
 	Run func(args []string) ([]byte, error)
 }
@@ -44,6 +46,30 @@ func esc(s string) string {
 	return b.String()
 }
 
+// cleanPath splits a path list on ':', drops empty entries and repeats, and
+// keeps the first-seen order.
+func cleanPath(p string) string {
+	seen := map[string]bool{}
+	var out []string
+	for _, e := range strings.Split(p, ":") {
+		if e == "" || seen[e] {
+			continue
+		}
+		seen[e] = true
+		out = append(out, e)
+	}
+	return strings.Join(out, ":")
+}
+
+// envBlock is the EnvironmentVariables entry, empty when there is no PATH.
+func (a Autostart) envBlock() string {
+	p := cleanPath(a.PATH)
+	if p == "" {
+		return ""
+	}
+	return fmt.Sprintf("\t<key>EnvironmentVariables</key>\n\t<dict>\n\t\t<key>PATH</key>\n\t\t<string>%s</string>\n\t</dict>\n", esc(p))
+}
+
 // Plist is the job file. it never holds the token: the server makes its own.
 func (a Autostart) Plist() []byte {
 	return []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
@@ -66,9 +92,9 @@ func (a Autostart) Plist() []byte {
 	<string>%s</string>
 	<key>StandardErrorPath</key>
 	<string>%s</string>
-</dict>
+%s</dict>
 </plist>
-`, Label, esc(a.Exe), esc(a.LogPath), esc(a.LogPath)))
+`, Label, esc(a.Exe), esc(a.LogPath), esc(a.LogPath), a.envBlock()))
 }
 
 var errMacOnly = errors.New("start at login is macOS only for now")

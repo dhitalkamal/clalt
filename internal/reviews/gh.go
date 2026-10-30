@@ -81,13 +81,25 @@ func allowedGH(args []string) error {
 }
 
 // GH is the one way this package runs gh.
-type GH struct{ X Exec }
+type GH struct {
+	X Exec
+	// R finds the gh binary, nil means a bare "gh" on PATH.
+	R *Resolver
+}
 
 func (g GH) run(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	if err := allowedGH(args); err != nil {
 		return nil, fmt.Errorf("%w: gh %s", err, strings.Join(args, " "))
 	}
-	return g.X.Run(ctx, dir, nil, "", "gh", args...)
+	bin := "gh"
+	if g.R != nil {
+		p, err := g.R.Resolve(bin)
+		if err != nil {
+			return nil, err
+		}
+		bin = p
+	}
+	return g.X.Run(ctx, dir, nil, "", bin, args...)
 }
 
 var repoRe = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$`)

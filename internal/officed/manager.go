@@ -33,6 +33,8 @@ type Manager struct {
 	Spawn func(logPath string) (Child, error)
 	Open  func(url string) error
 	Sleep func(time.Duration)
+	// Missing lists review tools that cannot be found, nil skips the check
+	Missing func() []MissingTool
 }
 
 const (
@@ -158,6 +160,7 @@ func (m Manager) Status(withLink bool) error {
 	if l := LastErrorLine(LogPath(m.Dir)); l != "" {
 		m.printf("last error line: %s\n", l)
 	}
+	m.warnMissing()
 	return nil
 }
 

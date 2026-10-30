@@ -37,12 +37,17 @@ func (a *App) officeReviews(real office.Real, logf func(string, ...any)) *review
 	cache := filepath.Join(config.Home(), ".cache", "clalt", "reviews")
 	bin, err := claudecli.Binary()
 	if err != nil {
-		bin = "claude"
+		// keep an explicit CLALT_CLAUDE_BIN so a configured path is never replaced
+		bin = os.Getenv("CLALT_CLAUDE_BIN")
+		if bin == "" {
+			bin = "claude"
+		}
 	}
 	x := reviews.RealExec{}
+	res := reviews.DefaultResolver()
 	return &reviews.Service{
 		Dir: filepath.Join(config.ClaltDir(), "reviews"), CacheDir: cache, WorkDir: filepath.Join(cache, "work"),
-		GH: reviews.GH{X: x}, Git: reviews.Git{X: x}, Claude: x, ClaudeBin: bin,
+		GH: reviews.GH{X: x, R: &res}, Git: reviews.Git{X: x}, Claude: x, ClaudeBin: bin, R: &res,
 		EnvFor: func(dir string) []string { env, _ := claudecli.Env(os.Environ(), dir); return env },
 		Accounts: func() []reviews.Candidate {
 			accts, err := real.Accounts.Accounts()

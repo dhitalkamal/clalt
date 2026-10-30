@@ -29,7 +29,15 @@ func (s *Service) pick() (Candidate, error) {
 func (s *Service) runOnce(ctx context.Context, wt string, cand Candidate, prompt, sid string) ([]Finding, string, string, error) {
 	rctx, cancel := context.WithTimeout(ctx, reviewTimeout)
 	defer cancel()
-	out, err := s.Claude.Run(rctx, wt, s.EnvFor(cand.ConfigDir), prompt, s.ClaudeBin, claudeArgs(sid)...)
+	bin := s.ClaudeBin
+	if s.R != nil {
+		p, err := s.R.Resolve(bin)
+		if err != nil {
+			return nil, "", sid, err
+		}
+		bin = p
+	}
+	out, err := s.Claude.Run(rctx, wt, s.EnvFor(cand.ConfigDir), prompt, bin, claudeArgs(sid)...)
 	if err != nil {
 		return nil, "", sid, err
 	}

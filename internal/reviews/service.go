@@ -23,6 +23,8 @@ type Service struct {
 	Git                    Git
 	Claude                 Exec
 	ClaudeBin              string
+	// R finds the claude binary, nil means ClaudeBin is run as given.
+	R *Resolver
 	// EnvFor is the environment of a claude run on an account folder.
 	EnvFor func(configDir string) []string
 	// Accounts lists the accounts a review may run on, with their 5h figures.
