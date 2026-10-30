@@ -34,6 +34,9 @@ type Review struct {
 	Transcript string    `json:"transcript"`
 	Skipped    string    `json:"skipped,omitempty"`
 	Error      string    `json:"error,omitempty"`
+	// Attempts counts failed runs, NextRetryAt is when a failed run is tried again.
+	Attempts    int        `json:"attempts,omitempty"`
+	NextRetryAt *time.Time `json:"nextRetryAt,omitempty"`
 	// State is the pull request state when last checked, StateCheckedAt when.
 	State          string     `json:"state,omitempty"`
 	StateCheckedAt *time.Time `json:"stateCheckedAt,omitempty"`

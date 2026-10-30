@@ -126,7 +126,6 @@ func TestTickDoesNotRetryAReviewThatIsNotASizeSkip(t *testing.T) {
 	at := time.Unix(100, 0).UTC()
 	cases := map[string]Review{
 		"normal findings": {Summary: "fine", Findings: []Finding{{Severity: "low", Title: "f"}}, State: StateOpen, StateCheckedAt: &at},
-		"run error":       {Error: "claude exited 1: limit reached", State: StateOpen, StateCheckedAt: &at},
 		"other skip":      {Skipped: "not reviewed: something else", State: StateOpen, StateCheckedAt: &at},
 	}
 	for name, rv := range cases {

@@ -92,6 +92,9 @@ type reviewRow struct {
 	// null until the state was looked up.
 	State          string     `json:"state"`
 	StateCheckedAt *time.Time `json:"stateCheckedAt"`
+	// retry info for failed reviews, both omitted when unset
+	Attempts    int        `json:"attempts,omitempty"`
+	NextRetryAt *time.Time `json:"nextRetryAt,omitempty"`
 }
 
 func rowOf(r reviews.Review) reviewRow {
@@ -107,7 +110,8 @@ func rowOf(r reviews.Review) reviewRow {
 	return reviewRow{ID: r.ID(), Repo: r.Repo, Number: r.Number, Title: r.Title, Author: r.Author, URL: r.URL, SHA: r.SHA,
 		StartedAt: r.StartedAt, EndedAt: r.EndedAt, Account: r.Account, Counts: counts, Skipped: r.Skipped, Error: r.Error,
 		Handle: reviewHandle(r.Transcript), Transcript: r.Transcript,
-		State: state, StateCheckedAt: r.StateCheckedAt}
+		State: state, StateCheckedAt: r.StateCheckedAt,
+		Attempts: r.Attempts, NextRetryAt: r.NextRetryAt}
 }
 
 type reviewFull struct {

@@ -186,6 +186,8 @@ func (s *Service) Tick(ctx context.Context) error {
 		s.lastChecked = s.Now()
 		s.mu.Unlock()
 	}()
+	// refresh first so retries see current merged/closed states
+	s.refreshStates(ctx)
 	for _, repo := range cfg.Repos {
 		prs, err := s.GH.SearchRequested(ctx, repo)
 		if err != nil {
@@ -235,6 +237,11 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+	prev := 0
+	if old, ok, gerr := s.store().Get(idOf(pr.Repo, pr.Number, info.SHA)); gerr == nil && ok {
+		prev = failedAttempts(old)
+	}
+	stampFailure(&rv, prev, s.Now())
 	rv.State, rv.StateCheckedAt = StateOpen, &checked
 	return s.store().Save(rv)
 }

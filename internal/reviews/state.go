@@ -17,6 +17,12 @@ type prKey struct {
 func (s *Service) RefreshStates(ctx context.Context) {
 	s.tickMu.Lock()
 	defer s.tickMu.Unlock()
+	s.refreshStates(ctx)
+}
+
+// refreshStates is RefreshStates without the lock, for callers that already
+// hold tickMu (Tick does).
+func (s *Service) refreshStates(ctx context.Context) {
 	all, err := s.store().List()
 	if err != nil {
 		return

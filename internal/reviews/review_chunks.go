@@ -104,7 +104,7 @@ func (s *Service) reviewChunks(ctx context.Context, wt string, pr PR, info PRInf
 			return chunkResult{}, err
 		}
 		f, sum := mergeParts(parts)
-		reason := tidy(err.Error(), maxReason)
+		reason := errText(err.Error(), maxReason)
 		return chunkResult{Findings: f, Summary: sum, Transcript: transcript, Error: partialPrefix + "cross-file pass failed: " + reason}, nil
 	}
 	parts = append(parts, part{Findings: cf, Summary: csum})

@@ -24,7 +24,7 @@ func failureText(fails []chunkFailure) string {
 	var out []string
 	for _, f := range fails {
 		out = append(out, fmt.Sprintf("chunk %d of %d failed (files: %s): %s",
-			f.No, f.Of, strings.Join(f.Files, ", "), tidy(f.Err.Error(), maxReason)))
+			f.No, f.Of, strings.Join(f.Files, ", "), errText(f.Err.Error(), maxReason)))
 	}
 	return strings.Join(out, "; ")
 }

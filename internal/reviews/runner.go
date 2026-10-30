@@ -74,7 +74,7 @@ func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate
 		rv.Author = tidy(pr.Author, 80)
 	}
 	fail := func(err error) (Review, error) {
-		rv.Error = tidy(err.Error(), 300)
+		rv.Error = errText(err.Error(), maxRunError)
 		rv.EndedAt = s.Now()
 		return rv, nil
 	}
