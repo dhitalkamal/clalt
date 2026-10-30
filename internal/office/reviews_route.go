@@ -173,7 +173,7 @@ func (h *handler) reviewsList(w http.ResponseWriter) {
 		rows[i] = rowOf(rv)
 	}
 	st := h.cfg.Reviews.Status()
-	writeJSON(w, 200, map[string]any{"enabled": st.Enabled, "running": st.Running, "lastChecked": st.LastChecked, "reviews": rows})
+	writeJSON(w, 200, map[string]any{"enabled": st.Enabled, "running": st.Running, "lastChecked": st.LastChecked, "maxAttempts": reviews.MaxAttempts(), "reviews": rows})
 }
 
 // reviewsSave is POST /api/reviews/settings, after the write guards. the body

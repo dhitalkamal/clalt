@@ -19,6 +19,7 @@
 .reviews .meta { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; font-size: 12px; color: var(--nb-pencil); font-weight: 400; overflow-wrap: anywhere; }
 .reviews .tail { display: flex; max-width: 100%; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 2px; font-weight: 400; }
 .reviews .sum { font: 700 14px var(--nb-hand); color: var(--nb-pencil); overflow-wrap: anywhere; }
+.reviews .retry { font-size: 12px; font-weight: 400; color: var(--nb-pencil); overflow-wrap: anywhere; }
 .reviews .item.skipped .sum, .reviews .item.error .sum { font: italic 12.5px var(--nb-serif); }
 .reviews .item.high .sum { color: var(--nb-bad); }
 

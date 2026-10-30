@@ -1,16 +1,25 @@
 package reviews
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
 
 // maxAttempts is how many failed runs a review gets. the last failure is kept
 // as a visible failed record and is never retried.
-const maxAttempts = 5
+var maxAttempts = 5
+
+// MaxAttempts is the attempt cap, for callers that show retry state.
+func MaxAttempts() int {
+	return maxAttempts
+}
 
 // giveUpText is appended to the error of the record that used the last attempt.
-const giveUpText = "gave up after 5 attempts"
+// built from maxAttempts so the cap is defined once.
+func giveUpText() string {
+	return fmt.Sprintf("gave up after %d attempts", maxAttempts)
+}
 
 // backoffSteps is the wait after failed attempt 1, 2, 3 and 4. later
 // attempts wait as long as the last step.
@@ -61,8 +70,8 @@ func stampFailure(rv *Review, prev int, now time.Time) {
 		// the error was trimmed earlier, so the note is appended whole. the
 		// contains check keeps an odd record from getting it twice.
 		rv.NextRetryAt = nil
-		if !strings.Contains(rv.Error, giveUpText) {
-			rv.Error += "; " + giveUpText
+		if text := giveUpText(); !strings.Contains(rv.Error, text) {
+			rv.Error += "; " + text
 		}
 		return
 	}

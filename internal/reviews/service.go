@@ -175,9 +175,16 @@ func (s *Service) Get(id string) (Review, bool, error) { return s.store().Get(id
 // for your review, and review the ones with no stored result for their head
 // commit, one at a time.
 func (s *Service) Tick(ctx context.Context) error {
+	_, err := s.tick(ctx)
+	return err
+}
+
+// tick is Tick plus whether it already refreshed the stored pr states, so
+// poll can skip a second gh lookup per stored open pr in the same poll.
+func (s *Service) tick(ctx context.Context) (refreshed bool, err error) {
 	cfg := s.config()
 	if !cfg.Enabled || len(cfg.Repos) == 0 {
-		return nil
+		return false, nil
 	}
 	s.tickMu.Lock()
 	defer s.tickMu.Unlock()
@@ -188,6 +195,7 @@ func (s *Service) Tick(ctx context.Context) error {
 	}()
 	// refresh first so retries see current merged/closed states
 	s.refreshStates(ctx)
+	refreshed = true
 	for _, repo := range cfg.Repos {
 		prs, err := s.GH.SearchRequested(ctx, repo)
 		if err != nil {
@@ -196,17 +204,17 @@ func (s *Service) Tick(ctx context.Context) error {
 		}
 		for _, pr := range prs {
 			if ctx.Err() != nil {
-				return ctx.Err()
+				return refreshed, ctx.Err()
 			}
 			if err := s.handle(ctx, pr); err != nil {
 				if errors.Is(err, errNoRoom) {
-					return err
+					return refreshed, err
 				}
 				s.logf("reviews: %s#%d: %v", pr.Repo, pr.Number, err)
 			}
 		}
 	}
-	return nil
+	return refreshed, nil
 }
 
 func (s *Service) handle(ctx context.Context, pr PR) error {
@@ -246,6 +254,17 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 	return s.store().Save(rv)
 }
 
+// poll is one Run iteration. Tick already refreshes states when it gets past
+// the disabled check, so only refresh here when it did not; otherwise every
+// stored open pr would get two gh state lookups per poll.
+func (s *Service) poll(ctx context.Context) error {
+	refreshed, err := s.tick(ctx)
+	if !refreshed {
+		s.RefreshStates(ctx)
+	}
+	return err
+}
+
 // Run polls until ctx ends: at once, then every Interval, and again when the
 // settings are saved with reviews on.
 func (s *Service) Run(ctx context.Context) {
@@ -256,10 +275,9 @@ func (s *Service) Run(ctx context.Context) {
 	t := time.NewTicker(Interval)
 	defer t.Stop()
 	for {
-		if err := s.Tick(ctx); err != nil && ctx.Err() == nil {
+		if err := s.poll(ctx); err != nil && ctx.Err() == nil {
 			s.logf("reviews: %v", err)
 		}
-		s.RefreshStates(ctx)
 		select {
 		case <-ctx.Done():
 			return

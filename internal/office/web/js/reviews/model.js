@@ -27,12 +27,27 @@ function toneOf(row) {
   return SEVERITIES.find((s) => c[s] > 0) || 'clean';
 }
 
+const pad = (n) => String(n).padStart(2, '0');
+
+// the attempt cap comes from the reply. anything but a positive integer means unknown, so no max is shown
+const capOf = (reply) => (reply && Number.isInteger(reply.maxAttempts) && reply.maxAttempts > 0 ? reply.maxAttempts : 0);
+
+// retry state of a failed review: only while the server still has a retry pending (nextRetryAt set)
+function retryOf(row, max) {
+  if (!row.error || !row.nextRetryAt) return '';
+  const t = new Date(row.nextRetryAt);
+  if (Number.isNaN(t.getTime())) return '';
+  const next = (Number.isInteger(row.attempts) && row.attempts > 0 ? row.attempts : 1) + 1;
+  return 'retrying at ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' (attempt ' + next + (max ? ' of ' + max : '') + ')';
+}
+
 // rows of the inbox, newest first. now is epoch ms
 export function inboxRows(reply, now) {
+  const max = capOf(reply);
   const rows = list(reply && reply.reviews).map((r) => ({
     id: r.id, title: r.title || '(no title)', ref: r.repo + '#' + r.number, author: r.author || '-', handle: r.handle || '',
     when: age(Math.max(0, now - Date.parse(r.endedAt))), at: Date.parse(r.endedAt) || 0,
-    tone: toneOf(r), summary: summaryOf(r), account: r.account || '',
+    tone: toneOf(r), summary: summaryOf(r), retry: retryOf(r, max), account: r.account || '',
   })).map((r) => ({ ...r, tip: r.title + ' (' + r.ref + ')' }));
   return rows.sort((a, b) => b.at - a.at || (a.id < b.id ? -1 : 1));
 }

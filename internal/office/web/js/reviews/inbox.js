@@ -7,6 +7,17 @@ import { tabRows, tabLabels, groupFindings, runLogRec, lastCheckedText } from '.
 
 const EVERY = 10000;
 
+// one list row for a tabRows row; click calls onOpen(r.id)
+export function rowNode(r, onOpen) {
+  const flag = toneFlag(r.tone);
+  const tail = el('span', 'tail', r.badge ? el('span', 'flag ' + r.state, r.badge) : null, flag ? el('span', flag.cls, flag.text) : null, el('span', 'sum', r.summary), r.retry ? el('span', 'retry', r.retry) : null);
+  const b = el('button', 'item ' + r.tone, el('span', 'itl', r.title), el('span', 'meta', r.ref + ' by ' + r.author + ', ' + r.when + ' ago' + (r.date ? ', ' + r.date : ''), r.account ? chipNode(r.account) : null), tail);
+  b.type = 'button';
+  b.title = r.tip;
+  b.addEventListener('click', () => onOpen(r.id));
+  return b;
+}
+
 export function createInbox(h) {
   const root = el('aside', 'reviews');
   root.setAttribute('role', 'dialog');
@@ -77,15 +88,7 @@ export function createInbox(h) {
     for (const [id, b] of Object.entries(tabBtns)) b.textContent = labels[id];
     const rows = lists[tab];
     if (!rows.length) body.append(el('p', 'quiet', tab === 'history' ? 'no merged or closed pull requests yet.' : last.enabled ? 'no reviews yet. pull requests that ask for your review show up here.' : 'PR reviews are off. Turn them on in Settings.'));
-    for (const r of rows) {
-      const flag = toneFlag(r.tone);
-      const tail = el('span', 'tail', r.badge ? el('span', 'flag ' + r.state, r.badge) : null, flag ? el('span', flag.cls, flag.text) : null, el('span', 'sum', r.summary));
-      const b = el('button', 'item ' + r.tone, el('span', 'itl', r.title), el('span', 'meta', r.ref + ' by ' + r.author + ', ' + r.when + ' ago' + (r.date ? ', ' + r.date : ''), r.account ? chipNode(r.account) : null), tail);
-      b.type = 'button';
-      b.title = r.tip;
-      b.addEventListener('click', () => openOne(r.id));
-      body.append(b);
-    }
+    for (const r of rows) body.append(rowNode(r, openOne));
   }
 
   function drawDetail(r) {
