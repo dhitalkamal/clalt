@@ -34,7 +34,19 @@ type Review struct {
 	Transcript string    `json:"transcript"`
 	Skipped    string    `json:"skipped,omitempty"`
 	Error      string    `json:"error,omitempty"`
+	// State is the pull request state when last checked, StateCheckedAt when.
+	State          string     `json:"state,omitempty"`
+	StateCheckedAt *time.Time `json:"stateCheckedAt,omitempty"`
 }
+
+// the states a review's pull request can be in. unknown is also what a review
+// stored before state existed reads as.
+const (
+	StateOpen    = "open"
+	StateMerged  = "merged"
+	StateClosed  = "closed"
+	StateUnknown = "unknown"
+)
 
 // idRe is what an id looks like: owner-repo-number-sha7.
 var idRe = regexp.MustCompile(`^[A-Za-z0-9._-]+-[0-9]+-[0-9a-f]{7}$`)

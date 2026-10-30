@@ -39,6 +39,11 @@
 .reviews .finding p { margin: 3px 0 0; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
 .reviews .where { display: inline-block; max-width: 100%; padding: 0 5px; font: 700 12px var(--nb-mono); color: var(--nb-ink); background: rgb(255 255 255 / .55); overflow-wrap: anywhere; }
 .reviews .runlog { align-self: flex-start; margin-top: 6px; background: var(--nb-marker); }
+.reviews .tabs { display: flex; gap: 6px; margin: 0 0 8px; border-bottom: 2px solid var(--nb-ink); }
+.reviews .tab { min-height: 0; padding: 3px 18px 2px; border-width: 2px 2px 0; border-radius: 8px 8px 0 0; background: var(--nb-paper2); box-shadow: none; font-size: 15px; position: relative; top: 2px; opacity: .85; }
+.reviews .tab:hover:not(:disabled) { transform: none; box-shadow: none; }
+.reviews .tab[aria-selected="true"] { background: var(--nb-marker); opacity: 1; padding-bottom: 5px; }
+.flag.merged { color: var(--nb-ok); border-color: var(--nb-ok); } .flag.closed { color: var(--nb-bad); border-color: var(--nb-bad); }
 
 dialog.settings .reviews-sec .addrow { display: flex; gap: 6px; margin: 4px 0 6px; }
 dialog.settings .reviews-sec .addrow input { flex: 1; min-width: 0; }

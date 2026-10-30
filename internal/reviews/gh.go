@@ -176,6 +176,30 @@ func (g GH) View(ctx context.Context, repo string, number int) (PRInfo, error) {
 	return PRInfo{SHA: v.SHA, Lines: v.Add + v.Del, Files: v.Files, Title: v.Title, URL: v.URL, Author: v.Author.Login}, nil
 }
 
+// PRState says whether a pull request is open, merged or closed. any other
+// answer, or output that is not the expected json, is an error.
+func (g GH) PRState(ctx context.Context, repo string, number int) (string, error) {
+	out, err := g.run(ctx, "", "pr", "view", strconv.Itoa(number), "--repo", repo, "--json", "state")
+	if err != nil {
+		return "", err
+	}
+	var v struct {
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(out, &v); err != nil {
+		return "", fmt.Errorf("reviews: gh pr view answered something else: %w", err)
+	}
+	switch v.State {
+	case "OPEN":
+		return "open", nil
+	case "MERGED":
+		return "merged", nil
+	case "CLOSED":
+		return "closed", nil
+	}
+	return "", fmt.Errorf("reviews: gh pr view gave an unknown state %q", v.State)
+}
+
 // Diff is the unified diff of a pull request.
 func (g GH) Diff(ctx context.Context, repo string, number int) (string, error) {
 	out, err := g.run(ctx, "", "pr", "diff", strconv.Itoa(number), "--repo", repo)

@@ -37,6 +37,24 @@ export function inboxRows(reply, now) {
   return rows.sort((a, b) => b.at - a.at || (a.id < b.id ? -1 : 1));
 }
 
+// the two tabs. history is merged and closed rows with a badge and the utc day, anything else is open
+export function tabRows(reply, now) {
+  const state = new Map(list(reply && reply.reviews).map((r) => [r.id, r.state]));
+  const out = { open: [], history: [] };
+  for (const r of inboxRows(reply, now)) {
+    const s = state.get(r.id);
+    if (s === 'merged' || s === 'closed') out.history.push({ ...r, state: s, badge: s.toUpperCase(), date: new Date(r.at).toISOString().slice(0, 10) });
+    else out.open.push({ ...r, state: s === 'open' ? s : 'unknown', badge: '' });
+  }
+  return out;
+}
+
+// the tab button labels with the size of each list, capped like the badge
+export const tabLabels = (tabs) => ({
+  open: 'Open (' + badgeText(list(tabs && tabs.open).length) + ')',
+  history: 'History (' + badgeText(list(tabs && tabs.history).length) + ')',
+});
+
 export const whereText = (f) => (f.file ? (f.line > 0 ? f.file + ':' + f.line : f.file) : '');
 
 // findings grouped by severity, high first, empty groups left out

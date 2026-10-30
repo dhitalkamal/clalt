@@ -214,10 +214,12 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 		return nil
 	}
 	now := s.Now()
+	checked := now
 	if info.Lines > MaxChangedLines {
 		return s.store().Save(Review{
 			Repo: pr.Repo, Number: pr.Number, Title: tidy(info.Title, maxTitle), Author: tidy(info.Author, 80), URL: pr.URL, SHA: info.SHA,
 			StartedAt: now, EndedAt: now, Findings: []Finding{}, Skipped: "not reviewed: over 1500 changed lines",
+			State: StateOpen, StateCheckedAt: &checked,
 		})
 	}
 	cand, ok := Pick(s.Accounts())
@@ -235,6 +237,7 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
+	rv.State, rv.StateCheckedAt = StateOpen, &checked
 	return s.store().Save(rv)
 }
 
@@ -251,6 +254,7 @@ func (s *Service) Run(ctx context.Context) {
 		if err := s.Tick(ctx); err != nil && ctx.Err() == nil {
 			s.logf("reviews: %v", err)
 		}
+		s.RefreshStates(ctx)
 		select {
 		case <-ctx.Done():
 			return

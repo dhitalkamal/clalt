@@ -88,6 +88,10 @@ type reviewRow struct {
 	Error      string         `json:"error,omitempty"`
 	Handle     string         `json:"handle"`
 	Transcript string         `json:"transcript"`
+	// state is open, merged, closed or unknown, never empty. stateCheckedAt is
+	// null until the state was looked up.
+	State          string     `json:"state"`
+	StateCheckedAt *time.Time `json:"stateCheckedAt"`
 }
 
 func rowOf(r reviews.Review) reviewRow {
@@ -95,9 +99,15 @@ func rowOf(r reviews.Review) reviewRow {
 	for _, f := range r.Findings {
 		counts[f.Severity]++
 	}
+	state := reviews.StateUnknown
+	switch r.State {
+	case reviews.StateOpen, reviews.StateMerged, reviews.StateClosed:
+		state = r.State
+	}
 	return reviewRow{ID: r.ID(), Repo: r.Repo, Number: r.Number, Title: r.Title, Author: r.Author, URL: r.URL, SHA: r.SHA,
 		StartedAt: r.StartedAt, EndedAt: r.EndedAt, Account: r.Account, Counts: counts, Skipped: r.Skipped, Error: r.Error,
-		Handle: reviewHandle(r.Transcript), Transcript: r.Transcript}
+		Handle: reviewHandle(r.Transcript), Transcript: r.Transcript,
+		State: state, StateCheckedAt: r.StateCheckedAt}
 }
 
 type reviewFull struct {
