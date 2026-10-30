@@ -22,7 +22,18 @@ export function layoutOptions(reply) {
   return { active, options };
 }
 
-export const confirmText = (title) => title + ' is now your default. It opens every time you run clalt office.';
+// line sketches for the picture cards, drawn in a 100x58 box. saved layouts have no known shape, they get a plain floor.
+const SKETCHES = {
+  rows: 'M10 14h80M10 30h80M10 46h80',
+  village: 'M20 20h18v14H20zM60 12h22v18H60zM34 40h26v10H34z',
+  river: 'M0 30c20-14 40 14 60 0s30-10 40 0',
+  street: 'M0 30h100M20 10v40M50 10v40M80 10v40',
+  hall: 'M8 8h84v42H8zM8 26h50M58 8v42',
+};
+const PLAIN_SKETCH = 'M14 10h72v38H14zM14 22h72';
+export const templateSketch = (id) => SKETCHES[id === 'default' ? 'hall' : id] || PLAIN_SKETCH;
+
+export const confirmText =(title) => title + ' is now your default. It opens every time you run clalt office.';
 
 // nothing to set when no option is picked or the pick already is the default
 export const canSetDefault = (picked, current) => !!picked && picked !== current;

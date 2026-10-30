@@ -11,11 +11,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The Settings dialog uses the field notebook look: card-style options,
   inked buttons with hover, pressed, focus and disabled states, amber main
   actions (#76).
+- Settings opens as a two-page notebook spread: office templates as picture
+  cards with Build mode on the left, PR reviews and start at login on the
+  right. A View section holds labels, team lines, every tag, auto-spin and
+  the walking camera (keys L, P and G still work).
+- The bottom of the office keeps three centered buttons: Today, Reviews and
+  Settings.
 
 ### Fixed
 
 - PR review cards no longer overlap: long titles wrap inside the card (up to
   three lines, full title on hover) and the counts stay inside (#76).
+- The Reviews count sits inside the Reviews button instead of the corner of
+  the button row.
 
 ## [0.3.0] - 2026-10-28
 

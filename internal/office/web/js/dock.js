@@ -1,5 +1,5 @@
-// keeps the Today and Reviews pages off the bottom-left controls row and the camera bar.
-// the row wraps and the bar comes and goes, so the offsets are measured and handed to css as variables.
+// keeps the Today and Reviews pages off the bottom-left controls row.
+// the row can wrap, so the offsets are measured and handed to css as variables. a camera bar, if a page has one, counts too.
 const NARROW = 700;
 const GAP = 12;
 

@@ -1,10 +1,24 @@
 // the settings dialog: pick the default office, open build mode. a modal <dialog>, so the browser
 // keeps focus inside, closes on Esc and makes the page behind it inert. the model lives in settings.js.
 import { el, clear } from './dom.js';
-import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault, AUTOSTART_LABEL, loadAutostart, saveAutostart } from './settings.js';
+import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault, AUTOSTART_LABEL, loadAutostart, saveAutostart, templateSketch } from './settings.js';
+
+const SVGNS = 'http://www.w3.org/2000/svg';
 
 const GROUPS = [['template', 'Templates'], ['saved', 'Saved layouts']];
 let serial = 0;
+
+// the small line drawing on a layout card. attributes only, the csp allows no inline style
+function sketch(id) {
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 58');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', 'sketch');
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', templateSketch(id));
+  svg.append(path);
+  return svg;
+}
 
 // the "start at login" section: one checkbox that saves on change. {el, load()}
 function createAutostartSection(api = { load: loadAutostart, save: saveAutostart }) {
@@ -54,19 +68,27 @@ export function createSettingsDialog(h) {
   const titles = new Map();
   const save = el('button', 'primary', SAVE_LABEL);
   save.type = 'button';
-  const close = el('button', '', 'Close');
+  // a round x in the corner, the word stays for screen readers
+  const close = el('button', 'x', el('span', 'sr', 'Close'));
   close.type = 'button';
+  close.title = 'Close (Esc)';
   const build = h.build;
   // more sections (PR reviews): {el, load()}
   const autostart = createAutostartSection(h.autostart);
   const extra = [...(h.sections || []), autostart];
+  // sections for the left page (View): {el, load()}
+  const left = h.left || [];
   const buildNote = el('p', 'note');
+  // an open notebook: the office on the left page, PR reviews and start at login on the right
   dlg.append(
-    title,
-    el('div', 'sec', el('h3', '', 'Default office'), el('p', 'note', 'what everyone sees when they open the office'), list, err, ok),
-    el('div', 'sec', el('h3', '', 'Build mode'), buildNote, build),
-    ...extra.map((x) => x.el),
-    el('div', 'row', close, save),
+    close,
+    el('div', 'pages',
+      el('div', 'page left',
+        title,
+        el('div', 'sec', el('h3', '', 'Default office'), el('p', 'note', 'what everyone sees when they open the office'), list, el('div', 'row', save), err, ok),
+        el('div', 'sec', el('h3', '', 'Build mode'), buildNote, build),
+        ...left.map((x) => x.el)),
+      el('div', 'page right', ...extra.map((x) => x.el))),
   );
   document.body.append(dlg);
 
@@ -102,7 +124,7 @@ export function createSettingsDialog(h) {
         input.value = o.id;
         input.checked = o.checked;
         input.id = name + '-' + o.id;
-        const label = el('label', '', input, el('span', '', o.title));
+        const label = el('label', 'card', input, sketch(o.id), el('span', 'name', o.title));
         titles.set(o.id, o.title);
         if (o.isDefault) label.append(tagFor());
         set.append(label);
@@ -122,7 +144,7 @@ export function createSettingsDialog(h) {
     clear(list);
     list.append(el('p', 'note', 'loading'));
     save.disabled = true;
-    for (const x of extra) x.load();
+    for (const x of [...left, ...extra]) x.load();
     dlg.showModal();
     try { fill(await h.loadList()); } catch (e) { clear(list); setError('could not load the layouts: ' + e.message); }
     const first = list.querySelector('input:checked') || list.querySelector('input');

@@ -4,7 +4,6 @@ import { zoomAt, resetZoom, orbit, pan } from './stage.js';
 import { app, stage, ui, canvas } from './app.js';
 import { regionInfo } from './regioncard.js';
 import { isGarden } from './garden/index.js';
-import { goCam } from './camseam.js';
 import { openActivity } from './activity/index.js';
 
 // the nav manager owns the camera of every template once it runs (nav/input.js reads the same events)
@@ -139,8 +138,4 @@ export function bindInput() {
     zoomAt(stage, new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), Math.exp(e.deltaY * 0.0012));
   }, { passive: false });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
-  const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
-  on('b-home', () => { if (navOwns()) goCam('top'); else resetZoom(stage); });
-  on('b-lines', (e) => { app.linesOn = !app.linesOn; e.currentTarget.classList.toggle('on', app.linesOn); });
-  on('b-tags', (e) => { app.tagsAll = !app.tagsAll; e.currentTarget.classList.toggle('on', app.tagsAll); });
 }

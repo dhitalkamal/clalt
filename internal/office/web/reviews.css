@@ -1,5 +1,6 @@
 /* PR reviews: the inbox as notebook pages on the left, the button badge and the settings section */
-#b-reviews .badge { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background: var(--amber); font-size: 10px; font-weight: 700; text-align: center; }
+/* static: the team desk .badge in app.css is absolute and would pin this one to the corner of the controls row */
+#b-reviews .badge { position: static; opacity: 1; box-shadow: none; color: inherit; display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 999px; background: var(--amber); font-size: 10px; font-weight: 700; text-align: center; }
 #b-reviews.busy { box-shadow: 0 0 0 2px rgba(242,181,60,.55); }
 .reviews { position: fixed; z-index: 7; top: 14px; left: 0; bottom: var(--dock-side, 14px); margin-left: 14px; width: 400px; max-width: calc(100% - 28px); box-sizing: border-box; display: flex; flex-direction: column;
   padding: 22px 16px 0 30px; }
