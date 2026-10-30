@@ -29,6 +29,8 @@ type Service struct {
 	Accounts func() []Candidate
 	Now      func() time.Time
 	Logf     func(format string, args ...any)
+	// ChunkBytes is the diff budget of one claude run, 0 means chunkBytes.
+	ChunkBytes int
 
 	mu          sync.Mutex
 	cfg         Config
@@ -210,18 +212,11 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 	if err != nil {
 		return err
 	}
-	if len(info.SHA) < 7 || s.store().Has(pr.Repo, pr.Number, info.SHA) {
+	if len(info.SHA) < 7 || s.done(pr.Repo, pr.Number, info.SHA) {
 		return nil
 	}
 	now := s.Now()
 	checked := now
-	if info.Lines > MaxChangedLines {
-		return s.store().Save(Review{
-			Repo: pr.Repo, Number: pr.Number, Title: tidy(info.Title, maxTitle), Author: tidy(info.Author, 80), URL: pr.URL, SHA: info.SHA,
-			StartedAt: now, EndedAt: now, Findings: []Finding{}, Skipped: "not reviewed: over 1500 changed lines",
-			State: StateOpen, StateCheckedAt: &checked,
-		})
-	}
 	cand, ok := Pick(s.Accounts())
 	if !ok {
 		return errNoRoom
@@ -229,10 +224,13 @@ func (s *Service) handle(ctx context.Context, pr PR) error {
 	s.mu.Lock()
 	s.running = &Running{Repo: pr.Repo, Number: pr.Number, Title: tidy(info.Title, maxTitle), Since: now}
 	s.mu.Unlock()
-	rv := s.review(ctx, pr, info, cand)
+	rv, err := s.review(ctx, pr, info, cand)
 	s.mu.Lock()
 	s.running = nil
 	s.mu.Unlock()
+	if err != nil {
+		return err
+	}
 	// a run that was cut by the server stopping is not a result
 	if ctx.Err() != nil {
 		return ctx.Err()

@@ -20,7 +20,7 @@ type rig struct {
 }
 
 // newRig builds a service over temp folders and a fake exec. two pull
-// requests ask for review: #7 small, #8 over the size limit.
+// requests ask for review: #7 small, #8 over 1500 changed lines (reviewed like any other).
 func newRig(t *testing.T) *rig {
 	t.Helper()
 	dir := t.TempDir()
@@ -29,6 +29,7 @@ func newRig(t *testing.T) *rig {
 	fx.on("pr view 7 ", `{"headRefOid":"1111111aaaa","additions":40,"deletions":10,"changedFiles":2,"title":"Fix it","url":"https://x/7","author":{"login":"ann"}}`, nil)
 	fx.on("pr view 8 ", `{"headRefOid":"2222222bbbb","additions":1500,"deletions":1,"changedFiles":40,"title":"Huge","url":"https://x/8","author":{"login":"bo"}}`, nil)
 	fx.on("pr diff 7", "diff --git a/a.go b/a.go\n+x", nil)
+	fx.on("pr diff 8", "diff --git a/b.go b/b.go\n+y", nil)
 	fx.on("claude -p", reply, nil)
 	r := &rig{t: t, fx: fx, dir: dir}
 	r.svc = &Service{
@@ -56,7 +57,7 @@ func (r *rig) claudeCalls() []call {
 	return out
 }
 
-func TestTickReviewsNewPRAndSkipsHugeOne(t *testing.T) {
+func TestTickReviewsAHugePRLikeAnyOtherInsteadOfSkippingIt(t *testing.T) {
 	r := newRig(t)
 	if err := r.svc.Tick(context.Background()); err != nil {
 		t.Fatal(err)
@@ -70,19 +71,25 @@ func TestTickReviewsNewPRAndSkipsHugeOne(t *testing.T) {
 		t.Fatalf("review = %+v", got)
 	}
 	big, ok, _ := r.svc.Get("o-r-8-2222222")
-	if !ok || !strings.Contains(big.Skipped, "1500") || len(big.Findings) != 0 {
-		t.Fatalf("skipped = %+v", big)
+	if !ok || big.Skipped != "" || len(big.Findings) != 2 || big.Summary != "two issues" {
+		t.Fatalf("huge pr should be reviewed, got %+v", big)
 	}
-	if n := len(r.claudeCalls()); n != 1 {
-		t.Fatalf("claude ran %d times, want 1 (the big one is skipped)", n)
+	if n := len(r.claudeCalls()); n != 2 {
+		t.Fatalf("claude ran %d times, want 2 (the huge one is reviewed too)", n)
 	}
 	if st := r.svc.Status(); st.LastChecked == nil || st.Running != nil {
 		t.Fatalf("status = %+v", st)
 	}
 }
 
+// onlySmallPR narrows the rig's search to #7 so a test can count calls for one review.
+func onlySmallPR(r *rig) {
+	r.fx.rules = append([]fakeRule{{has: "search prs", out: `[{"number":7,"title":"Fix it","url":"https://x/7","isDraft":false,"author":{"login":"ann"},"repository":{"nameWithOwner":"o/r"}}]`}}, r.fx.rules...)
+}
+
 func TestTickDedupesByHeadSha(t *testing.T) {
 	r := newRig(t)
+	onlySmallPR(r)
 	_ = r.svc.Tick(context.Background())
 	_ = r.svc.Tick(context.Background())
 	if n := len(r.claudeCalls()); n != 1 {
@@ -145,6 +152,7 @@ func TestTickOnlyAllowlistedGHAndNoPostGit(t *testing.T) {
 
 func TestTickCloneOnceThenWorktree(t *testing.T) {
 	r := newRig(t)
+	onlySmallPR(r)
 	_ = r.svc.Tick(context.Background())
 	var clones, adds, removes int
 	for _, l := range r.fx.lines() {
@@ -200,15 +208,21 @@ func TestTickClaudeFailureIsStoredWithError(t *testing.T) {
 
 func TestStatusShowsRunningDuringReview(t *testing.T) {
 	r := newRig(t)
-	var seen *Running
+	// one entry per claude call, in call order, so each review is checked on its own
+	var seen []*Running
 	r.fx.hook = func(c call) {
 		if c.Name == "claude" {
-			seen = r.svc.Status().Running
+			seen = append(seen, r.svc.Status().Running)
 		}
 	}
 	_ = r.svc.Tick(context.Background())
-	if seen == nil || seen.Repo != "o/r" || seen.Number != 7 {
-		t.Fatalf("running = %+v", seen)
+	if len(seen) != 2 {
+		t.Fatalf("claude calls = %d, want 2 (#7 and #8)", len(seen))
+	}
+	for i, want := range []int{7, 8} {
+		if seen[i] == nil || seen[i].Repo != "o/r" || seen[i].Number != want {
+			t.Fatalf("running during call %d = %+v, want o/r #%d", i, seen[i], want)
+		}
 	}
 }
 

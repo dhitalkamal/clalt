@@ -3,6 +3,7 @@ package reviews
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,10 +57,12 @@ func (s *Service) ensureClone(ctx context.Context, repo string) (string, error) 
 	return path, nil
 }
 
-// review runs one review in a temporary worktree and returns the result. a
-// failure is in the result's Error, never returned: it is stored like any
-// other result so the page can show it.
-func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate) Review {
+// review runs one review in a temporary worktree and returns the result. cand
+// is the account of the first claude run. a failure is in the result's Error:
+// it is stored like any other result so the page can show it. the only error
+// returned is errNoRoom (a later run found no account with room): the review
+// is then dropped, not stored.
+func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate) (Review, error) {
 	rv := Review{
 		Repo: pr.Repo, Number: pr.Number, Title: tidy(info.Title, maxTitle), Author: tidy(info.Author, 80), URL: pr.URL, SHA: info.SHA,
 		StartedAt: s.Now(), Account: cand.ID, Findings: []Finding{}, Transcript: newSessionID(),
@@ -70,10 +73,10 @@ func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate
 	if rv.Author == "" {
 		rv.Author = tidy(pr.Author, 80)
 	}
-	fail := func(err error) Review {
+	fail := func(err error) (Review, error) {
 		rv.Error = tidy(err.Error(), 300)
 		rv.EndedAt = s.Now()
-		return rv
+		return rv, nil
 	}
 	clone, err := s.ensureClone(ctx, pr.Repo)
 	if err != nil {
@@ -106,17 +109,18 @@ func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate
 	if err != nil {
 		return fail(err)
 	}
-	rctx, cancel := context.WithTimeout(ctx, reviewTimeout)
-	defer cancel()
-	out, err := s.Claude.Run(rctx, wt, s.EnvFor(cand.ConfigDir), buildPrompt(pr, info, diff), s.ClaudeBin, claudeArgs(rv.Transcript)...)
+	budget := s.ChunkBytes
+	if budget <= 0 {
+		budget = chunkBytes
+	}
+	res, err := s.reviewChunks(ctx, wt, pr, info, cand, splitDiff(diff, budget), diff, rv.Transcript)
+	if errors.Is(err, errNoRoom) {
+		return Review{}, err
+	}
 	if err != nil {
 		return fail(err)
 	}
-	text, sid := ParseEnvelope(string(out))
-	if sid != "" {
-		rv.Transcript = sid
-	}
-	rv.Findings, rv.Summary, _ = ParseFindings(text)
+	rv.Findings, rv.Summary, rv.Transcript, rv.Error = res.Findings, res.Summary, res.Transcript, res.Error
 	rv.EndedAt = s.Now()
-	return rv
+	return rv, nil
 }
