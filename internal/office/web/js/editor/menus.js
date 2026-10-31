@@ -1,14 +1,21 @@
 // small dropdown used by the Templates and Layouts buttons.
-// load() -> [{key, text, hint?}], pick(item) runs when one is chosen.
+// load() -> [{key, text, hint?, removable?}], pick(item) runs when one is chosen.
+// remove(item) -> promise, given: a removable item gets a delete button that asks twice.
 import { h } from './dom.js';
+import { createConfirmPress } from '../confirmpress.js';
+import { DELETE_LABEL, CONFIRM_LABEL } from '../settings.js';
 
-export function createMenu(ed, label, load, pick) {
+export function createMenu(ed, label, load, pick, remove) {
   const list = h('div', { class: 'ed-menu', role: 'menu', hidden: true });
   const btn = h('button', { type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', text: label });
   const wrap = h('div', { class: 'ed-menu-wrap' }, btn, list);
+  // at most one delete button is armed at a time
+  let armed = null;
+  const disarm = () => { if (armed) armed.reset(); armed = null; };
   const api = {
     isOpen: () => !list.hidden,
     close() {
+      disarm();
       list.hidden = true;
       btn.setAttribute('aria-expanded', 'false');
       btn.focus();
@@ -30,14 +37,46 @@ export function createMenu(ed, label, load, pick) {
       list.replaceChildren(h('p', { class: 'ed-note', text: 'Nothing here yet.' }));
       return;
     }
-    list.replaceChildren(...items.map((it) => h('button', {
-      type: 'button', role: 'menuitem',
-      onclick: () => {
-        api.close();
-        pick(it);
-      },
-    }, h('span', { text: it.text }), it.hint ? h('small', { text: it.hint }) : null)));
+    list.replaceChildren(...items.map((it) => {
+      const item = h('button', {
+        type: 'button', role: 'menuitem',
+        onclick: () => {
+          api.close();
+          pick(it);
+        },
+      }, h('span', { text: it.text }), it.hint ? h('small', { text: it.hint }) : null);
+      return remove && it.removable ? h('div', { class: 'ed-menu-row' }, item, deleteButton(it)) : item;
+    }));
     list.querySelector('button').focus();
+  }
+
+  // first press arms ("Delete layout?"), a second one within a few seconds deletes
+  function deleteButton(it) {
+    const btn = h('button', { type: 'button', class: 'ed-del', text: DELETE_LABEL, 'aria-label': 'Delete layout ' + it.text });
+    const press = createConfirmPress({
+      onChange: (on) => {
+        btn.textContent = on ? CONFIRM_LABEL : DELETE_LABEL;
+        btn.classList.toggle('ed-danger', on);
+      },
+    });
+    btn.addEventListener('click', async () => {
+      // another button's pending delete is dropped first, so it never resets this press
+      if (armed !== press) disarm();
+      if (press.press() === 'arm') {
+        armed = press;
+        return;
+      }
+      armed = null;
+      btn.disabled = true;
+      try {
+        await remove(it);
+      } catch (e) {
+        ed.setStatus(e && e.message ? e.message : String(e), 'bad');
+      }
+      // redraw the list, or close it when the layout is all that was there
+      if (!list.hidden) show();
+    });
+    return btn;
   }
 
   btn.addEventListener('click', () => (list.hidden ? show() : api.close()));
@@ -51,6 +90,8 @@ export function createMenu(ed, label, load, pick) {
     e.preventDefault();
   });
   const outside = (e) => {
+    // a press elsewhere in the open menu disarms a delete button, outside it closes the menu
+    if (armed && !(e.target instanceof Node && e.target.closest && e.target.closest('.ed-del'))) disarm();
     if (!list.hidden && !wrap.contains(e.target)) {
       list.hidden = true;
       btn.setAttribute('aria-expanded', 'false');

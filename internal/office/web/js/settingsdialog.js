@@ -1,7 +1,8 @@
 // the settings dialog: pick the default office, open build mode. a modal <dialog>, so the browser
 // keeps focus inside, closes on Esc and makes the page behind it inert. the model lives in settings.js.
 import { el, clear } from './dom.js';
-import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault, AUTOSTART_LABEL, loadAutostart, saveAutostart, templateSketch } from './settings.js';
+import { layoutOptions, SAVE_LABEL, confirmText, canSetDefault, AUTOSTART_LABEL, loadAutostart, saveAutostart, templateSketch, canDelete, deletedNote, DELETE_LABEL, CONFIRM_LABEL } from './settings.js';
+import { createConfirmPress } from './confirmpress.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -51,7 +52,7 @@ function createAutostartSection(api = { load: loadAutostart, save: saveAutostart
   return { el: root, load };
 }
 
-// h: { gear, loadList() -> reply of /api/layouts, save(id) -> promise, build: the editor's toggle button }
+// h: { gear, loadList() -> reply of /api/layouts, save(id) -> promise, remove(id, wasDefault) -> new list, build: the editor's toggle button }
 export function createSettingsDialog(h) {
   const dlg = el('dialog', 'settings');
   dlg.setAttribute('aria-labelledby', 'settings-title');
@@ -96,7 +97,7 @@ export function createSettingsDialog(h) {
   const chosen = () => { const r = list.querySelector('input:checked'); return r ? r.value : null; };
   const setOk = (msg) => { ok.textContent = msg || ''; ok.hidden = !msg; };
   const sync = () => { save.disabled = !canSetDefault(chosen(), current); };
-  const busy = (on) => { close.disabled = on; for (const r of list.querySelectorAll('input')) r.disabled = on; if (on) save.disabled = true; else sync(); };
+  const busy = (on) => { close.disabled = on; for (const r of list.querySelectorAll('input, button')) r.disabled = on; if (on) save.disabled = true; else sync(); };
   // moves the default tag to the option that now is the default
   const markDefault = (id) => {
     current = id;
@@ -106,6 +107,45 @@ export function createSettingsDialog(h) {
   };
   // the comma is hidden from sight so a screen reader says "River, default"
   const tagFor = () => el('span', 'tag', el('span', 'sr', ', '), 'default');
+
+  // a delete button on a saved card: the first press asks "Delete layout?", the second deletes
+  let armed = null;
+  const disarm = () => { if (armed) armed.reset(); armed = null; };
+  function deleteButton(o) {
+    const btn = el('button', 'del', DELETE_LABEL);
+    btn.type = 'button';
+    const name = 'Delete layout ' + o.title;
+    btn.setAttribute('aria-label', name);
+    const press = createConfirmPress({
+      onChange: (on) => {
+        btn.textContent = on ? CONFIRM_LABEL : DELETE_LABEL;
+        btn.setAttribute('aria-label', on ? name + '? Press again to confirm' : name);
+        btn.classList.toggle('danger', on);
+      },
+    });
+    btn.addEventListener('blur', () => press.reset());
+    btn.addEventListener('click', () => {
+      // another card's pending delete is dropped first, so it never resets this press
+      if (armed !== press) disarm();
+      if (press.press() === 'arm') { armed = press; return; }
+      armed = null;
+      removeLayout(o);
+    });
+    return btn;
+  }
+
+  async function removeLayout(o) {
+    setError('');
+    setOk('');
+    busy(true);
+    try {
+      fill(await h.remove(o.id, o.id === current));
+      setOk(deletedNote(o.title));
+    } catch (e) { setError(e.message); } finally { busy(false); }
+    // the card is gone: focus goes back to the list
+    const first = list.querySelector('input:checked') || list.querySelector('input');
+    if (first) first.focus(); else close.focus();
+  }
 
   function fill(reply) {
     clear(list);
@@ -127,7 +167,7 @@ export function createSettingsDialog(h) {
         const label = el('label', 'card', input, sketch(o.id), el('span', 'name', o.title));
         titles.set(o.id, o.title);
         if (o.isDefault) label.append(tagFor());
-        set.append(label);
+        set.append(canDelete(o) && h.remove ? el('div', 'cardwrap', label, deleteButton(o)) : label);
       }
       list.append(set);
     }
@@ -152,7 +192,10 @@ export function createSettingsDialog(h) {
   }
 
   const shut = () => { if (dlg.open) dlg.close(); };
-  dlg.addEventListener('close', () => h.gear.focus());
+  // Esc and a press elsewhere only disarm a pending delete
+  dlg.addEventListener('cancel', (e) => { if (armed) { e.preventDefault(); disarm(); } });
+  dlg.addEventListener('pointerdown', (e) => { if (armed && !(e.target.closest && e.target.closest('button.del'))) disarm(); });
+  dlg.addEventListener('close', () => { disarm(); h.gear.focus(); });
   close.addEventListener('click', shut);
   // the editor opens on the same click, so the dialog only has to get out of the way
   build.addEventListener('click', shut);

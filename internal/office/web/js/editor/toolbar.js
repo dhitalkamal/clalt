@@ -2,6 +2,7 @@
 import { h, selectInput } from './dom.js';
 import { ROOM_TYPES, TYPE_LABELS, cloneLayout } from './model.js';
 import { createMenu } from './menus.js';
+import { deletedNote } from '../settings.js';
 
 const TOOLS = [
   ['select', 'Select', '1'],
@@ -37,7 +38,7 @@ export function createToolbar(ed, actions) {
   if (opts.layouts) {
     menus.push(createMenu(ed, 'Layouts', async () => {
       const list = await opts.layouts.list();
-      return list.map((t) => ({ key: t.name, text: t.title || t.name, hint: t.active ? 'active' : t.name }));
+      return list.map((t) => ({ key: t.name, text: t.title || t.name, hint: t.active ? 'active' : t.name, removable: !t.builtin, active: t.active }));
     }, async (it) => {
       try {
         const res = await opts.layouts.use(it.key);
@@ -46,7 +47,10 @@ export function createToolbar(ed, actions) {
       } catch (e) {
         ed.setStatus('Could not switch layout: ' + (e && e.message ? e.message : e), 'bad');
       }
-    }));
+    }, opts.layouts.remove && (async (it) => {
+      await opts.layouts.remove(it.key, it.active);
+      ed.setStatus(deletedNote(it.text), 'ok');
+    })));
   }
 
   const el = h('div', { class: 'ed-bar', role: 'toolbar', 'aria-label': 'Office editor' },

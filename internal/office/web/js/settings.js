@@ -64,6 +64,39 @@ export async function saveDefault(id, fetchFn = fetch) {
   return res.json();
 }
 
+// delete a saved layout: POST /api/layout/delete answers with the new list, like GET /api/layouts
+export const DELETE_LABEL = 'Delete';
+export const CONFIRM_LABEL = 'Delete layout?';
+export const deletedNote = (title) => 'Deleted ' + title + '.';
+// templates are generated and never deleted: only saved layouts get the button
+export const canDelete = (option) => !!option && option.group === 'saved';
+
+export function deleteRequest(name) {
+  return {
+    url: '/api/layout/delete',
+    init: { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ name }) },
+  };
+}
+
+export function deleteErrorText({ status, text, network } = {}) {
+  const prefix = 'could not delete the layout: ';
+  if (network) return prefix + 'clalt office is not reachable';
+  return prefix + ((text || '').trim() || 'http ' + status);
+}
+
+// resolves to the new list, a failure throws an Error whose message is ready to show
+export async function deleteLayout(name, fetchFn = fetch) {
+  const { url, init } = deleteRequest(name);
+  let res;
+  try { res = await fetchFn(url, init); } catch (e) { throw new Error(deleteErrorText({ network: true })); }
+  if (!res.ok) {
+    let text = '';
+    try { text = await res.text(); } catch (e) { /* no body, the status says enough */ }
+    throw new Error(deleteErrorText({ status: res.status, text }));
+  }
+  return res.json();
+}
+
 // start at login: GET and POST /api/office/autostart, {supported, enabled}
 export const AUTOSTART_LABEL = 'Start office when I log in';
 export const AUTOSTART_UNSUPPORTED = 'start at login is macOS only for now';

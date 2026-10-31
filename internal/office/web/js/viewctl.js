@@ -8,7 +8,7 @@ import { actionFor } from './keymap.js';
 import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
 import { parseHash, buildHash, camAfterSwitch, camOfNav } from './viewstate.js';
 import { createSettingsDialog } from './settingsdialog.js';
-import { saveDefault } from './settings.js';
+import { saveDefault, deleteLayout } from './settings.js';
 import { el } from './dom.js';
 import { startReviews } from './reviews/index.js';
 import { createViewSection } from './viewsection.js';
@@ -36,7 +36,7 @@ export function startView(first) {
   build.type = 'button';
   const reviews = startReviews();
   const dialog = createSettingsDialog({
-    gear, build, save: saveAndShow, sections: [reviews.section], left: [view],
+    gear, build, save: saveAndShow, remove: removeAndShow, sections: [reviews.section], left: [view],
     loadList: async () => {
       const res = await fetch('/api/layouts', { cache: 'no-store', credentials: 'same-origin' });
       if (!res.ok) throw new Error('http ' + res.status);
@@ -91,7 +91,7 @@ export function startView(first) {
   function maybeEditor(body) {
     if (!body.edit || body.layout.v !== 1) return;
     if (state.editor) { state.editor.then((api) => { if (!api.isOpen()) api.setLayout(body.layout); }, () => {}); return; }
-    state.editor = startEditor(body.layout, build);
+    state.editor = startEditor(body.layout, build, afterDelete);
     state.editor.catch((e) => { console.error(e); notice('the editor could not start: ' + e.message); });
   }
 
@@ -104,6 +104,20 @@ export function startView(first) {
   async function saveAndShow(id) {
     await saveDefault(id);
     try { await watcher.select(null); } catch (e) { console.error(e); throw new Error('saved, but the page could not load it: ' + e.message); }
+  }
+
+  // the active layout was deleted: the server is on the default template now, show it without a reload
+  async function afterDelete() {
+    try { await watcher.select(null); } catch (e) { console.error(e); throw new Error('deleted, but the page could not load the default: ' + e.message); }
+    // the editor only edits halls: close it when the default is not one
+    if (state.editor && state.layout.v !== 1) state.editor.then((api) => api.close(), () => {});
+  }
+
+  // delete a saved layout, switch the page when it was the one on show. resolves to the new list
+  async function removeAndShow(name, wasActive) {
+    const reply = await deleteLayout(name);
+    if (wasActive) await afterDelete();
+    return reply;
   }
 
   function setCam(id, instant) {

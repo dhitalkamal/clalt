@@ -14,7 +14,7 @@ import { cloneLayout } from './model.js';
 
 // opts: layout, catalog, applyLayout, cellToWorld, worldToCell, save, camera,
 // renderer, scene (unused, accepted), dom (parent, default body), onOpen, onClose,
-// templates() -> [{name, title, layout}], layouts {list(), use(name)},
+// templates() -> [{name, title, layout}], layouts {list(), use(name), remove?(name, wasActive)},
 // sessionCount (number or room => number), accounts [{id, name}], button (existing element)
 export function mountEditor(opts) {
   const ed = createState(opts);

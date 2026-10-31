@@ -14,6 +14,9 @@ import (
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
+// deletePath removes a saved layout, on the write surface like the others.
+const deletePath = "/api/layout/delete"
+
 // editHeader must be sent with every write. a page of another origin cannot
 // set it without a preflight, and the server answers no preflight.
 const editHeader = "X-Clalt-Edit"
@@ -25,7 +28,7 @@ func isEditRoute(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/api/layout":
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
-	case "/api/layouts", "/api/layout/use":
+	case "/api/layouts", "/api/layout/use", deletePath:
 		return true
 	case "/api/reviews/settings", autostartPath:
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
@@ -77,6 +80,10 @@ func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 		h.mu.Lock()
 		defer h.mu.Unlock()
 		h.layoutPut(w, body)
+		return
+	}
+	if r.URL.Path == deletePath {
+		h.layoutDelete(w, body)
 		return
 	}
 	h.layoutUse(w, body)
@@ -147,13 +154,17 @@ type listSaved struct {
 }
 
 func (h *handler) layoutList(w http.ResponseWriter) {
+	h.replyList(w, h.activeName())
+}
+
+// replyList answers with the layout lists, marking active.
+func (h *handler) replyList(w http.ResponseWriter, active string) {
 	infos, err := h.store.List()
 	if err != nil {
 		h.logf("listing layouts failed: %v", err)
 		http.Error(w, "list failed", http.StatusInternalServerError)
 		return
 	}
-	active := h.activeName()
 	tpls := make([]listTemplate, 0, len(layout.Templates))
 	for _, t := range layout.Templates {
 		tpls = append(tpls, listTemplate{t.ID, t.Title, "template", t.ID == active})

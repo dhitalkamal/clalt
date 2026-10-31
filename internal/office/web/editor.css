@@ -33,5 +33,8 @@ canvas.ed-active { cursor: crosshair; }
   border-radius: 10px; background: #fff; box-shadow: 0 6px 22px rgba(60,50,40,.3); display: flex; flex-direction: column; gap: 2px; }
 .ed-menu button { display: flex; justify-content: space-between; gap: 12px; text-align: left; }
 .ed-menu small { opacity: .6; }
+.ed-menu-row { display: flex; gap: 4px; align-items: stretch; }
+.ed-menu-row > button:first-child { flex: 1; }
+.ed-menu-row .ed-del { flex: none; font-size: 12px; white-space: nowrap; }
 @media (max-width: 900px) { .ed-bar { right: 12px; top: 56px; left: 12px; } .ed-side { top: 120px; width: 260px; } }
 .ed-root [hidden] { display: none !important; }

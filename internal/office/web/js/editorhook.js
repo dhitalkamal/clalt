@@ -6,6 +6,7 @@ import { goCam } from './camseam.js';
 import { loadCatalog } from './catalog.js';
 import { applyLayout, cellToWorld, worldToCell } from './scene/apply.js';
 import { roomTypeFor } from './routing.js';
+import { deleteLayout } from './settings.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 
@@ -35,10 +36,15 @@ async function templates() {
   return out;
 }
 
-const layouts = {
+// onSwitched runs after the active layout was deleted and the server fell back to the default
+const layouts = (onSwitched) => ({
+  async remove(name, wasActive) {
+    await deleteLayout(name);
+    if (wasActive && onSwitched) await onSwitched();
+  },
   async list() {
     const { active, layouts: list } = await getJSON('/api/layouts');
-    return list.map((l) => ({ name: l.name, title: l.title || l.name, active: l.name === active }));
+    return list.map((l) => ({ name: l.name, title: l.title || l.name, active: l.name === active, builtin: !!l.builtin }));
   },
   async use(name) {
     const res = await check(await fetch('/api/layout/use', { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ name }) }));
@@ -46,7 +52,7 @@ const layouts = {
     await applyLayout(body.layout);
     return body.layout;
   },
-};
+});
 
 // how many live agents want a seat in a room of this type, for the seat count check
 function demand(room) {
@@ -56,11 +62,11 @@ function demand(room) {
 }
 
 // button is the settings dialog's Build mode button, it toggles the editor
-export async function startEditor(layout, button) {
+export async function startEditor(layout, button, onSwitched) {
   const accounts = () => [...app.accounts].map(([id, a]) => ({ id, name: a.label }));
   return mountEditor({
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,
-    camera: stage.camera, renderer: stage.renderer, templates, layouts, sessionCount: demand,
+    camera: stage.camera, renderer: stage.renderer, templates, layouts: layouts(onSwitched), sessionCount: demand,
     get accounts() { return accounts(); },
     onOpen: () => { app.editing = true; setPreset(stage, 'top'); goCam('top', true); },
     onClose: () => { app.editing = false; },

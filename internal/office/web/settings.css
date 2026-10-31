@@ -29,6 +29,13 @@ dialog.settings label.card input { grid-area: dot; }
 dialog.settings label.card .name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 dialog.settings label.card .tag { position: absolute; top: 4px; right: 4px; margin: 0; padding: 0 5px; font-size: 11px; }
 
+/* a saved card has a small delete button in its corner, the armed one is the danger color */
+dialog.settings .cardwrap { position: relative; display: grid; }
+dialog.settings .cardwrap label.card .name { padding-right: 52px; }
+dialog.settings button.del { position: absolute; right: 6px; bottom: 6px; min-height: 24px; padding: 0 8px; font-size: 12px; box-shadow: none; }
+dialog.settings button.del.danger, dialog.settings button.del.danger:hover:not(:disabled) { background: var(--nb-bad); border-color: var(--nb-bad); color: #fff; }
+dialog.settings .cardwrap:has(button.del.danger) label.card .name { visibility: hidden; }
+
 /* on/off rows on the right page read as switches: the box becomes a pill with a knob at the end of the row */
 dialog.settings .reviews-sec > label, dialog.settings .autostart-sec label, dialog.settings .view-sec label { justify-content: space-between; min-height: 42px; }
 dialog.settings .reviews-sec > label input, dialog.settings .autostart-sec label input, dialog.settings .view-sec label input { order: 2; width: 40px; height: 22px; border-radius: 999px; background: var(--nb-paper2); }
