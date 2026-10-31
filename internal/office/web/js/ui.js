@@ -123,6 +123,20 @@ export class UI {
     return size;
   }
 
+  // the status pill and the bottom buttons as boxes labels must stay clear of. re-measured only when
+  // the window or the pill text changes
+  fixedBoxes(w, h) {
+    const key = `${w}x${h}|${this.sig}`;
+    if (this.fixedKey !== key) {
+      this.fixedKey = key;
+      this.fixedRects = ['status', 'controls'].map((id) => $(id)).filter((n) => n && n.offsetWidth).map((n) => {
+        const r = n.getBoundingClientRect();
+        return { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
+      });
+    }
+    return this.fixedRects;
+  }
+
   place() {
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
@@ -137,7 +151,7 @@ export class UI {
       const z = this.sizes(rec);
       items.push({ id, x: rec.sx, y: rec.sy, w: z.w * sc, h: z.h * sc, cw: z.cw ? z.cw * sc : 0, ch: z.ch ? z.ch * sc : 0, pri: rec.cls === 'zone' ? 1 : 0 });
     }
-    const fit = fitLabels(items, { prev: this.fitPrev });
+    const fit = fitLabels(items, { prev: this.fitPrev, fixed: this.fixedBoxes(w, h) });
     this.fitPrev = fit;
     const live = new Set();
     for (const [id, rec] of this.labels) {

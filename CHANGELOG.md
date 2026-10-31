@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   three lines, full title on hover) and the counts stay inside (#76).
 - The Reviews count sits inside the Reviews button instead of the corner of
   the button row.
+- Account cards in the garden office no longer slide under the status pill or
+  the bottom buttons: label fitting now treats both as fixed obstacles.
 
 ## [0.3.0] - 2026-10-28
 

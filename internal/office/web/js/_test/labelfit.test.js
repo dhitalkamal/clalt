@@ -156,3 +156,21 @@ test('pills that cannot find room nearby are hidden, never cards', () => {
   assert.ok([...out.entries()].some(([id, r]) => id[0] === 'p' && r.hidden));
   for (const it of items) if (it.id[0] === 'c') assert.equal(out.get(it.id).hidden, false);
 });
+
+const boxHit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+test('fixed obstacles (status pill, buttons) are never covered by a card or pill', () => {
+  const fixed = [{ x0: 400, x1: 700, y0: 10, y1: 46 }, { x0: 450, x1: 650, y0: 840, y1: 890 }];
+  const items = [card('a', 550, 100), card('b', 560, 880), pill('c', 540, 60)];
+  const out = fitLabels(items, { fixed });
+  for (const it of items) {
+    const r = out.get(it.id);
+    if (r.hidden) continue;
+    for (const f of fixed) assert.equal(boxHit(boxOf(it, r), f), false, it.id);
+  }
+});
+
+test('a card with no fixed obstacle nearby is untouched by the fixed list', () => {
+  const out = fitLabels([card('a', 100, 300)], { fixed: [{ x0: 400, x1: 700, y0: 10, y1: 46 }] });
+  assert.deepEqual(still(out.get('a')), { dy: 0, compact: false });
+});
