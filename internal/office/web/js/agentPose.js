@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { ARM } from './agentConst.js';
+import { workPose } from './agentWork.js';
 
 const AX = new THREE.Vector3(1, 0, 0);
 const AY = new THREE.Vector3(0, 1, 0);
@@ -8,7 +10,6 @@ const qT = new THREE.Quaternion();
 const qA = new THREE.Quaternion();
 const qB = new THREE.Quaternion();
 const qC = new THREE.Quaternion();
-export const ARM = { type: 0.5, lap: 1.15, mouth: -0.35, chin: -0.2, hold: 0.8, game: 0.6, swing: 0.45, stretch: 1.65 };
 
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -61,7 +62,12 @@ export function applyPose(a, t) {
     glance(a, t, rot);
     return;
   }
-  // busy
+  // busy. a current piece of work (read, edit, wait, ...) replaces the plain pose and the random pauses
+  if (a.workAct) {
+    workPose(a, t, a.workAct, arms, rot);
+    glance(a, t, rot);
+    return;
+  }
   const p = pauseState(a, t);
   const e = p ? p.e : 0;
   a.pausing = p && e > 0.05 ? p.kind : null;

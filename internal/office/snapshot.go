@@ -54,6 +54,8 @@ type SessionOut struct {
 	NeedsYouReason string     `json:"needsYouReason"`
 	StartedAt      time.Time  `json:"startedAt"`
 	Subagents      []Subagent `json:"subagents"`
+	// Doing is the current work from the transcript tail, null when none, see doing.go.
+	Doing *Doing `json:"doing"`
 	// Actions says what the page may offer for this session, see ActionsOut.
 	Actions ActionsOut `json:"actions"`
 }
@@ -109,7 +111,7 @@ func Build(src Sources) (Snapshot, error) {
 	var cwds []string
 	seen := map[string]bool{}
 	for _, s := range list {
-		snap.Sessions = append(snap.Sessions, sessionOut(s, src.Subagents))
+		snap.Sessions = append(snap.Sessions, sessionOut(s, src.Subagents, src.Doing))
 		// the team reads each project folder once, by its real path
 		if s.Cwd != "" && !seen[s.Cwd] {
 			seen[s.Cwd] = true
@@ -144,7 +146,7 @@ func windowOut(w *Window, now time.Time) *WindowOut {
 	return &WindowOut{UsedPct: w.UsedPct, ResetsAt: w.ResetsAt}
 }
 
-func sessionOut(s Session, subs SubagentSource) SessionOut {
+func sessionOut(s Session, subs SubagentSource, doing DoingSource) SessionOut {
 	out := SessionOut{
 		Handle: clean(s.Handle, maxName), Account: noEmail(clean(s.Account, maxName)), Project: clean(folderName(s.Cwd), maxName),
 		Model: clean(s.Model, maxName), State: clean(s.State, 20), StartedAt: s.StartedAt, Subagents: []Subagent{},
@@ -163,6 +165,10 @@ func sessionOut(s Session, subs SubagentSource) SessionOut {
 	if s.State == "needs-you" {
 		out.NeedsYouReason = clean(s.Reason, 40)
 	}
+	live := s.State != "ended"
+	if doing != nil && live {
+		out.Doing = doing.Doing(s.Handle, "")
+	}
 	if subs != nil {
 		list := subs.Subagents(s.Handle)
 		if len(list) > maxSubagentsPerSession {
@@ -170,6 +176,9 @@ func sessionOut(s Session, subs SubagentSource) SessionOut {
 		}
 		for _, sub := range list {
 			sub.ID, sub.Type, sub.Label, sub.State = clean(sub.ID, maxName), clean(sub.Type, maxName), clean(sub.Label, maxLabel), clean(sub.State, 20)
+			if doing != nil && live && sub.State == "running" {
+				sub.Doing = doing.Doing(s.Handle, sub.ID)
+			}
 			out.Subagents = append(out.Subagents, sub)
 		}
 		sort.SliceStable(out.Subagents, func(i, j int) bool {

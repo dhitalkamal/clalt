@@ -29,7 +29,7 @@ func RealSources(r Real) Sources {
 	if r.Now == nil {
 		r.Now = time.Now
 	}
-	return Sources{Accounts: r.Accounts, Sessions: r, Limits: r, Subagents: r, Team: r.Team, Now: r.Now}
+	return Sources{Accounts: r.Accounts, Sessions: r, Limits: r, Subagents: r, Doing: r, Team: r.Team, Now: r.Now}
 }
 
 // Sessions lists the sessions whose wrapper is alive, with what the feed says
@@ -95,7 +95,7 @@ func (r Real) Subagents(handle string) []Subagent {
 	}
 	out := make([]Subagent, len(st.Subagents))
 	for i, sub := range st.Subagents {
-		out[i] = Subagent(sub)
+		out[i] = Subagent{ID: sub.ID, Type: sub.Type, Label: sub.Label, State: sub.State, StartedAt: sub.StartedAt, EndedAt: sub.EndedAt}
 	}
 	return out
 }

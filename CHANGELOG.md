@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Agents at their desks act out the work they are doing: leaning in to read,
+  typing fast, leaning back while a command runs, a hand to the forehead when
+  it fails, arms up when it passes, browsing for the web. The screen glows and
+  a bubble shows the same thing. The snapshot gains an additive `doing` field
+  per session and subagent, built from the transcript tail.
+
 ### Changed
 
 - The Settings dialog uses the field notebook look: card-style options,

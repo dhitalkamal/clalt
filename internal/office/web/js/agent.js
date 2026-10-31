@@ -7,6 +7,9 @@ import { installMove } from './agentMove.js';
 import { ACCOUNT_TINT } from './model.js';
 import { recColor, isTeamRec, isInternRec, makeInternLook, tickMemberLook, disposeLook } from './garden/teamlook.js';
 import { TAU, BUBBLE_Y, angleDiff } from './agentConst.js';
+import { currentAct } from './behave/work.js';
+import { LOOK } from './behave/look.js';
+import { workIcon } from './workIcons.js';
 import { makeBlob, placeBlob, stripCast } from './agentShadow.js';
 
 export class Agent {
@@ -69,6 +72,10 @@ export class Agent {
     if (this.mode === 'leisure') this.tickLeisure(t);
     if (this.mode === 'walking') this.stepPath(dt);
 
+    // the work shown at the desk comes from the snapshot's doing field, only while busy and seated
+    const act = !gone && this.mode === 'seated' && this.s.state === 'busy' ? currentAct(this.s.track, Date.now()) : null;
+    if (act !== this.workAct) { this.workAct = act; this.workAt = t; }
+
     this.mixer.update(dt);
     const c = t + this.ph;
     if (this.mode === 'seated' || this.mode === 'standing' || this.mode === 'leisure') applyPose(this, t);
@@ -81,10 +88,16 @@ export class Agent {
 
   updateScreen(t, gone) {
     const seated = this.mode === 'seated';
-    const busy = seated && this.s.state === 'busy' && !gone && this.pausing == null;
+    const act = this.workAct;
+    // keys light up only while typing, or in plain busy with no work known
+    const busy = seated && this.s.state === 'busy' && !gone && this.pausing == null && (!act || act === 'type');
     const shown = this.mode === 'away' || gone ? 'ended' : this.s.state;
     this.screenTex.draw(shown, t);
-    const lit = shown === 'ended' ? 0 : shown === 'busy' ? 0.14 : shown === 'needs-you' ? 0.1 : 0.04;
+    const look = act && shown === 'busy' ? LOOK[act] : null;
+    const lit = shown === 'ended' ? 0 : look ? 0.2 : shown === 'busy' ? 0.14 : shown === 'needs-you' ? 0.1 : 0.04;
+    // the glow takes the colour of the work, back to the warm default without it
+    this.screenGlow.material.color.setHex(look ? look.glow : 0xffc98a);
+    this.deskGlow.material.color.setHex(look ? look.glow : 0xffb870);
     this.screenGlow.material.opacity = lit;
     this.deskGlow.material.opacity = lit * 0.5;
     this.keys.forEach((m, i) => {
@@ -110,6 +123,13 @@ export class Agent {
     this.bubble.visible = this.mode === 'standing' && state === 'needs-you';
     this.bubble.position.y = BUBBLE_Y + bob;
     this.bubble.material.opacity = 0.85 + 0.15 * Math.sin(t * 3);
+    const look = this.workAct && seated && !gone ? LOOK[this.workAct] : null;
+    this.work.visible = !!look && !this.bubble.visible;
+    if (look) {
+      const map = workIcon(look.icon);
+      if (this.work.material.map !== map) { this.work.material.map = map; this.work.material.needsUpdate = true; }
+      this.work.position.y = BUBBLE_Y + bob;
+    }
     this.done.visible = this.mode === 'leisure' && this.act === 'handoff' && this.now - this.actStart > 0.9;
     this.done.position.y = BUBBLE_Y + bob;
     this.chat.visible = !!this.chatSpeaker;

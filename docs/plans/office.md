@@ -54,7 +54,11 @@ characters in a live 3D office in the browser.
           "subagents": [
             { "id": "a1", "type": "Explore", "label": "map call sites",
               "state": "running", "startedAt": "2026-10-24T11:05:00Z",
-              "endedAt": null } ] }
+              "endedAt": null,
+              "doing": { "kind": "read", "tool": "Grep", "state": "running",
+                         "at": "2026-10-24T11:06:00Z" } } ],
+          "doing": { "kind": "run", "tool": "Bash", "state": "fail",
+                     "at": "2026-10-24T11:06:10Z" } }
       ]
     }
 
@@ -76,6 +80,11 @@ characters in a live 3D office in the browser.
 - `subagents[].state` is `running` or `done`. `endedAt` is `null` while running.
   `type` is the agent type (such as `Explore`), `label` is a short description.
   The page places a subagent by its type.
+- `doing` (on a session and on each running subagent) is the newest tool call
+  of its transcript, or `null` when there is none or it is over 2 minutes old.
+  `kind` is `read`, `edit`, `run`, `web` or `other` (from the tool name by a
+  fixed table), `state` is `running`, `ok` or `fail`, `at` is when it started
+  or finished. It carries no file name, command or text. Added without a bump.
 - Sessions are ordered by start time, then handle. Subagents by start time, then
   id. The order is stable so the page does not shuffle.
 

@@ -51,6 +51,8 @@ type Subagent struct {
 	State     string     `json:"state"`
 	StartedAt time.Time  `json:"startedAt"`
 	EndedAt   *time.Time `json:"endedAt"`
+	// Doing is the subagent's current work, null when there is none.
+	Doing *Doing `json:"doing"`
 }
 
 // AccountSource lists the accounts to show.
@@ -73,12 +75,18 @@ type SubagentSource interface {
 	Subagents(handle string) []Subagent
 }
 
+// DoingSource reads what a session (agent empty) or its subagent is doing.
+type DoingSource interface {
+	Doing(handle, agent string) *Doing
+}
+
 // Sources is everything Build reads. Now is the clock, time.Now when nil.
 type Sources struct {
 	Accounts  AccountSource
 	Sessions  SessionSource
 	Limits    LimitSource
 	Subagents SubagentSource
+	Doing     DoingSource
 	Team      TeamSource
 	Reviews   ReviewSource
 	Now       func() time.Time
