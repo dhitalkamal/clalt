@@ -7,7 +7,8 @@ import { isGarden } from './garden/index.js';
 import { openActivity } from './activity/index.js';
 
 // the nav manager owns the camera of every template once it runs (nav/input.js reads the same events)
-const navOwns = () => isGarden() || !!stage.nav;
+// a failed nav load (stage.navFailed) hands the camera back to the plain orbit
+const navOwns = () => !!stage.nav || (isGarden() && !stage.navFailed);
 
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();

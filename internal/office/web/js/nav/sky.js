@@ -6,7 +6,7 @@ import { panVector, rayFromPose, hitGround, zoomToCursor, dirOf, MAX_H } from '.
 import { orbitAround, clampOrbit, keyTurn, shortenForWall, stepMomentum } from './orbit.js';
 import { dragMode } from './input.js';
 import { createPicker } from './skypick.js';
-import { boundPose } from './orbitbounds.js';
+import { boundPose, limitPivot } from './orbitbounds.js';
 import { flyToPoint, flyToPose, stepTween } from './flyto.js';
 
 const down = (k, ...codes) => codes.some((c) => k.has(c));
@@ -86,10 +86,26 @@ export function createSky() {
   c.flyToPreset = (ctx, to, instant) => {
     maxH = Math.max(MAX_H, to.dist * Math.sin(to.el) * 1.15);
     freed = false;
-    vel = { x: 0, z: 0 }; zoomLog = 0;
+    vel = { x: 0, z: 0 }; zoomLog = 0; spinV = { yaw: 0, pitch: 0 };
     if (instant) { p = { az: to.az, el: to.el, dist: to.dist, target: { ...to.target } }; fov = to.fov; tween = null; eff = p.dist; apply(ctx); return; }
     tween = flyToPose({ ...p, fov }, to);
   };
+
+  // re-apply a preset (the caller passes the pose for the new window size) while the user has not moved the
+  // camera since it was chosen. false when the camera is free, so a moved view never jumps
+  c.refit = (ctx, to) => {
+    if (freed || !to) return false;
+    c.flyToPreset(ctx, to, true);
+    return true;
+  };
+
+  // the distance a zoom can reach from here: what clampOrbit and boundPose would settle on
+  function reachDist(ctx, q, aspect) {
+    const cxz = camXZ();
+    const lim = { ...limits(ctx), groundY: groundAt(ctx, cxz.x, cxz.z) };
+    const o = clampOrbit(q, lim);
+    return boundPose(o, { bounds: lim.bounds, fov, aspect }).dist;
+  }
 
   // camera distance after a wall between the pivot and the camera: one ray, at most every 70 ms, eased back out
   function wallDistance(ctx, dt) {
@@ -112,6 +128,7 @@ export function createSky() {
     const k = input.keys;
     const m = input.mouse;
     let moved = false;
+    let coast = false; // momentum is not the user moving the camera, so it must not cancel a fly
     const s = size(ctx);
     const aspect = s.w / s.h;
 
@@ -142,7 +159,9 @@ export function createSky() {
       else {
         const sp = picker.pivotAt(ray, p.dist * 3);
         const gp = hitGround(ray, groundAt(ctx, p.target.x, p.target.z));
-        drag.pivot = sp || gp || { ...p.target };
+        // a pivot far from the target (near the horizon) would swing the target away with it
+        drag.pivot = limitPivot(sp || gp, p.target, p.dist * 1.5);
+        drag.y0 = p.target.y;
         lastPivot = drag.pivot;
       }
     }
@@ -152,7 +171,12 @@ export function createSky() {
     }
     if (drag && drag.mode === 'orbit') {
       const dAz = -m.dx * 0.005; const dEl = m.dy * 0.004;
-      if (dAz || dEl) { p = orbitAround(p, drag.pivot, dAz, dEl); moved = true; }
+      if (dAz || dEl) {
+        p = orbitAround(p, drag.pivot, dAz, dEl); moved = true;
+        // the target stays on the walkable surface it started on, however far the pivot is
+        const g = groundAt(ctx, p.target.x, p.target.z);
+        p.target.y = Math.min(p.target.y, Math.max(drag.y0, g) + 1);
+      }
       // smoothed release speed: a pause before letting go leaves none
       const kv = damp(25, dt);
       spinV = { yaw: spinV.yaw + (dAz / Math.max(dt, 1e-3) - spinV.yaw) * kv, pitch: spinV.pitch + (dEl / Math.max(dt, 1e-3) - spinV.pitch) * kv };
@@ -161,7 +185,7 @@ export function createSky() {
       const pv = lastPivot || p.target;
       p = orbitAround(p, pv, spinV.yaw * dt, spinV.pitch * dt);
       spinV = stepMomentum(spinV, dt, !!ctx.reducedMotion);
-      moved = true;
+      coast = true;
     }
 
     // wheel and pinch: collect a log zoom and spend it over a few frames toward the cursor
@@ -173,11 +197,14 @@ export function createSky() {
     if (Math.abs(zoomLog) > 1e-4) {
       const part = zoomLog * damp(16, dt);
       zoomLog -= part;
-      p = zoomToCursor(p, Math.exp(part), zoomNdc, fov, aspect);
+      // spend only what the distance limits allow, so a zoom at a limit does not drag the target along
+      const want = p.dist * Math.exp(part);
+      const got = reachDist(ctx, { ...p, dist: want }, aspect);
+      p = zoomToCursor(p, got / p.dist, zoomNdc, fov, aspect);
     }
     if (input.dbl) {
       const h = hitGround(rayAt(ctx, input.dbl.x, input.dbl.y), 0);
-      if (h) { touch(ctx); tween = flyToPoint(p, fov, h); }
+      if (h) { touch(ctx); spinV = { yaw: 0, pitch: 0 }; tween = flyToPoint(p, fov, h); }
     }
 
     if (moved) touch(ctx);
@@ -192,7 +219,7 @@ export function createSky() {
       p = clampOrbit(p, { ...limits(ctx), groundY: groundAt(ctx, cxz.x, cxz.z) });
       // the walkable box: target inside it, distance fitted to it, a low camera kept inside its walls
       p = boundPose(p, { bounds: ctx.garden && ctx.garden.bounds, fov, aspect, k: damp(20, dt) });
-      if (c.spin && !moved && !drag) p.az += 0.12 * dt;
+      if (c.spin && !moved && !coast && !drag) p.az += 0.12 * dt;
       eff = wallDistance(ctx, dt);
     }
     apply(ctx);

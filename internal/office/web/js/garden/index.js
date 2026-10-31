@@ -153,8 +153,9 @@ function fitStage(bb) {
 
 function onResize() {
   if (!state) return;
-  // the nav manager keeps a free camera where the user left it, the old rig refits
+  // the nav manager keeps a free camera where the user left it and refits an untouched preset, the old rig refits
   if (!stage.nav) goTo(stage, stage.rig.id, { instant: true });
+  else if (stage.nav.refit) stage.nav.refit();
   fitStage(state.bb);
 }
 

@@ -25,6 +25,13 @@ export function clampTarget(t, bounds, k = 1, minY = 0) {
   return { x: to(t.x, bounds.minX, bounds.maxX), y, z: to(t.z, bounds.minZ, bounds.maxZ) };
 }
 
+// a pivot farther than reach from the target (a ray near the horizon lands far away) is replaced by the target
+export function limitPivot(pivot, target, reach) {
+  if (!pivot) return { ...target };
+  const far = Math.hypot(pivot.x - target.x, pivot.y - target.y, pivot.z - target.z) > reach;
+  return far ? { ...target } : pivot;
+}
+
 // distance at which the box (with some wall height) just fits the view for this heading and tilt, times a slack
 // that leaves room for the page chrome. the target is taken at the box centre.
 export function maxDistFor({ bounds, az, el, fov, aspect, height = 2.6, slack = 1.35 }) {

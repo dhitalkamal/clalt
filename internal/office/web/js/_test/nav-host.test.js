@@ -149,3 +149,34 @@ test('after garden then hall the hall top pose fits the hall inside the safe rec
   assert.ok(x0 >= -1 + 2 * safe.left - eps && x1 <= 1 - 2 * (safe.right || 0) + eps);
   assert.ok(y0 >= -1 + 2 * safe.bottom - eps && y1 <= 1 - 2 * safe.top + eps);
 });
+
+test('a failed load yields null, is not cached, and the next get retries', async () => {
+  const stage = { camera: cam(), controls: { target: { x: 0, y: 0, z: 0 } }, rig: null, nav: null };
+  const app = { layout: null, layoutJson: null, agents: new Map() };
+  const warn = console.warn;
+  const err = console.error;
+  console.warn = () => {};
+  console.error = () => {};
+  let fail = true;
+  let disposed = 0;
+  const host = createNavHost({
+    stage, app,
+    load: async () => ({
+      createNav: () => ({ ready: fail ? Promise.reject(new Error('no sky')) : Promise.resolve(), dispose() { disposed++; } }),
+      presetPose, fitFog() {},
+    }),
+    reduced: () => true,
+    aspect: () => 1,
+  });
+  try {
+    assert.equal(await host.get(), null);
+    assert.equal(stage.nav, null);
+    assert.equal(stage.navFailed, true);
+    assert.equal(disposed, 1);
+    fail = false;
+    const nav = await host.get();
+    assert.ok(nav);
+    assert.equal(stage.nav, nav);
+    assert.equal(stage.navFailed, false);
+  } finally { console.warn = warn; console.error = err; }
+});

@@ -17,17 +17,20 @@ function agentSpot(a) {
 
 export function createFollow(agentId) {
   let look = [0, 0, 0];
+  let held = new Set(); // keys already down at enter: they only count again after a release
   const c = {
     name: 'follow',
     done: false,
-    enter(ctx, from) {
+    enter(ctx, from, o, input) {
       this.done = false;
+      held = new Set(input ? input.keys : []);
       look = from ? [...from.target] : [0, 0, 0];
       if (from) { const p = ctx.stage.camera.position; p.set(...from.pos); }
     },
     update(ctx, dt, input) {
       const spot = agentSpot(ctx.app.agents.get(agentId));
-      if (!spot || KEYS.some((k) => input.keys.has(k))) { this.done = true; return 'back'; }
+      for (const k of held) if (!input.keys.has(k)) held.delete(k);
+      if (!spot || KEYS.some((k) => input.keys.has(k) && !held.has(k))) { this.done = true; return 'back'; }
       const want = [spot.x - spot.fx * BACK, spot.y + UP, spot.z - spot.fz * BACK];
       const gy = ctx.garden?.groundY?.(want[0], want[2]) ?? 0;
       want[1] = Math.max(want[1], gy + 0.4);

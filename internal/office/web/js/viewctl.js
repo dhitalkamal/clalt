@@ -6,7 +6,8 @@ import { startEditor } from './editorhook.js';
 import { createLayoutWatcher } from './layoutwatch.js';
 import { actionFor } from './keymap.js';
 import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
-import { parseHash, buildHash, camAfterSwitch, camOfNav } from './viewstate.js';
+import { parseHash, buildHash, camOfNav } from './viewstate.js';
+import { runSwitch } from './viewswitch.js';
 import { createSettingsDialog } from './settingsdialog.js';
 import { saveDefault, deleteLayout } from './settings.js';
 import { el } from './dom.js';
@@ -52,18 +53,12 @@ export function startView(first) {
   }
 
   // a new layout arrived: show it, keep the roster (app.sessions) and the seat plan so agents keep their seats
-  async function show(body) {
-    state.layout = body.layout;
-    state.edit = body.edit;
-    // the old manager walks the old layout, so it goes before the new one is built
-    resetNav();
-    state.cam = camAfterSwitch(state.cam);
-    await applyLayout(body.layout);
-    notice('');
-    keepClear();
-    goCam(state.cam, true);
-    // the editor works on hall layouts only: it starts the first time a hall shows and follows later halls
-    maybeEditor(body);
+  function show(body) {
+    return runSwitch({ resetNav, apply: applyLayout, notice, keepClear, goCam, saveHash, closeEditor, maybeEditor }, state, body);
+  }
+
+  function closeEditor() {
+    if (state.editor) state.editor.then((api) => { if (api.isOpen()) api.close(); }, () => {});
   }
 
   // the nav manager reports presets and mode changes: the url follows
@@ -109,8 +104,6 @@ export function startView(first) {
   // the active layout was deleted: the server is on the default template now, show it without a reload
   async function afterDelete() {
     try { await watcher.select(null); } catch (e) { console.error(e); throw new Error('deleted, but the page could not load the default: ' + e.message); }
-    // the editor only edits halls: close it when the default is not one
-    if (state.editor && state.layout.v !== 1) state.editor.then((api) => api.close(), () => {});
   }
 
   // delete a saved layout, switch the page when it was the one on show. resolves to the new list
