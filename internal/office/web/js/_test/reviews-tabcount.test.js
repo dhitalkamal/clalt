@@ -80,3 +80,9 @@ test('showButton depends only on enabled and count, not on state', () => {
   assert.equal(showButton({ enabled: false, count: 3, reviews: many(3, 'open') }), true);
   assert.equal(showButton(null), false);
 });
+
+test('the badge counts the reviews still open, not merged or closed ones', () => {
+  const reply = { reviews: [{ id: 'a', state: 'open' }, { id: 'b', state: 'merged' }, { id: 'c', state: 'closed' }, { id: 'd' }, { id: 'e', state: 'unknown' }] };
+  assert.equal(model.openCount(reply), 3);
+  assert.equal(model.openCount(null), 0);
+});

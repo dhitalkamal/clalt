@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Rooms that meet on the hall deck (the Review and Meeting rooms) are
+  separated by a glass wall with a doorway at the front; agents walk
+  through the doorway.
+- The account card in the hall says where its sessions are, for example
+  "1 working, 2 on break" (or "1 needs you"), above the 5h and 7d bars.
+- The number on a room sign counts only the agents working in it, not the
+  ones sitting idle at a desk.
+- Every session and subagent stands on a small flat ring in its account
+  colour, in the garden and the hall. Team members have none.
+- In the hall, the sessions of one account sit side by side in the shared
+  cabins: each account gets one block of cabins, accounts in name order.
+- The office opens in the hall by default (fresh installs, and after the
+  active saved layout is deleted or reset). The garden templates stay one
+  click away in the settings.
 - Agents at their desks act out the work they are doing: leaning in to read,
   typing fast, leaning back while a command runs, a hand to the forehead when
   it fails, arms up when it passes, browsing for the web. The screen glows and
@@ -28,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The Reviews badge counts only reviews still open, not merged or closed
+  pull requests (those are in the History tab).
 - PR review cards no longer overlap: long titles wrap inside the card (up to
   three lines, full title on hover) and the counts stay inside (#76).
 - The Reviews count sits inside the Reviews button instead of the corner of

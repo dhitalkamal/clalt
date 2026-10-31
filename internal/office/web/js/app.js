@@ -8,6 +8,8 @@ import { UI, renderWing, wingKey } from './ui.js';
 import { disposeTree } from './dispose.js';
 import { pickLook } from './looks.js';
 import { agentRecords } from './roster.js';
+import { accountLine } from './accountline.js';
+import { workingByRoom } from './roomcount.js';
 
 // takes a built group out of the world and frees what it held
 export function drop(group) {
@@ -49,11 +51,14 @@ export function refreshLabels() {
   const labels = [];
   for (const w of app.dynamic ? app.dynamic.wings : []) {
     const info = app.accounts.get(w.account) || { label: w.account, limits: null };
-    labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(w.account)]),
-      x: (w.x0 + w.x1) / 2, y: 1.25, z: w.z0, render: (div) => renderWing(div, info.label, info.limits, w.account) });
+    const line = accountLine(app.sessions.filter((s) => !s.leaving && s.account === w.account && (!w.room || L.slots?.get(s.id)?.room === w.room.id))
+      .map((s) => ({ state: s.state, away: ['leisure', 'walking'].includes(app.agents.get(s.id)?.mode) })));
+    labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(w.account), line]),
+      x: (w.x0 + w.x1) / 2, y: 1.25, z: w.z0, render: (div) => renderWing(div, info.label, info.limits, w.account, line) });
   }
-  const used = new Map();
-  for (const slot of L.slots ? L.slots.values() : []) if (slot.room) used.set(slot.room, (used.get(slot.room) || 0) + 1);
+  // the number on a room is how many agents work in it
+  const states = new Map(agentRecords(app.sessions, app.members).map((r) => [r.id, r.state]));
+  const used = workingByRoom(L.slots || new Map(), states);
   for (const r of L.regions) {
     if (r.type === 'cabins') continue;
     const n = r.type === 'lobby' || r.type === 'cafe' || r.type === 'play' ? null : used.get(r.id) || 0;

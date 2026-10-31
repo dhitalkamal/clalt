@@ -47,7 +47,7 @@ func (a *App) cmdOfficeLayout(args []string) error {
 		if err := store.SetActive(layout.DefaultActive); err != nil {
 			return err
 		}
-		fmt.Fprintln(a.Out, "active layout is the default again (rows). no layout file was deleted.")
+		fmt.Fprintln(a.Out, "active layout is the default again (hall). no layout file was deleted.")
 		return nil
 	case "export":
 		return a.layoutExport(store, rest)

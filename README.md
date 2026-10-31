@@ -76,7 +76,7 @@ It prints a link with a one-run token and opens it. Press Ctrl-C to stop it, or
 use `on` and `off` to run it with no terminal open. Pick the default template in
 the page's settings. Build mode (change the floor plan) opens from the page.
 
-Templates: `rows` (the default), `village`, `river`, `street` and `hall`. Pick
+Templates: `hall` (the default), `rows`, `village`, `river` and `street`. Pick
 one for a run with `--template <id>`, or set the default in the page's Settings.
 
 Navigation on the page (the sky camera, the default):

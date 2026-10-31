@@ -68,8 +68,19 @@ func newGenEnv(t *testing.T, startTemplate string) genEnv {
 	return genEnv{layoutEnv{h, st}, gen, &logs}
 }
 
+func TestGetLayoutWithoutActiveFileAnswersTheHall(t *testing.T) {
+	e := newGenEnv(t, "")
+	r := decodeReply(t, e.send("GET", "/api/layout", ""))
+	if r.Active != "hall" || r.Layout.V != 1 || r.Layout.Name != "default" {
+		t.Fatalf("%+v", r)
+	}
+}
+
 func TestGetLayoutWithoutQueryAnswersTheActiveTemplate(t *testing.T) {
 	e := newGenEnv(t, "")
+	if err := e.store.SetActive("rows"); err != nil {
+		t.Fatal(err)
+	}
 	rec := e.send("GET", "/api/layout", "")
 	r := decodeReply(t, rec)
 	if rec.Code != 200 || r.Layout.V != 2 || r.Layout.Name != "rows" || r.Rev != "r-rows" || r.Active != "rows" {

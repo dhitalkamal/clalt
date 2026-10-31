@@ -60,7 +60,7 @@ type Status struct {
 	Enabled     bool       `json:"enabled"`
 	Running     *Running   `json:"running"`
 	LastChecked *time.Time `json:"lastChecked"`
-	Count       int        `json:"count"`
+	Count       int        `json:"count"` // reviews whose pull request is not merged or closed
 }
 
 // SettingsView is what Settings shows.
@@ -148,7 +148,7 @@ func (s *Service) SettingsView(ctx context.Context) SettingsView {
 	return v
 }
 
-// Status reports whether reviews are on, what runs now and how many exist.
+// Status reports whether reviews are on, what runs now and how many are still open.
 func (s *Service) Status() Status {
 	cfg := s.config()
 	st := Status{Enabled: cfg.Enabled}
@@ -163,7 +163,12 @@ func (s *Service) Status() Status {
 	}
 	s.mu.Unlock()
 	list, _ := s.store().List()
-	st.Count = len(list)
+	// the badge counts what the open tab shows: merged and closed pull requests are history
+	for _, r := range list {
+		if r.State != StateMerged && r.State != StateClosed {
+			st.Count++
+		}
+	}
 	return st
 }
 

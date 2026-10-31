@@ -6,6 +6,7 @@ import { makeGrid, setOpen, isOpen, findCells, nearestOpen } from './nav.js';
 import { stairWorld } from './stairs.js';
 import { SEAT_OFF } from '../layout.js';
 import { makeRouter } from './route.js';
+import { deckWalls } from './partitions.js';
 
 const same = (a, b) => a.x === b.x && a.z === b.z;
 
@@ -66,6 +67,9 @@ export function compile(layout, catalog) {
     if (!rect) continue;
     for (const c of solidCells(rect, it.def.footprint, it.rot)) setOpen(grids[it.level], it.rec.x + c.i, it.rec.z + c.j, 0);
   }
+  // deck walls: agents cross only at the doorway. cells under furniture stay as the furniture left them
+  const deckItem = (x, z) => items.some((it) => it.level === 1 && x >= it.rec.x && x < it.rec.x + it.fw && z >= it.rec.z && z < it.rec.z + it.fd);
+  if (deck) for (const c of deckWalls(layout).closed) if (!deckItem(c.x, c.z)) setOpen(grids[1], c.x, c.z, 0);
 
   const door = doorOf(layout, f);
   const entry = door.cells.map(([x, z]) => ({ x, z })).find((c) => isOpen(grids[0], c.x, c.z)) || nearestOpen(grids[0], { x: door.cells[0][0], z: door.cells[0][1] }, 6)

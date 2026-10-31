@@ -6,6 +6,9 @@ const REPO = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 
 export const badgeText = (n) => (n > 99 ? '99+' : String(n));
 
+// reviews the open tab shows, for the badge: merged and closed pull requests are history
+export const openCount = (reply) => list(reply && reply.reviews).filter((r) => r.state !== 'merged' && r.state !== 'closed').length;
+
 // the inbox button shows when reviews are on, or when old results are still there
 export const showButton = (r) => !!r && (r.enabled === true || r.count > 0);
 

@@ -63,12 +63,16 @@ until the server stops. On other systems the checkbox is disabled.
 
 - A glass cabin per session, grouped in a wing per account. The wing sign shows
   the account label and its 5h and 7d limit bars. A bar with a question mark is
-  a window the feed has no reading of yet, which is not 0 percent.
+  a window the feed has no reading of yet, which is not 0 percent. A line
+  under it counts the sessions: working, needs you, idle or on break.
+- Each session and subagent stands on a small flat ring in its account colour,
+  so the account reads at a glance. Team members have no ring.
 - The sign over a cabin and the tag over a character show the project folder of
   the session. Subagents show their agent type.
 - Subagents sit at desks by kind: Explore in Research, Plan in the Meeting room,
   reviewers and test agents in the Review room, everything else in the Open
-  workspace. When a room is full the rest sit in the Open workspace.
+  workspace. When a room is full the rest sit in the Open workspace. Team members
+  too, interns beside their member.
 - A busy session types, with a spinning ring over its head. An idle one gets up
   now and then and walks to the cafe or the play area, chats, plays ping-pong or
   the arcade, and comes back. A session that needs you stands at its cabin door
@@ -98,7 +102,7 @@ until the server stops. On other systems the checkbox is disabled.
 - The camera bar and these keys work the same in every template, the hall
   included. The Overview button goes back to the overview.
 - Hover a character for a card with the handle, project, model, state and
-  account label. Click a room for the number of agents in it.
+  account label. Click a room for its agents; its sign counts the working ones.
 - Team lines draws dotted lines from each subagent to its main agent. Tags shows
   every tag, not only the ones of the main agents.
 
@@ -117,16 +121,17 @@ and CPU power lines (combined power in mW is the number to compare).
 
 ## Templates
 
-The office starts as a garden campus: pavilions on a lawn with paths, water and
-trees. There are five templates:
+The office starts in the hall, one building with a room for each kind of work.
+The other four templates are garden campuses: pavilions on a lawn with paths,
+water and trees. There are five templates:
 
 | id        | what it is                                                       |
 | --------- | ---------------------------------------------------------------- |
-| `rows`    | cabins in rows along the back, the default                       |
+| `rows`    | cabins in rows along the back                                    |
 | `village` | pavilions on a ring around a green with a pond and the cafe      |
 | `river`   | cabins along the west bank of a river                            |
 | `street`  | one winding street from the gate to a fountain plaza             |
-| `hall`    | the old single hall, kept as it was                              |
+| `hall`    | the single hall, the default                                     |
 
 The four gardens are generated from your accounts and the desks they need, so
 the campus grows with them. `hall` is the built-in layout and never changes.
@@ -139,7 +144,7 @@ the campus grows with them. `hall` is the built-in layout and never changes.
   for every run (the same as `clalt office layout use <id>`).
 - `clalt office layout list` shows the templates next to your layouts.
   `active.json` may name a template or a saved layout. With nothing set the
-  active one is `rows`.
+  active one is `hall`.
 - A generated layout is never stored. If a template cannot be generated the hall
   is shown and the reason goes to `office.log`.
 
@@ -164,7 +169,7 @@ run and are protected by the guards below, not by a switch.
 
 - A layout is one json file in `~/.config/clalt/office/layouts/<name>.json`.
   The active one is named in `~/.config/clalt/office/active.json`. With no valid
-  active layout the default template (`rows`) is shown, and a bad file is logged to
+  active layout the default template (`hall`) is shown, and a bad file is logged to
   `office.log` and skipped, never a crash.
 - The built-in templates live inside the binary and are read only. Saving while
   one is active writes a copy named `<name>-custom` and switches to it.
@@ -181,7 +186,7 @@ From the command line, which needs no running office:
     clalt office layout reset
 
 `use` takes a template id too. `reset` points the active layout back at the
-default one (`rows`) and deletes nothing.
+default one (`hall`) and deletes nothing.
 `export` writes json to stdout, or to a file that must not exist yet unless you
 pass `--force`.
 

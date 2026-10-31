@@ -11,6 +11,7 @@ import { currentAct } from './behave/work.js';
 import { LOOK } from './behave/look.js';
 import { workIcon } from './workIcons.js';
 import { makeBlob, placeBlob, stripCast } from './agentShadow.js';
+import { makeAccountRing, placeAccountRing, disposeAccountRing } from './agentRing.js';
 
 export class Agent {
   constructor(s, world, slot, look) {
@@ -42,6 +43,7 @@ export class Agent {
     world.add(this.rig, this.flair);
     if (isInternRec(s)) makeInternLook(this, recColor(s));
     this.blob = makeBlob(world);
+    this.groundRing = makeAccountRing(this, world);
     if (this.blob) stripCast(this);
   }
 
@@ -84,6 +86,7 @@ export class Agent {
     if (isTeamRec(this.s)) tickMemberLook(this, dt);
     this.updateFlair(t, gone);
     placeBlob(this);
+    placeAccountRing(this);
   }
 
   updateScreen(t, gone) {
@@ -144,6 +147,7 @@ export class Agent {
   dispose() {
     this.world.remove(this.rig, this.model, this.flair);
     if (this.blob) this.world.remove(this.blob);
+    disposeAccountRing(this);
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.model);
     for (const part of [this.rig, this.model, this.flair]) disposeTree(part);

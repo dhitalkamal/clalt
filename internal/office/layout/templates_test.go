@@ -25,14 +25,14 @@ func TestTemplateList(t *testing.T) {
 	if IsTemplate("default") || IsTemplate("mine") || IsTemplate("") {
 		t.Error("a non template counts as one")
 	}
-	if DefaultActive != "rows" {
+	if DefaultActive != "hall" {
 		t.Errorf("default active = %q", DefaultActive)
 	}
 }
 
-func TestActiveNameDefaultsToRows(t *testing.T) {
+func TestActiveNameDefaultsToHall(t *testing.T) {
 	s, _ := newStore(t)
-	if s.ActiveName() != "rows" {
+	if s.ActiveName() != "hall" {
 		t.Errorf("active = %q", s.ActiveName())
 	}
 }

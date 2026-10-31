@@ -26,13 +26,15 @@ let wingExtra = null;
 export function setWingExtra(fn) { wingExtra = fn; }
 export const wingKey = (id) => (wingExtra && id ? wingExtra(id).key : '');
 
-export function renderWing(div, label, limits, id) {
+export function renderWing(div, label, limits, id, line = '') {
   // zpct is what the compact one-line card shows in place of the bars: the busiest window
   const used = [limits && limits.fiveHour, limits && limits.sevenDay].filter(Boolean).map((w) => Math.round(w.usedPct));
   const worst = used.length ? Math.max(...used) : null;
   const zname = el('div', 'zname', label);
   zname.append(el('span', 'zpct ' + (worst === null ? '' : barClass(worst)), worst === null ? '?' : worst + '%'));
-  div.append(zname, bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
+  div.append(zname);
+  if (line) div.append(el('div', 'zline', line));
+  div.append(bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
   if (wingExtra && id) wingExtra(id).render(div);
 }
 
