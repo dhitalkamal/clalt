@@ -215,7 +215,7 @@ changes nothing.
   choices (`/api/idle`, see [office-idle.md](office-idle.md)). Reads are GET requests for the embedded page files, the snapshot,
   the active layout and the activity log of one session (see below). Three
   more routes (`PUT /api/layout`, `GET /api/layouts`, `POST /api/layout/use`)
-  change or list layouts, behind the guards in build mode.
+  change or list layouts, behind the guards (see [office-versions.md](office-versions.md)).
 - What the snapshot holds: the account ids and labels, the 5h and 7d limit
   percentages and reset times, and per session its handle, account, the name of
   its project folder (not the path), the model, its state, a short reason when it

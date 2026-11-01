@@ -43,6 +43,13 @@ export function mountEditor(opts) {
       ed.dirty = false;
       ed.setStatus('Saved.', 'ok');
     } catch (e) {
+      if (e && e.conflict) {
+        ed.setStatus(e.message, 'bad', [
+          { text: 'Load theirs', run: () => { ed.reset(e.theirs); ed.setStatus('Loaded the layout saved in the other tab.', 'ok'); } },
+          { text: 'Keep mine', run: save },
+        ]);
+        return;
+      }
       ed.setStatus('Save failed: ' + (e && e.message ? e.message : e), 'bad');
     } finally {
       saving = false;

@@ -98,6 +98,7 @@ func (h *handler) layoutGet(w http.ResponseWriter, r *http.Request) {
 
 func (h *handler) replyLayout(w http.ResponseWriter, name string, l layout.Layout, rev string) {
 	w.Header().Set("X-Clalt-Rev", rev)
+	setVersion(w, h.layoutVersion(h.saveTarget(name, l.V)))
 	h.reply(w, layoutReply{Edit: true, Layout: l, Templates: layout.Templates, Active: name, Rev: rev})
 }
 

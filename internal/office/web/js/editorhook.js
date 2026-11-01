@@ -7,6 +7,7 @@ import { loadCatalog } from './catalog.js';
 import { applyLayout, cellToWorld, worldToCell } from './scene/apply.js';
 import { roomTypeFor } from './routing.js';
 import { deleteLayout } from './settings.js';
+import { createLayoutSaver } from './layoutsave.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 
@@ -19,10 +20,9 @@ async function check(res) {
 
 const getJSON = async (url) => (await check(await fetch(url, { cache: 'no-store', credentials: 'same-origin' }))).json();
 
-async function save(layout) {
-  const res = await fetch('/api/layout', { method: 'PUT', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify(layout) });
-  await check(res);
-}
+// holds the version of the layout the editor has, sent as If-Match on every save
+const saver = createLayoutSaver();
+const save = (layout) => saver.save(layout);
 
 // built-in templates: the layouts the server lists as built in, as the page ships them
 async function templates() {
@@ -40,6 +40,7 @@ async function templates() {
 const layouts = (onSwitched) => ({
   async remove(name, wasActive) {
     await deleteLayout(name);
+    if (wasActive) await saver.refresh().catch(() => {});
     if (wasActive && onSwitched) await onSwitched();
   },
   async list() {
@@ -48,6 +49,7 @@ const layouts = (onSwitched) => ({
   },
   async use(name) {
     const res = await check(await fetch('/api/layout/use', { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ name }) }));
+    saver.adopt(res);
     const body = await res.json();
     await applyLayout(body.layout);
     return body.layout;
@@ -63,6 +65,7 @@ function demand(room) {
 
 // button is the settings dialog's Build mode button, it toggles the editor
 export async function startEditor(layout, button, onSwitched) {
+  await saver.refresh().catch(() => {});
   const accounts = () => [...app.accounts].map(([id, a]) => ({ id, name: a.label }));
   return mountEditor({
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,

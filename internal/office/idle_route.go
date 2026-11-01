@@ -125,7 +125,7 @@ func (h *handler) idlePathOn() string {
 }
 
 // idleGet is the read route. a missing, unreadable or invalid file answers
-// the defaults, the last two are logged.
+// the defaults, the last two are logged. the ETag is the version of the file.
 func (h *handler) idleGet(w http.ResponseWriter) {
 	p := h.idlePathOn()
 	if p == "" {
@@ -134,10 +134,12 @@ func (h *handler) idleGet(w http.ResponseWriter) {
 	}
 	raw, err := fsutil.ReadFile(p)
 	if errors.Is(err, fs.ErrNotExist) {
+		setVersion(w, noVersion)
 		h.writeJSON(w, defaultIdle())
 		return
 	}
 	if err == nil {
+		setVersion(w, versionOf(raw))
 		var r IdleRules
 		if r, err = parseIdle(raw); err == nil {
 			h.writeJSON(w, r)
@@ -148,19 +150,50 @@ func (h *handler) idleGet(w http.ResponseWriter) {
 	h.writeJSON(w, defaultIdle())
 }
 
-// idleSave is the write route, after the guards of editRoute.
-func (h *handler) idleSave(w http.ResponseWriter, body []byte) {
+// idleCurrent reads the file as stored: the rules of it (defaults when it is
+// missing or invalid) and its version.
+func (h *handler) idleCurrent(p string) (IdleRules, string, error) {
+	raw, err := fsutil.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return defaultIdle(), noVersion, nil
+	}
+	if err != nil {
+		return IdleRules{}, "", err
+	}
+	r, perr := parseIdle(raw)
+	if perr != nil {
+		r = defaultIdle()
+	}
+	return r, versionOf(raw), nil
+}
+
+// idleSave is the write route, after the guards of editRoute. idleMu holds
+// the read, the version check and the write together.
+func (h *handler) idleSave(w http.ResponseWriter, r *http.Request, body []byte) {
 	p := h.idlePathOn()
 	if p == "" {
 		http.Error(w, "idle choices are not available", http.StatusNotFound)
 		return
 	}
-	r, err := parseIdle(body)
+	rules, err := parseIdle(body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	raw, err := json.Marshal(r)
+	h.idleMu.Lock()
+	defer h.idleMu.Unlock()
+	cur, ver, err := h.idleCurrent(p)
+	if err != nil {
+		h.logf("idle choices read failed: %v", err)
+		http.Error(w, "could not read the idle choices", http.StatusInternalServerError)
+		return
+	}
+	if staleWrite(r, ver) {
+		setVersion(w, ver)
+		h.conflict(w, map[string]any{"error": "the idle choices changed since they were loaded", "rules": cur, "version": ver})
+		return
+	}
+	raw, err := json.Marshal(rules)
 	if err == nil {
 		err = os.MkdirAll(filepath.Dir(p), 0o700)
 	}
@@ -172,5 +205,6 @@ func (h *handler) idleSave(w http.ResponseWriter, body []byte) {
 		http.Error(w, "could not save the idle choices", http.StatusInternalServerError)
 		return
 	}
-	h.writeJSON(w, r)
+	setVersion(w, versionOf(raw))
+	h.writeJSON(w, rules)
 }

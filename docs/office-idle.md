@@ -46,3 +46,10 @@ rules live in `idle.json` next to the layouts, mode 0600, written atomically.
 - The POST has the guards of the other writes: token, edit header, origin,
   JSON content type and body size. It answers 200 with the saved rules, or 400
   with a one-line message.
+- Versions: the GET answers an `ETag` header, a short hash of the bytes of
+  `idle.json` (`"none"` when there is no file). A POST may send it back as
+  `If-Match`. When it differs from the file's current version the server
+  writes nothing and answers 409 with `{"error":"...","rules":{...},"version":"..."}`
+  (the current rules, and an `ETag` header with the same version). A POST
+  without `If-Match` is accepted as before. A good save answers the new `ETag`.
+  See [office-versions.md](office-versions.md).

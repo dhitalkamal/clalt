@@ -106,6 +106,15 @@ func (s *Store) readUser(name string) ([]byte, error) {
 	return fsutil.ReadFile(s.path(name))
 }
 
+// StoredBytes is the user file of a layout as it is on disk, ErrNotFound when
+// there is none. a built-in template has no user file until it is copied.
+func (s *Store) StoredBytes(name string) ([]byte, error) {
+	if !ValidName(name) {
+		return nil, errors.New("not a layout name")
+	}
+	return s.readUser(name)
+}
+
 // parse decodes and validates a stored layout, which must carry the name it
 // is stored under.
 func (s *Store) parse(name string, raw []byte) (Layout, error) {

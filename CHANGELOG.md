@@ -47,6 +47,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Two office tabs no longer overwrite each other: idle choices merge the
+  change of each tab, and the layout editor asks before replacing a layout
+  another tab saved ("Load theirs" or "Keep mine").
 - The Reviews badge counts only reviews still open, not merged or closed
   pull requests (those are in the History tab).
 - PR review cards no longer overlap: long titles wrap inside the card (up to

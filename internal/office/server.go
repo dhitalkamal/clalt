@@ -65,6 +65,8 @@ type handler struct {
 	store *layout.Store
 	// mu makes a layout write one step: check, save, switch. it also guards start.
 	mu sync.Mutex
+	// idleMu makes an idle save one step: read, compare the version, write.
+	idleMu sync.Mutex
 	// start is Config.Template until a write from the page picks another layout.
 	start string
 	// now is the clock of the activity cache.

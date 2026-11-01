@@ -70,7 +70,7 @@ export function createToolbar(ed, actions) {
     const n = ed.result.errors.length;
     save.disabled = saving;
     save.title = n ? n + ' problem' + (n === 1 ? '' : 's') + ' to fix before saving' : 'Save this layout';
-    status.textContent = ed.status.text;
+    status.replaceChildren(ed.status.text, ...(ed.status.actions || []).map((a) => h('button', { type: 'button', class: 'ed-statusact', text: a.text, onclick: a.run })));
     status.className = 'ed-statusline' + (ed.status.kind ? ' ed-' + ed.status.kind : '');
   };
   ['tool', 'change', 'status', 'history'].forEach((n) => ed.on(n, refresh));
