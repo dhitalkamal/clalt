@@ -1,4 +1,5 @@
 // settings model: what the dialog lists, what it sends and what it says when that fails. no dom.
+import { failText } from './lostaccess.js';
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 export const SAVE_LABEL = 'Set as default';
 const PREFIX = 'could not save the default office: ';
@@ -48,7 +49,7 @@ export function saveRequest(id) {
 // one line for the error row. text is the server's one line body, status the http code
 export function errorText({ status, text, network } = {}) {
   if (network) return PREFIX + 'clalt office is not reachable';
-  return PREFIX + ((text || '').trim() || 'http ' + status);
+  return PREFIX + (failText(status, text));
 }
 
 // resolves to the reply body, throws an Error whose message is ready to show
@@ -81,7 +82,7 @@ export function deleteRequest(name) {
 export function deleteErrorText({ status, text, network } = {}) {
   const prefix = 'could not delete the layout: ';
   if (network) return prefix + 'clalt office is not reachable';
-  return prefix + ((text || '').trim() || 'http ' + status);
+  return prefix + (failText(status, text));
 }
 
 // resolves to the new list, a failure throws an Error whose message is ready to show
@@ -123,13 +124,13 @@ export function autostartRequest(on) {
 export function autostartErrorText({ status, text, network } = {}) {
   const prefix = 'could not change start at login: ';
   if (network) return prefix + 'clalt office is not reachable';
-  return prefix + ((text || '').trim() || 'http ' + status);
+  return prefix + (failText(status, text));
 }
 
 // both resolve to the model, a failure throws an Error whose message is ready to show
 export async function loadAutostart(fetchFn = fetch) {
   const res = await fetchFn(AUTOSTART_URL, { cache: 'no-store', credentials: 'same-origin' });
-  if (!res.ok) throw new Error('http ' + res.status);
+  if (!res.ok) throw new Error(failText(res.status, ''));
   return autostartModel(await res.json());
 }
 

@@ -1,12 +1,13 @@
 // the catalog of placeable items: footprints in cells, allowed levels and tags. the page reads the copy that
 // ships with it, a clalt test keeps that copy identical to the one the layout validator embeds.
+import { failText } from './lostaccess.js';
 let cached = null;
 
 const valid = (c) => Array.isArray(c) && c.length > 0 && c.every((x) => x && typeof x.id === 'string' && x.footprint && Array.isArray(x.levels));
 
 async function fetchJSON(url) {
   const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
-  if (!res.ok) throw new Error('http ' + res.status);
+  if (!res.ok) throw new Error(failText(res.status, ''));
   return res.json();
 }
 

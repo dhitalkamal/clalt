@@ -52,7 +52,7 @@ export function refreshLabels() {
   for (const w of app.dynamic ? app.dynamic.wings : []) {
     const info = app.accounts.get(w.account) || { label: w.account, limits: null };
     const line = accountLine(app.sessions.filter((s) => !s.leaving && s.account === w.account && (!w.room || L.slots?.get(s.id)?.room === w.room.id))
-      .map((s) => ({ state: s.state, away: ['leisure', 'walking'].includes(app.agents.get(s.id)?.mode) })));
+      .map((s) => ({ state: s.state, away: ['leisure', 'walking'].includes(app.agents.get(s.id)?.mode), rest: !!app.agents.get(s.id)?.plan?.rest })));
     labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(w.account), line]),
       x: (w.x0 + w.x1) / 2, y: 1.25, z: w.z0, render: (div) => renderWing(div, info.label, info.limits, w.account, line) });
   }

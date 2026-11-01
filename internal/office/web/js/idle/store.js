@@ -1,13 +1,14 @@
 // the one rules store of the page: the settings page, the quick menu and the scene all read it.
 // a 404 means an older server without /api/idle: defaults apply and the controls stay hidden.
 import { DEFAULT_RULES, normalizeRules, withChoice } from './resolve.js';
+import { failText } from '../lostaccess.js';
 
 const PATH = '/api/idle';
 
 async function failure(res) {
   let text = '';
   try { text = (await res.text()).trim().split('\n')[0]; } catch (e) { /* the status says enough */ }
-  return new Error(text || 'http ' + res.status);
+  return new Error(failText(res.status, text));
 }
 
 // a save that finds the file changed is retried on the server's rules this many times

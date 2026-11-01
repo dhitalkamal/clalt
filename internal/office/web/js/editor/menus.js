@@ -39,7 +39,7 @@ export function createMenu(ed, label, load, pick, remove) {
     }
     list.replaceChildren(...items.map((it) => {
       const item = h('button', {
-        type: 'button', role: 'menuitem',
+        type: 'button', role: 'menuitem', title: it.text,
         onclick: () => {
           api.close();
           pick(it);

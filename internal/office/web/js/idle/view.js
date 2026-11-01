@@ -30,11 +30,11 @@ export function optionsFor(rooms, same, current) {
   return out;
 }
 
-// what the quick menu edits for an agent record: {scope, id, same, saved}, null for runs that have no rule
+// what the quick menu edits for an agent record: {scope, id, same, saved, hint}, null for runs that have no rule
 export function targetOf(s, accountLabel) {
-  if (s.role === 'team' || (s.intern && s.team)) return { scope: 'teams', id: s.team, same: 'all team members', saved: 'saved for this team member' };
-  if (s.role === 'sub') return { scope: 'subtypes', id: s.type, same: 'everyone', saved: 'saved for every ' + s.type + ' subagent' };
-  if (s.role === 'main') return { scope: 'accounts', id: s.account, same: 'everyone', saved: 'saved for every session of ' + accountLabel(s.account) };
+  if (s.role === 'team' || (s.intern && s.team)) return { scope: 'teams', id: s.team, same: 'all team members', saved: 'saved for this team member', hint: 'applies to all ' + s.team + ' team members' };
+  if (s.role === 'sub') return { scope: 'subtypes', id: s.type, same: 'everyone', saved: 'saved for every ' + s.type + ' subagent', hint: 'applies to every ' + s.type + ' subagent' };
+  if (s.role === 'main') return { scope: 'accounts', id: s.account, same: 'everyone', saved: 'saved for every session of ' + accountLabel(s.account), hint: 'applies to every session of ' + accountLabel(s.account) };
   return null;
 }
 
@@ -44,3 +44,6 @@ export function subtypesOf(sessions, saved) {
   for (const s of sessions) for (const x of s.subs) if (!x.intern && x.type) set.add(x.type);
   return [...set].sort();
 }
+
+// the line under the quick menu: what a change would apply to, then what a save in this panel changed
+export const scopeNote = (target, savedHere) => (savedHere ? target.saved : target.hint);

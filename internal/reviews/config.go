@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
@@ -42,13 +43,14 @@ func LoadConfig(dir string) (Config, error) {
 	return c, nil
 }
 
-// cleanRepos keeps the valid names, once each, sorted.
+// cleanRepos keeps the valid names, once each (case-insensitive, first spelling wins), sorted.
 func cleanRepos(in []string) []string {
 	seen := map[string]bool{}
 	out := []string{}
 	for _, r := range in {
-		if ValidRepo(r) && !seen[r] && len(out) < maxRepos {
-			seen[r] = true
+		key := strings.ToLower(r)
+		if ValidRepo(r) && !seen[key] && len(out) < maxRepos {
+			seen[key] = true
 			out = append(out, r)
 		}
 	}

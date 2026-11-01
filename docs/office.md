@@ -64,7 +64,7 @@ until the server stops. On other systems the checkbox is disabled.
 - A glass cabin per session, grouped in a wing per account. The wing sign shows
   the account label and its 5h and 7d limit bars. A bar with a question mark is
   a window the feed has no reading of yet, which is not 0 percent. A line
-  under it counts the sessions: working, needs you, idle or on break.
+  under it counts the sessions: working, needs you, idle, resting or on break.
 - Each session and subagent stands on a small flat ring in its account colour,
   so the account reads at a glance. Team members have no ring.
 - The sign over a cabin and the tag over a character show the project folder of

@@ -2,7 +2,7 @@
 // (always saved), and a line saying what it saves for. stays in step with the settings page through the store.
 import { el } from '../dom.js';
 import { roomsOf } from './resolve.js';
-import { targetOf } from './view.js';
+import { targetOf, scopeNote } from './view.js';
 import { choiceSelect } from './select.js';
 
 // h: {store, app (layout), accountLabel(id) -> string}
@@ -18,6 +18,7 @@ export function createIdleQuick(h) {
   let sel = null;
   let key = '';
   let target = null;
+  let savedHere = false;
 
   const current = () => (target ? store.rules()[target.scope][target.id] || '' : '');
   const sync = () => { if (sel && target) sel.value = current(); };
@@ -27,10 +28,11 @@ export function createIdleQuick(h) {
   function update(rec) {
     target = rec && store.available() ? targetOf(rec, h.accountLabel) : null;
     root.hidden = !target;
-    if (!target) return;
+    if (!target) { savedHere = false; return; }
     const rooms = roomsOf(h.app.layoutJson);
     const next = [target.scope, target.id, rooms.map((r) => r.id).join(',')].join('|');
-    note.textContent = target.saved;
+    if (next !== key) savedHere = false;
+    note.textContent = scopeNote(target, savedHere);
     if (next === key && sel) { sync(); return; }
     key = next;
     err.hidden = true;
@@ -40,7 +42,11 @@ export function createIdleQuick(h) {
     tag.htmlFor = sel.id;
     sel.addEventListener('change', async () => {
       err.hidden = true;
-      try { await store.set(t.scope, t.id, sel.value); } catch (e) {
+      try {
+        await store.set(t.scope, t.id, sel.value);
+        savedHere = true;
+        note.textContent = scopeNote(t, true);
+      } catch (e) {
         err.textContent = 'could not save: ' + e.message;
         err.hidden = false;
         sync();

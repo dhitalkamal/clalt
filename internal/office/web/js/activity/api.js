@@ -1,4 +1,5 @@
 // the one fetch the panel makes: GET /api/activity. same credential as the snapshot (the cookie).
+import { LOST_ACCESS } from '../lostaccess.js';
 const TIMEOUT = 8000;
 
 export async function fetchActivity(path) {
@@ -17,7 +18,7 @@ export async function fetchActivity(path) {
 // one line for the error strip
 export function errorText(e) {
   const m = e && e.message ? e.message : String(e);
-  if (m === 'auth') return 'this page lost its access, restart clalt office and open the new link';
+  if (m === 'auth') return LOST_ACCESS;
   if (e && e.status === 404) return 'no transcript for this session yet';
   if (e && e.status === 400) return 'the activity request was refused (bad parameters)';
   if (e && e.name === 'AbortError') return 'clalt did not answer in time';

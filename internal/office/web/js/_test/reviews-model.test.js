@@ -103,3 +103,22 @@ test('lastCheckedText', () => {
   assert.equal(lastCheckedText('2026-10-27T11:55:00Z', NOW), 'checked 5m ago');
   assert.equal(lastCheckedText('2026-10-27T11:59:59Z', NOW), 'checked just now');
 });
+
+test('add repo ignores case when matching existing names', () => {
+  const m = settingsModel({ enabled: true, repos: [], suggestions: ['acme/widgets'] });
+  const r = addRepo(m, 'ACME/Widgets');
+  assert.equal(r.error, '');
+  assert.deepEqual(r.model.repos, [{ name: 'acme/widgets', on: true }]);
+});
+
+test('add repo accepts pasted forms', () => {
+  const m = settingsModel({ enabled: true, repos: [], suggestions: [] });
+  for (const text of ['https://github.com/o/n', 'github.com/o/n', 'o/n.git', 'o/n/', 'https://github.com/o/n.git', 'https://github.com/o/n/pull/5', 'http://github.com/o/n/issues/7/']) {
+    const r = addRepo(m, text);
+    assert.equal(r.error, '', text);
+    assert.deepEqual(r.model.repos.map((x) => x.name), ['o/n'], text);
+  }
+  assert.match(addRepo(m, 'https://github.com/owner').error, /owner\/name/);
+  assert.match(addRepo(m, 'github.com/owner/').error, /owner\/name/);
+  assert.match(addRepo(m, 'a/b/c').error, /owner\/name/);
+});

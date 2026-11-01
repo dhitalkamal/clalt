@@ -82,3 +82,8 @@ export function fitLabels(items, { gap = 3, nudge: reach = 1, prev = null, fixed
   }
   return out;
 }
+
+// below this window height a card may not sit above the bottom edge of the status pill: wide short windows
+// would otherwise tuck the account cards under it or off the top. returns a fixed box, or null
+const SHORT = 700;
+export const topBand = (width, height, pill) => (pill && height < SHORT ? { x0: 0, y0: -10000, x1: width, y1: pill.y1 } : null);

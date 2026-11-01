@@ -3,6 +3,7 @@
 import { app, ui } from './app.js';
 import { applyLayout } from './scene/apply.js';
 import { startEditor } from './editorhook.js';
+import { reloadEditorAfterDelete } from './editorsync.js';
 import { createLayoutWatcher } from './layoutwatch.js';
 import { actionFor } from './keymap.js';
 import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
@@ -14,6 +15,7 @@ import { el } from './dom.js';
 import { startReviews } from './reviews/index.js';
 import { createViewSection } from './viewsection.js';
 import { startIdle } from './idle/index.js';
+import { failText } from './lostaccess.js';
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -42,7 +44,7 @@ export function startView(first) {
     gear, build, save: saveAndShow, remove: removeAndShow, sections: [reviews.section, idle.section], left: [view],
     loadList: async () => {
       const res = await fetch('/api/layouts', { cache: 'no-store', credentials: 'same-origin' });
-      if (!res.ok) throw new Error('http ' + res.status);
+      if (!res.ok) throw new Error(failText(res.status, ''));
       return res.json();
     },
   });
@@ -105,7 +107,9 @@ export function startView(first) {
 
   // the active layout was deleted: the server is on the default template now, show it without a reload
   async function afterDelete() {
-    try { await watcher.select(null); } catch (e) { console.error(e); throw new Error('deleted, but the page could not load the default: ' + e.message); }
+    let body;
+    try { body = await watcher.select(null); } catch (e) { console.error(e); throw new Error('deleted, but the page could not load the default: ' + e.message); }
+    if (body) await reloadEditorAfterDelete(state.editor, body);
   }
 
   // delete a saved layout, switch the page when it was the one on show. resolves to the new list

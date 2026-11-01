@@ -1,11 +1,13 @@
 // saves the layout from the editor with the version it was loaded at (If-Match), so a save
 // never overwrites what another tab saved meanwhile. a 409 becomes an error with conflict and theirs set.
+import { failText } from './lostaccess.js';
+
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 
 async function oneLine(res) {
   let text = '';
   try { text = (await res.text()).trim().split('\n')[0]; } catch (e) { /* the status says enough */ }
-  return text || 'http ' + res.status;
+  return failText(res.status, text);
 }
 
 export function createLayoutSaver(fetchFn) {

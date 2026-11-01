@@ -58,6 +58,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the button row.
 - Account cards in the garden office no longer slide under the status pill or
   the bottom buttons: label fitting now treats both as fixed obstacles.
+- PR reviews: repository names that differ only in case are one entry, and
+  the add box takes github.com urls, pull request urls, a trailing slash or
+  .git.
+- Deleting the active layout reloads the fallback layout in an open editor, so
+  Save cannot bring the deleted layout back.
+- The editor refuses an empty layout title, like it already did for odd spacing.
+- The activity panel menu says who a change applies to before you save, and
+  "saved for ..." only after a save.
+- Account cards say "resting" for agents in a room chosen in the idle settings,
+  "on break" only for cafe and play area breaks.
+- A stale tab says it lost its access in plain words and shows no raw
+  "unauthorized" when a save fails.
+- Long layout titles are cut with an ellipsis in the editor Layouts menu, and
+  on short wide windows the account cards stay below the status pill.
+- office.log logs a skipped (invalid) layout file once, not on every poll.
 
 ## [0.3.0] - 2026-10-28
 

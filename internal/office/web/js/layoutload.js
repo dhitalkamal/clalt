@@ -1,7 +1,8 @@
 // the layout the page shows: what clalt serves at /api/layout, or the default office that ships with the page
+import { failText } from './lostaccess.js';
 async function getJSON(url) {
   const res = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
-  if (!res.ok) throw Object.assign(new Error('http ' + res.status), { status: res.status });
+  if (!res.ok) throw Object.assign(new Error(failText(res.status, '')), { status: res.status });
   return res.json();
 }
 

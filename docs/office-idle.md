@@ -24,7 +24,9 @@ members stay at their desk. A team member set to take a break needs a real desk
 seat to leave from; one without it stays at the desk.
 
 The quick menu always saves: a change edits the matching rule (team member,
-account, subagent type) for everyone like it, and shows what it saved for. Both
+account, subagent type) for everyone like it. Under the menu a hint says who a change applies to
+("applies to all qa team members"); after a save in that panel the line reads
+what it saved for. Both
 places read the same rules, saved by the server in `/api/idle`. An older server
 without that route keeps today's behaviour and the controls stay hidden.
 

@@ -100,18 +100,28 @@ export function lastCheckedText(iso, now) {
 // the settings section: on/off and every repo that is opted in or suggested
 export function settingsModel(view, now = Date.now()) {
   const on = new Set(list(view && view.repos));
-  const names = [...new Set([...on, ...list(view && view.suggestions)])].sort();
+  const seen = new Set();
+  const names = [...on, ...list(view && view.suggestions)].filter((n) => !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase())).sort();
   return { enabled: !!(view && view.enabled), repos: names.map((name) => ({ name, on: on.has(name) })), lastChecked: lastCheckedText(view && view.lastChecked, now) };
 }
 
 export const setEnabled = (m, enabled) => ({ ...m, enabled });
 export const toggleRepo = (m, name, on) => ({ ...m, repos: m.repos.map((r) => (r.name === name ? { ...r, on } : r)) });
 
+// pasted forms: owner/name, a trailing slash or .git, a github.com url, or a pull/issue url of the repo
+export function normalizeRepo(text) {
+  let s = String(text || '').trim().replace(/\/+$/, '');
+  const url = /^(?:https?:\/\/)?(?:www\.)?github\.com\/(.*)$/i.exec(s);
+  if (url) s = url[1].split('/').slice(0, 2).join('/');
+  return s.replace(/\.git$/i, '');
+}
+
 // adds a repo typed by hand, opted in. an existing name is just switched on
 export function addRepo(m, text) {
-  const name = String(text || '').trim();
+  const name = normalizeRepo(text);
   if (!REPO.test(name) || name.startsWith('.') || name.includes('..')) return { model: m, error: 'a repository is written owner/name' };
-  if (m.repos.some((r) => r.name === name)) return { model: toggleRepo(m, name, true), error: '' };
+  const same = m.repos.find((r) => r.name.toLowerCase() === name.toLowerCase());
+  if (same) return { model: toggleRepo(m, same.name, true), error: '' };
   const repos = [...m.repos, { name, on: true }].sort((a, b) => (a.name < b.name ? -1 : 1));
   return { model: { ...m, repos }, error: '' };
 }

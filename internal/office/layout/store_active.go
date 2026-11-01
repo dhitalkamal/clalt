@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
@@ -100,5 +101,11 @@ func Minimal() Layout {
 	}
 }
 
-// Check validates l against the store's catalog.
-func (s *Store) Check(l Layout) error { return Validate(l, s.catalog()) }
+// Check validates l against the store's catalog. a hall to be saved also needs a title: Validate alone
+// lets an empty one through so old files still load.
+func (s *Store) Check(l Layout) error {
+	if l.V == V1 && strings.TrimSpace(l.Title) == "" {
+		return errors.New("title is empty")
+	}
+	return Validate(l, s.catalog())
+}

@@ -253,3 +253,49 @@ func TestMinimalLayoutValidatesWithoutACatalog(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestCheckRefusesAnEmptyHallTitle(t *testing.T) {
+	s, _ := newStore(t)
+	for _, title := range []string{"", "   ", "\t"} {
+		l := valid()
+		l.Title = title
+		err := s.Check(l)
+		if err == nil || !strings.Contains(err.Error(), "title is empty") {
+			t.Errorf("title %q: err = %v, want title is empty", title, err)
+		}
+	}
+	if err := s.Check(valid()); err != nil {
+		t.Errorf("valid layout: %v", err)
+	}
+}
+
+func TestListLogsEachSkipOnce(t *testing.T) {
+	s, logs := newStore(t)
+	dir := filepath.Join(s.Root, "layouts")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	write := func(name, body string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("bad.json", "nope")
+	write("Not A Name.json", "{}")
+	for i := 0; i < 3; i++ {
+		if _, err := s.List(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(*logs) != 2 {
+		t.Fatalf("logs after 3 polls = %d, want 2: %v", len(*logs), *logs)
+	}
+	// a different problem in the same file is a new line
+	write("bad.json", `{"v":1}`)
+	if _, err := s.List(); err != nil {
+		t.Fatal(err)
+	}
+	if len(*logs) != 3 {
+		t.Fatalf("logs after the file changed = %d, want 3: %v", len(*logs), *logs)
+	}
+}

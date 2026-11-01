@@ -1,7 +1,7 @@
 // the words and lists on the settings page and the quick menu
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { summaryText, optionsFor, targetOf, subtypesOf, customCount, choiceName } from '../idle/view.js';
+import { summaryText, optionsFor, targetOf, subtypesOf, customCount, choiceName, scopeNote } from '../idle/view.js';
 import { DEFAULT_RULES } from '../idle/resolve.js';
 
 const rooms = [{ id: 'dev', label: 'Dev room' }];
@@ -38,10 +38,10 @@ test('options keep a saved room that is gone, labelled as taking a break', () =>
 
 test('the quick menu edits the rule that matches the agent', () => {
   const label = (id) => 'Label ' + id;
-  assert.deepEqual(targetOf({ role: 'team', team: 'qa' }, label), { scope: 'teams', id: 'qa', same: 'all team members', saved: 'saved for this team member' });
+  assert.deepEqual(targetOf({ role: 'team', team: 'qa' }, label), { scope: 'teams', id: 'qa', same: 'all team members', saved: 'saved for this team member', hint: 'applies to all qa team members' });
   assert.deepEqual(targetOf({ role: 'sub', intern: true, team: 'qa', type: 'qa' }, label).scope, 'teams');
-  assert.deepEqual(targetOf({ role: 'sub', type: 'Explore', account: 'a' }, label), { scope: 'subtypes', id: 'Explore', same: 'everyone', saved: 'saved for every Explore subagent' });
-  assert.deepEqual(targetOf({ role: 'main', account: 'a' }, label), { scope: 'accounts', id: 'a', same: 'everyone', saved: 'saved for every session of Label a' });
+  assert.deepEqual(targetOf({ role: 'sub', type: 'Explore', account: 'a' }, label), { scope: 'subtypes', id: 'Explore', same: 'everyone', saved: 'saved for every Explore subagent', hint: 'applies to every Explore subagent' });
+  assert.deepEqual(targetOf({ role: 'main', account: 'a' }, label), { scope: 'accounts', id: 'a', same: 'everyone', saved: 'saved for every session of Label a', hint: 'applies to every session of Label a' });
   assert.equal(targetOf({ role: 'review' }, label), null);
 });
 
@@ -54,4 +54,10 @@ test('subagent types come from the live runs and the saved rules, sorted, intern
 test('customCount adds up the three maps', () => {
   assert.equal(customCount(DEFAULT_RULES), 0);
   assert.equal(customCount({ ...DEFAULT_RULES, accounts: { a: 'hide', b: 'desk' }, teams: { t: 'desk' } }), 3);
+});
+
+test('the scope line is a hint until something was saved in this panel', () => {
+  const t = targetOf({ role: 'team', team: 'qa' }, (id) => id);
+  assert.equal(scopeNote(t, false), 'applies to all qa team members');
+  assert.equal(scopeNote(t, true), 'saved for this team member');
 });

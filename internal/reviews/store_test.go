@@ -113,3 +113,11 @@ func TestLoadConfigBrokenFileIsOff(t *testing.T) {
 		t.Fatalf("%+v %v", c, err)
 	}
 }
+
+func TestCleanReposDedupesByCase(t *testing.T) {
+	got := cleanRepos([]string{"acme/widgets", "ACME/Widgets", "o/a"})
+	want := []string{"acme/widgets", "o/a"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}

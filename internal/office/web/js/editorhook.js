@@ -8,6 +8,7 @@ import { applyLayout, cellToWorld, worldToCell } from './scene/apply.js';
 import { roomTypeFor } from './routing.js';
 import { deleteLayout } from './settings.js';
 import { createLayoutSaver } from './layoutsave.js';
+import { failText } from './lostaccess.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 
@@ -15,7 +16,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' }
 async function check(res) {
   if (res.ok) return res;
   const text = (await res.text()).trim();
-  throw new Error(text || 'http ' + res.status);
+  throw new Error(failText(res.status, text));
 }
 
 const getJSON = async (url) => (await check(await fetch(url, { cache: 'no-store', credentials: 'same-origin' }))).json();

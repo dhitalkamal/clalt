@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createLayoutSaver } from '../layoutsave.js';
+import { LOST_ACCESS } from '../lostaccess.js';
 
 const reply = (status, body, tag) => ({
   ok: status >= 200 && status < 300,
@@ -96,4 +97,10 @@ test('adopt takes the version of any reply that has one', async () => {
   assert.equal(saver.version(), '"v7"');
   saver.adopt(reply(200, {}));
   assert.equal(saver.version(), '"v7"');
+});
+
+test('a 401 on save or refresh says the page lost its access, not unauthorized', async () => {
+  const saver = createLayoutSaver(fake(() => reply(401, 'unauthorized\n')));
+  await assert.rejects(saver.refresh(), (e) => e.message === LOST_ACCESS);
+  await assert.rejects(saver.save({}), (e) => e.message === LOST_ACCESS);
 });

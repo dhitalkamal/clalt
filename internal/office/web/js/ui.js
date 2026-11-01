@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { el, clear, age } from './dom.js';
 import { MAX_SESSIONS } from './model.js';
-import { fitLabels } from './labelfit.js';
+import { fitLabels, topBand } from './labelfit.js';
 import { teamCard } from './cardinfo.js';
 import { stampNode, chipNode } from './notebook.js';
 
@@ -135,6 +135,8 @@ export class UI {
         const r = n.getBoundingClientRect();
         return { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
       });
+      const band = topBand(w, h, this.fixedRects[0] && this.fixedRects[0].y0 < 100 ? this.fixedRects[0] : null);
+      if (band) this.fixedRects = [band, ...this.fixedRects];
     }
     return this.fixedRects;
   }

@@ -32,7 +32,11 @@ canvas.ed-active { cursor: crosshair; }
 .ed-menu-wrap { position: relative; display: inline-block; }
 .ed-menu { position: absolute; top: calc(100% + 4px); left: 0; min-width: 200px; max-height: 300px; overflow: auto; z-index: 9; padding: 4px;
   border-radius: 10px; background: #fff; box-shadow: 0 6px 22px rgba(60,50,40,.3); display: flex; flex-direction: column; gap: 2px; }
+.ed-menu { max-width: min(320px, calc(100vw - 24px)); }
 .ed-menu button { display: flex; justify-content: space-between; gap: 12px; text-align: left; }
+.ed-menu button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-menu button > small { flex: none; }
+.ed-menu-row > button:first-child { min-width: 0; }
 .ed-menu small { opacity: .6; }
 .ed-menu-row { display: flex; gap: 4px; align-items: stretch; }
 .ed-menu-row > button:first-child { flex: 1; }
