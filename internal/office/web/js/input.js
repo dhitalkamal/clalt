@@ -85,7 +85,7 @@ function onMove(e) {
 // the agent under a screen point, or null
 function pickAgent(x, y) {
   castFrom(x, y);
-  const targets = [...app.agents.values()].flatMap((a) => [a.rig, a.model]);
+  const targets = [...app.agents.values()].filter((a) => !a.hidden).flatMap((a) => [a.rig, a.model]);
   const hit = ray.intersectObjects(targets, true)[0];
   if (!hit) return null;
   let o = hit.object;
@@ -104,8 +104,8 @@ export function updateHover() {
     canvas.style.cursor = agent ? 'pointer' : 'grab';
   }
   const shown = app.hover || app.selected;
-  if (shown && !app.agents.has(shown.s.id)) { app.selected = null; app.hover = null; }
-  if (shown && app.agents.has(shown.s.id)) {
+  if (shown && (!app.agents.has(shown.s.id) || shown.hidden)) { app.selected = null; app.hover = null; }
+  if (shown && app.agents.has(shown.s.id) && !shown.hidden) {
     const at = app.hover ? mouse : app.selectPos;
     ui.showCard(shown, at.x, at.y);
   } else if (app.selectedRegion) ui.showRegion(regionCard(app.selectedRegion), app.selectPos.x, app.selectPos.y);

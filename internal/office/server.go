@@ -162,6 +162,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.autostartGet(w)
 		return
 	}
+	if r.URL.Path == idlePath {
+		h.idleGet(w)
+		return
+	}
 	if r.URL.Path == "/api/snapshot" {
 		h.snapshot(w)
 		return

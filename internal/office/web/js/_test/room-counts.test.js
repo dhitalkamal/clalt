@@ -21,3 +21,9 @@ test('a room with only idle agents has no entry', () => {
 test('an agent without a known record is not counted', () => {
   assert.equal(workingByRoom(slots, states({})).size, 0);
 });
+
+test('a hidden agent is idle by definition, so it adds nothing to the number', () => {
+  // idle choice "hide" only applies while idle: the state map says idle, the count skips it
+  const n = workingByRoom(slots, states({ a: 'idle', b: 'busy' }));
+  assert.equal(n.get('r1'), 1);
+});

@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Idle choices: pick what an idle agent does (stay at its desk, take a break,
+  hide until it works again, or rest in a room of the hall) per account, team
+  member, subagent type or for everyone, from Settings ("When idle") or the
+  activity panel of an agent. Team members can now take breaks when asked.
+  Saved in idle.json next to the layouts (`GET` and `POST /api/idle`).
 - Rooms that meet on the hall deck (the Review and Meeting rooms) are
   separated by a glass wall with a doorway at the front; agents walk
   through the doorway.

@@ -30,7 +30,7 @@ func isEditRoute(r *http.Request) bool {
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
 	case "/api/layouts", "/api/layout/use", deletePath:
 		return true
-	case "/api/reviews/settings", autostartPath:
+	case "/api/reviews/settings", autostartPath, idlePath:
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
 	}
 	return false
@@ -74,6 +74,10 @@ func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == autostartPath {
 		h.autostartSave(w, body)
+		return
+	}
+	if r.URL.Path == idlePath {
+		h.idleSave(w, body)
 		return
 	}
 	if want == http.MethodPut {

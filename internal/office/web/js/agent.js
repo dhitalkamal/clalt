@@ -87,6 +87,23 @@ export class Agent {
     this.updateFlair(t, gone);
     placeBlob(this);
     placeAccountRing(this);
+    if (this.hidden || this.wasHidden) this.paintHidden();
+  }
+
+  // an idle agent set to hide draws nothing and cannot be picked (input.js skips it). the parts that set their own
+  // visibility every frame are forced off here, after they ran
+  setHidden(on) { this.hidden = !!on; }
+
+  paintHidden() {
+    const on = !this.hidden;
+    this.rig.visible = on;
+    this.model.visible = on;
+    if (!on) {
+      this.flair.visible = false;
+      if (this.blob) this.blob.visible = false;
+      if (this.groundRing) this.groundRing.visible = false;
+    }
+    this.wasHidden = this.hidden;
   }
 
   updateScreen(t, gone) {

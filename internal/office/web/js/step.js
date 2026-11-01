@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { tickCamera } from './stage.js';
 import { planBreaks } from './planner.js';
+import { applyIdle } from './idle/apply.js';
 import { app, stage, ui, world, relayout } from './app.js';
 import { lampTick } from './scene/apply.js';
 import { syncDim } from './dim.js';
@@ -44,7 +45,7 @@ function updateLines() {
     const main = app.agents.get(s.id);
     for (const sub of s.subs) {
       const a = app.agents.get(sub.id);
-      if (!a || !main || sub.leaving || a.mode === 'away') continue;
+      if (!a || !main || sub.leaving || a.mode === 'away' || a.hidden) continue;
       live.add(sub.id);
       let line = app.lines.get(sub.id);
       if (!line) {
@@ -90,6 +91,7 @@ export function step(dt) {
   app.time += dt;
   dropGone();
   dropUnseen();
+  applyIdle(app);
   planBreaks(app);
   syncDim();
   const near = stage.view.dist < stage.base.dist * 0.7;

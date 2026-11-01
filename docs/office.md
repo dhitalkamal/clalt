@@ -75,8 +75,8 @@ until the server stops. On other systems the checkbox is disabled.
   too, interns beside their member.
 - A busy session types, with a spinning ring over its head. An idle one gets up
   now and then and walks to the cafe or the play area, chats, plays ping-pong or
-  the arcade, and comes back. A session that needs you stands at its cabin door
-  and waves with a bubble over its head.
+  the arcade, and comes back (you can change that: [idle choices](office-idle.md)).
+  A session that needs you stands at its cabin door and waves with a bubble.
 - A new session or subagent walks in through the lobby. A finished subagent
   hands a paper to its main agent and leaves. An ended session walks out.
 - With nothing running the office is empty and says so.
@@ -211,12 +211,11 @@ changes nothing.
   read the page or the data, and a request that names another host (a DNS
   rebinding attempt) is refused. Anyone who has the link while the office runs
   can look, so do not paste it in a chat.
-- The page watches, and saves only layouts and the default template. Reads are
-  GET requests for the embedded page files, the snapshot, the active layout and
-  the activity log of one session (see below).
-  Three more routes (`PUT /api/layout`, `GET /api/layouts`,
-  `POST /api/layout/use`) change or list layouts, behind the guards in build
-  mode.
+- The page watches, and saves only layouts, the default template and the idle
+  choices (`/api/idle`, see [office-idle.md](office-idle.md)). Reads are GET requests for the embedded page files, the snapshot,
+  the active layout and the activity log of one session (see below). Three
+  more routes (`PUT /api/layout`, `GET /api/layouts`, `POST /api/layout/use`)
+  change or list layouts, behind the guards in build mode.
 - What the snapshot holds: the account ids and labels, the 5h and 7d limit
   percentages and reset times, and per session its handle, account, the name of
   its project folder (not the path), the model, its state, a short reason when it

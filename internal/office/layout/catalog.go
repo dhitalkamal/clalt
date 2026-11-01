@@ -99,3 +99,9 @@ func EmbeddedCatalog() (Catalog, error) {
 	})
 	return embeddedCat, embeddedErr
 }
+
+// ValidID says whether s is a legal room, item or floor id.
+func ValidID(s string) bool { return idRe.MatchString(s) }
+
+// ValidAccount says whether s is a legal account id.
+func ValidAccount(s string) bool { return accountRe.MatchString(s) }

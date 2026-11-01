@@ -13,6 +13,7 @@ import { saveDefault, deleteLayout } from './settings.js';
 import { el } from './dom.js';
 import { startReviews } from './reviews/index.js';
 import { createViewSection } from './viewsection.js';
+import { startIdle } from './idle/index.js';
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -36,8 +37,9 @@ export function startView(first) {
   const build = el('button', '', 'Build mode');
   build.type = 'button';
   const reviews = startReviews();
+  const idle = startIdle();
   const dialog = createSettingsDialog({
-    gear, build, save: saveAndShow, remove: removeAndShow, sections: [reviews.section], left: [view],
+    gear, build, save: saveAndShow, remove: removeAndShow, sections: [reviews.section, idle.section], left: [view],
     loadList: async () => {
       const res = await fetch('/api/layouts', { cache: 'no-store', credentials: 'same-origin' });
       if (!res.ok) throw new Error('http ' + res.status);
