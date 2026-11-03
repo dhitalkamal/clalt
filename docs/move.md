@@ -131,3 +131,10 @@ are entitled to use for the work at hand, for example your own personal account
 and your own work account. Each account's terms of service apply to how you use
 it, and moving a session between accounts does not change that. Turning
 auto-switch on prints a line that says so.
+
+Do not use moves or auto-switch to combine several subscriptions into more
+usage than your plans give you. Anthropic's
+[Usage Policy](https://www.anthropic.com/legal/aup) does not allow bypassing
+restrictions in its products, and plan limits assume ordinary, individual use
+([Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)).
+See also the terms section in the [readme](../README.md).

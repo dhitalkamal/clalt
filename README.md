@@ -1,9 +1,9 @@
 # clalt
 
-Claude alt-account manager. Run several Claude accounts for Claude Code side by
-side from one CLI: sign each account in, start sessions for any of them (in
-parallel), and see a per-account usage dashboard. macOS and Linux; Windows is
-best effort.
+Keep your Claude accounts apart in Claude Code, for example a personal account
+and your work account. Sign each one in, start sessions for any of them (in
+parallel) from one CLI, and see usage per account in a dashboard and a live 3D
+office of your agents. macOS and Linux; Windows is best effort.
 
 Unofficial community tool, not affiliated with Anthropic.
 
@@ -15,10 +15,9 @@ clalt.
 ### 1. Install
 
 Download the archive for your system from the
-[releases page](https://github.com/dhitalkamal/clalt/releases), unpack it and
-put `clalt` on your PATH. Each release lists `checksums.txt`, and the archives
-carry a build attestation you can check with
-`gh attestation verify <archive> --repo dhitalkamal/clalt`.
+[releases page](https://github.com/dhitalkamal/clalt/releases) and put `clalt`
+on your PATH. Check one with `gh attestation verify <archive> --repo
+dhitalkamal/clalt` (or against `checksums.txt`).
 
 With Go:
 
@@ -53,7 +52,7 @@ belongs to another account.
 ```
 clalt run personal         # start claude as personal
 clalt run work             # in another terminal, at the same time
-clalt run                  # let clalt pick the account with the most room
+clalt run                  # pick one of the accounts allowed in this folder
 clalt whoami               # which account this shell is in
 ```
 
@@ -122,8 +121,9 @@ on Windows. Details in [docs/feed.md](docs/feed.md).
 
 ### 7. Optional: the Claude Code plugin
 
-`clalt mcp` is a read-only MCP server, so Claude can answer "which account has
-room right now?". Install it as a plugin from inside Claude Code:
+`clalt mcp` is a read-only MCP server, so Claude can tell you your usage per
+account, your running sessions and what you did today. Install it as a plugin
+from inside Claude Code:
 
 ```
 /plugin marketplace add dhitalkamal/clalt
@@ -155,9 +155,26 @@ history in `~/.claude` is never touched.
   runs can look at it, so do not paste it in a chat.
 - Nothing is sent anywhere by clalt itself. The one exception is opt-in: with
   remote access set up ([docs/office-remote.md](docs/office-remote.md)), the
-  office fetches Cloudflare's public signing keys to check logins. Each account is yours, and each
-  account's terms with Anthropic apply. Auto-switch is meant for accounts you
-  are entitled to use for the work at hand.
+  office fetches Cloudflare's public signing keys to check logins.
+- clalt runs the official claude binary, unmodified. Every sign-in happens in
+  claude's own login flow, and clalt never sees a token.
+
+### Use it within Anthropic's terms
+
+- Every account you add must be your own, and each one stays under its own
+  terms: the [Consumer Terms](https://www.anthropic.com/legal/consumer-terms)
+  for Free, Pro and Max, the
+  [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) for Team,
+  Enterprise and the API. Do not share an account or sign in to someone else's.
+- clalt is for keeping separate accounts apart, like a personal account and a
+  work account. It is not a way to combine subscriptions to get more usage than
+  your plans give you. Anthropic's
+  [Usage Policy](https://www.anthropic.com/legal/aup) does not allow bypassing
+  restrictions in its products, and plan limits assume ordinary, individual
+  use ([Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)).
+- Folder rules, `clalt move` and auto-switch (off by default) are there so the
+  right account serves the right work, for example work repos on the work
+  account. You are responsible for how you use them.
 - clalt is unofficial and not affiliated with Anthropic. It is released under
   the license in [LICENSE](LICENSE), with no warranty.
 
@@ -267,8 +284,8 @@ CLALT_CLAUDE_BIN    the claude binary clalt runs (default claude, from PATH)
 
 ## Contributing and security
 
-Bug reports and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
-Report security problems privately, see [SECURITY.md](SECURITY.md).
+Bug reports and pull requests are welcome ([CONTRIBUTING.md](CONTRIBUTING.md)).
+Report security problems privately ([SECURITY.md](SECURITY.md)).
 
 ## Development
 
