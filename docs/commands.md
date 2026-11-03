@@ -1,10 +1,66 @@
 # Commands
 
-The short list is in the [readme](../README.md). This is what each command does.
+The list of commands comes first, then what each command does.
 Accounts are named by their label on every command line, ignoring case, and
 most commands take `--json`. The label `unattributed`, in any case, is reserved:
 usage reports use it for usage that no account can claim, so `login` and
 `rename` refuse it.
+
+## Command list
+
+```
+clalt login <name>         sign an account in through claude's own login. a new
+                           name makes the account, a removed one comes back
+clalt run <name> [-- ...]  run claude as <name>, in its own folder, with the
+                           history shared with ~/.claude (accounts run in parallel)
+clalt run [-- ...]         run claude as the allowed account with the most room
+                           for this folder
+clalt rules <name>         the folders an account may serve, and auto-switch
+                           (--add-folder, --remove-folder, --auto-switch,
+                           --no-auto-switch)
+clalt move <session> <account>
+                           move a running session at its next pause
+clalt logout <name>        sign the account out, keep its history
+clalt remove <name>        sign out and hide the account, history stays
+                           (--force skips the confirmation)
+clalt remove <name> --delete
+                           sign out, delete its folder and record
+clalt rename <old> <new>   change the label only, the folder never moves
+clalt list                 accounts with their live sign-in state
+clalt whoami               which account this shell is in
+clalt doctor               check claude, the accounts and leftovers of v0.1.0
+                           (only reports, never changes anything)
+clalt migrate [--dry-run]  copy history from per-account profile folders into
+                           the shared projects folder
+clalt sessions             list live parallel run sessions
+clalt resume [words]       list conversations of every account, or continue one
+                           with `clalt resume <id> [--account <name>]`
+clalt launch <name>        run claude as <name> in a new kitty tab or tmux window
+clalt jump <session>       bring the terminal of a running session to the front
+clalt notify [on|off|status|test]
+                           desktop alerts when a session needs you
+clalt feed install|uninstall|status
+                           the live feed for plain claude (forget-default and
+                           remember-default control usage attribution)
+clalt budget [name]        show or set per-account spend caps
+                           (--daily N, --weekly N, --clear)
+clalt usage [name]         local usage stats
+clalt dashboard            full-screen dashboard of accounts, sessions and usage
+clalt dashboard --demo     the dashboard on made-up data, touches no account
+clalt office               live 3D garden campus of your agents in the browser
+                           (--port N, --no-open, --template rows|village|river|street|hall)
+clalt office on|off|open|status [--link]|autostart on|off|status
+                           run the office in the background, start it at login
+clalt office layout list|use <name>|export <name> [file]|import <file>|reset
+                           the office floor plans
+clalt mcp                  read-only MCP server for Claude Code (docs/mcp.md)
+clalt version              print build version (--json for machine-readable)
+```
+
+Add `--json` to most commands for machine-readable output. Accounts are named
+by their label everywhere on the command line, ignoring case. Everything after
+the account name of `clalt run` goes to claude, with or without a `--`, and
+clalt exits with claude's own exit code.
 
 Exit codes: 0 when it worked, 2 for a mistake in the arguments (it prints the
 usage) and for an unknown or retired command, 1 for anything else that went

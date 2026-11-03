@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const testToken = "0123456789abcdef0123456789abcdef"
+const testToken = "test-token-not-a-secret"
 
 func testHandler(t *testing.T) http.Handler {
 	t.Helper()

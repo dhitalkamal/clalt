@@ -14,6 +14,14 @@ clalt.
 
 ### 1. Install
 
+Download the archive for your system from the
+[releases page](https://github.com/dhitalkamal/clalt/releases), unpack it and
+put `clalt` on your PATH. Each release lists `checksums.txt`, and the archives
+carry a build attestation you can check with
+`gh attestation verify <archive> --repo dhitalkamal/clalt`.
+
+With Go:
+
 ```
 go install github.com/dhitalkamal/clalt@latest   # puts clalt in ~/go/bin
 ```
@@ -93,7 +101,8 @@ Esc               leave ground or follow, or go to the overview
 P                 auto spin                 L          labels
 ```
 
-More in [docs/office.md](docs/office.md).
+More in [docs/office.md](docs/office.md). To open the office from your phone or
+another computer, see [docs/office-remote.md](docs/office-remote.md).
 
 ### 6. Optional: the feed for plain claude
 
@@ -110,6 +119,18 @@ It copies `~/.claude/settings.json` to `~/.config/clalt/backups/settings/`,
 then adds clalt's hooks and status line to it, after your own. Your hooks and
 status line keep running. It does not change anything else, and it is refused
 on Windows. Details in [docs/feed.md](docs/feed.md).
+
+### 7. Optional: the Claude Code plugin
+
+`clalt mcp` is a read-only MCP server, so Claude can answer "which account has
+room right now?". Install it as a plugin from inside Claude Code:
+
+```
+/plugin marketplace add dhitalkamal/clalt
+/plugin install clalt@clalt
+```
+
+Details in [docs/mcp.md](docs/mcp.md).
 
 ### Uninstall
 
@@ -132,7 +153,9 @@ history in `~/.claude` is never touched.
 - The office server listens on 127.0.0.1 only, with a new random token per run.
   The page loads nothing from the internet. Anyone who has the link while it
   runs can look at it, so do not paste it in a chat.
-- Nothing is sent anywhere by clalt itself. Each account is yours, and each
+- Nothing is sent anywhere by clalt itself. The one exception is opt-in: with
+  remote access set up ([docs/office-remote.md](docs/office-remote.md)), the
+  office fetches Cloudflare's public signing keys to check logins. Each account is yours, and each
   account's terms with Anthropic apply. Auto-switch is meant for accounts you
   are entitled to use for the work at hand.
 - clalt is unofficial and not affiliated with Anthropic. It is released under
@@ -173,59 +196,8 @@ the rest still work.
 
 ## Commands
 
-```
-clalt login <name>         sign an account in through claude's own login. a new
-                           name makes the account, a removed one comes back
-clalt run <name> [-- ...]  run claude as <name>, in its own folder, with the
-                           history shared with ~/.claude (accounts run in parallel)
-clalt run [-- ...]         run claude as the allowed account with the most room
-                           for this folder
-clalt rules <name>         the folders an account may serve, and auto-switch
-                           (--add-folder, --remove-folder, --auto-switch,
-                           --no-auto-switch)
-clalt move <session> <account>
-                           move a running session at its next pause
-clalt logout <name>        sign the account out, keep its history
-clalt remove <name>        sign out and hide the account, history stays
-                           (--force skips the confirmation)
-clalt remove <name> --delete
-                           sign out, delete its folder and record
-clalt rename <old> <new>   change the label only, the folder never moves
-clalt list                 accounts with their live sign-in state
-clalt whoami               which account this shell is in
-clalt doctor               check claude, the accounts and leftovers of v0.1.0
-                           (only reports, never changes anything)
-clalt migrate [--dry-run]  copy history from per-account profile folders into
-                           the shared projects folder
-clalt sessions             list live parallel run sessions
-clalt resume [words]       list conversations of every account, or continue one
-                           with `clalt resume <id> [--account <name>]`
-clalt launch <name>        run claude as <name> in a new kitty tab or tmux window
-clalt jump <session>       bring the terminal of a running session to the front
-clalt notify [on|off|status|test]
-                           desktop alerts when a session needs you
-clalt feed install|uninstall|status
-                           the live feed for plain claude (forget-default and
-                           remember-default control usage attribution)
-clalt budget [name]        show or set per-account spend caps
-                           (--daily N, --weekly N, --clear)
-clalt usage [name]         local usage stats
-clalt dashboard            full-screen dashboard of accounts, sessions and usage
-clalt dashboard --demo     the dashboard on made-up data, touches no account
-clalt office               live 3D garden campus of your agents in the browser
-                           (--port N, --no-open, --template rows|village|river|street|hall)
-clalt office on|off|open|status [--link]|autostart on|off|status
-                           run the office in the background, start it at login
-clalt office layout list|use <name>|export <name> [file]|import <file>|reset
-                           the office floor plans
-clalt mcp                  read-only MCP server for Claude Code (docs/mcp.md)
-clalt version              print build version (--json for machine-readable)
-```
-
-Add `--json` to most commands for machine-readable output. Accounts are named
-by their label everywhere on the command line, ignoring case. Everything after
-the account name of `clalt run` goes to claude, with or without a `--`, and
-clalt exits with claude's own exit code.
+Every command with its flags is in [docs/commands.md](docs/commands.md#command-list).
+Add `--json` to most commands for machine-readable output.
 
 ## Documentation
 
@@ -250,6 +222,12 @@ The details are in `docs/`, one file per subject:
   [sessions](docs/dashboard.md#sessions) and the dashboard, with its keys
 - [docs/office.md](docs/office.md): `clalt office`, the live 3D office of your
   agents, its controls and what it shows
+- [docs/office-idle.md](docs/office-idle.md): what idle agents do, and how to choose
+- [docs/office-remote.md](docs/office-remote.md): opening the office from another
+  device through a Cloudflare Tunnel
+- [docs/office-versions.md](docs/office-versions.md): how two office tabs save
+  without overwriting each other
+- [docs/mcp.md](docs/mcp.md): `clalt mcp` and the Claude Code plugin
 - [docs/extras.md](docs/extras.md): `clalt resume`, `clalt launch`, `clalt jump`
   and the needs-you alerts
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release
@@ -286,6 +264,11 @@ CLALT_CLAUDE_BIN    the claude binary clalt runs (default claude, from PATH)
   or printed, so an organization name cannot put escape sequences on your
   terminal. The zero width joiners that scripts and emoji need are kept.
 - Cost is an estimate from a static price table that will drift.
+
+## Contributing and security
+
+Bug reports and pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Report security problems privately, see [SECURITY.md](SECURITY.md).
 
 ## Development
 

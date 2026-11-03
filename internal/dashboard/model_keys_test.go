@@ -44,7 +44,7 @@ func TestFilterMatchesLabelsNotIDs(t *testing.T) {
 	}
 	next, _ = Press(next, "esc")
 	next, _ = Press(next, "/")
-	next = TypeText(next, "AUR")
+	next = TypeText(next, "ORD")
 	if out := Screen(next); !strings.Contains(out, "> jordan") || strings.Contains(out, " robin ") {
 		t.Errorf("the filter ignores case:\n%s", out)
 	}

@@ -226,7 +226,7 @@ No paging: the dashboard is the alert surface for a single-user tool.
 - Remove: sign out, keep history.
 - Env token on run: strip it and say so.
 - Migration: fresh sign-in for every account.
-- Worktree: ~/Projects/personal/clalt-wt/dashboard-v2.
+- Worktree: a separate git worktree for the branch.
 
 ## Open assumptions
 
