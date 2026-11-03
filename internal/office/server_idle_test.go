@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -74,7 +75,7 @@ func TestIdlePostRoundTripAndMode(t *testing.T) {
 		t.Errorf("get = %s", got.Body)
 	}
 	fi, err := os.Stat(filepath.Join(e.dir, "idle.json"))
-	if err != nil || fi.Mode().Perm() != 0o600 {
+	if err != nil || (runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600) {
 		t.Errorf("file %v %v", fi, err)
 	}
 }

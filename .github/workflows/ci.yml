@@ -18,9 +18,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    # windows is best effort: its tests have known failures (unix file modes and
-    # paths, feed install refused by design), so a red windows run does not fail ci
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     # backstop against a hang on windows (360 is the github default)
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 15 || 360 }}
     steps:
