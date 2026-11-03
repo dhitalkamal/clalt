@@ -13,9 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   member, subagent type or for everyone, from Settings ("When idle") or the
   activity panel of an agent. Team members can now take breaks when asked.
   Saved in idle.json next to the layouts (`GET` and `POST /api/idle`).
-- Rooms that meet on the hall deck (the Review and Meeting rooms) are
-  separated by a glass wall with a doorway at the front; agents walk
-  through the doorway.
+- The Review and Meeting rooms upstairs in the hall are separate rooms: a
+  solid wall stands between them and a corridor runs in front from the
+  stairs, with a glass front and a door for each room, so nobody walks
+  through one room to reach the other. The meeting room has two desks;
+  extra planners sit in the workspace.
 - The account card in the hall says where its sessions are, for example
   "1 working, 2 on break" (or "1 needs you"), above the 5h and 7d bars.
 - The number on a room sign counts only the agents working in it, not the
