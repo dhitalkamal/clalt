@@ -1,5 +1,6 @@
 // the one scene: stage, world group, the app state and the pieces that rebuild when the roster or layout changes.
 // the building itself lives in scene/apply.js, which fills app.layout and the groups below.
+import { canStand } from './behave/ask.js';
 import * as THREE from 'three';
 import { CHARACTERS } from './assets.js';
 import { createStage, frameRoom } from './stage.js';
@@ -96,7 +97,7 @@ export function makeAgent(s, instant) {
     if (s.state !== 'ended') {
       a.startWalkIn();
       a.arrive();
-      if (s.state === 'needs-you' && slot.stand && slot.kind !== 'stand') a.instantStand();
+      if (s.state === 'needs-you' && canStand(slot) && slot.kind !== 'stand') a.instantStand();
     }
   }
   return a;

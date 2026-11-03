@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- When a subagent starts, its main agent gets up, walks to the new helper's
+  desk, briefs it for a moment and walks back. With reduced motion agents
+  that need you raise a hand in place instead of walking, and a seat with no
+  room to stand raises a hand from the chair.
 - Idle choices: pick what an idle agent does (stay at its desk, take a break,
   hide until it works again, or rest in a room of the hall) per account, team
   member, subagent type or for everyone, from Settings ("When idle") or the

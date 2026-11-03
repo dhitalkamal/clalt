@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { ARM } from './agentConst.js';
 import { workPose } from './agentWork.js';
+import { askPose, seatedAsk } from './behave/ask.js';
+import { reduced } from './behave/motion.js';
 
 const AX = new THREE.Vector3(1, 0, 0);
 const AY = new THREE.Vector3(0, 1, 0);
@@ -38,15 +40,22 @@ export function applyPose(a, t) {
   a.pausing = null;
 
   if (a.mode === 'standing') {
-    // needs-you: right arm raised and swinging, whole body bouncing
-    b['arm-right'].quaternion.setFromAxisAngle(AZ, -1.35 + Math.sin(TAU * 1.5 * t) * 0.4);
-    a.model.position.y = a.slot.y + Math.abs(Math.sin(TAU * 1.4 * t)) * 0.03;
-    rot(b.torso, AZ, Math.sin(TAU * 1.4 * t) * 0.05);
+    // needs-you: right arm raised and swinging, body bouncing; held still with reduced motion
+    const k = askPose(t, reduced());
+    b['arm-right'].quaternion.setFromAxisAngle(AZ, k.arm);
+    a.model.position.y = a.slot.y + k.lift;
+    rot(b.torso, AZ, k.lean);
     return;
   }
   if (a.mode === 'leisure') { leisure(a, t, arms, rot); return; }
 
   const st = a.s.state;
+  if (seatedAsk(a.mode, st, a.slot)) {
+    // no room to stand at this seat: the hand goes up from the chair
+    arms(ARM.lap, ARM.lap);
+    b['arm-right'].quaternion.setFromAxisAngle(AZ, askPose(t, reduced()).arm);
+    return;
+  }
   // a subagent just handed in its work: short thankful nod
   if (a.nodUntil && t < a.nodUntil) rot(b.head, AX, 0.14 * bump(1 - (a.nodUntil - t) / 1.8));
   if (st === 'idle') {
@@ -160,6 +169,14 @@ function leisure(a, t, arms, rot) {
       const sw = a.rallySwing(t);
       arms(ARM.hold, ARM.swing - 0.5 * sw);
       rot(b.torso, AY, 0.18 * sw * (a.spot.name === 'pongA' ? 1 : -1));
+      break;
+    }
+    case 'brief': {
+      // point at the desk and talk: right arm forward with a small beat, head nodding along
+      const e = bump(w);
+      const talk = Math.sin(TAU * 2.2 * t) * 0.1 * e;
+      arms(ARM.hold, ARM.hold + (ARM.type - ARM.hold) * e + talk);
+      rot(b.head, AX, 0.08 * e + talk * 0.5);
       break;
     }
     case 'handoff': {

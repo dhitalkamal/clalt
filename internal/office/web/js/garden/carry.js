@@ -102,7 +102,7 @@ export function remapAgent(a, L, slot) {
       a.curSpot = null;
       a.abort = true;
       a.curNode = tempNode(L, worldPos(a));
-    } else if (a.act === 'handoff') a.curNode = tempNode(L, worldPos(a));
+    } else if (a.act === 'handoff' || a.act === 'brief') a.curNode = tempNode(L, worldPos(a));
   }
   const p = a.path;
   if (a.mode === 'walking' && p && p.dest) {

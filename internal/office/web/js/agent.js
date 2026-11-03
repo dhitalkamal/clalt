@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { applyPose } from './agentPose.js';
 import { installBreaks } from './breaks.js';
+import { installBrief } from './agentBrief.js';
+import { installDesk } from './agentDesk.js';
 import { installBuild } from './agentBuild.js';
 import { disposeTree } from './dispose.js';
 import { installMove } from './agentMove.js';
@@ -9,6 +11,7 @@ import { recColor, isTeamRec, isInternRec, makeInternLook, tickMemberLook, dispo
 import { TAU, BUBBLE_Y, angleDiff } from './agentConst.js';
 import { currentAct } from './behave/work.js';
 import { LOOK } from './behave/look.js';
+import { seatedAsk } from './behave/ask.js';
 import { workIcon } from './workIcons.js';
 import { makeBlob, placeBlob, stripCast } from './agentShadow.js';
 import { makeAccountRing, placeAccountRing, disposeAccountRing } from './agentRing.js';
@@ -66,11 +69,7 @@ export class Agent {
     if (!gone && this.mode === 'away') this.startWalkIn();
     if (gone && this.mode === 'seated') { if (!this.isMain && this.s.leaving) this.startHandoff(); else this.startOut(); }
     else if (gone && (this.mode === 'standing' || (this.mode === 'leisure' && this.act !== 'handoff'))) this.startOut();
-    if (!gone && this.mode === 'seated') {
-      if (this.s.state === 'needs-you' && slot.stand) this.startStand();
-      else if (this.s.state === 'idle' && this.planOffer && t >= this.nextBreakAt) this.startBreak();
-    }
-    if (this.mode === 'standing' && this.s.state !== 'needs-you' && slot.kind !== 'stand') this.startBack();
+    this.tickDesk(t, gone);
     if (this.mode === 'leisure') this.tickLeisure(t);
     if (this.mode === 'walking') this.stepPath(dt);
 
@@ -140,7 +139,7 @@ export class Agent {
     const pulse = 0.8 + 0.25 * Math.sin(t * 4);
     this.ring.children.forEach((d, i) => d.scale.setScalar(pulse * (0.7 + 0.3 * Math.sin(t * 4 + i))));
     const bob = Math.sin(t * 2.4) * 0.03;
-    this.bubble.visible = this.mode === 'standing' && state === 'needs-you';
+    this.bubble.visible = (this.mode === 'standing' && state === 'needs-you') || seatedAsk(this.mode, state, this.slot);
     this.bubble.position.y = BUBBLE_Y + bob;
     this.bubble.material.opacity = 0.85 + 0.15 * Math.sin(t * 3);
     const look = this.workAct && seated && !gone ? LOOK[this.workAct] : null;
@@ -176,3 +175,5 @@ export class Agent {
 installBuild(Agent);
 installMove(Agent);
 installBreaks(Agent);
+installBrief(Agent);
+installDesk(Agent);
