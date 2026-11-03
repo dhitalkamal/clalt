@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The office no longer grows slower each time you switch layouts.
 - Agents in the hall no longer slide through desks and cabins when their
   seat changes: they get up and walk over the floor to the new seat, leaving
   a cabin through its door. A walk that starts inside furniture now heads for

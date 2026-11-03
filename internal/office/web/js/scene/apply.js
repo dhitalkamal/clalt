@@ -16,6 +16,7 @@ import { buildDeck } from './deck.js';
 import { makeBuilder, placeItem } from './items.js';
 import { buildDynamic } from './dynamic.js';
 import { levels, cellToWorld as c2w, worldToCell as w2c } from './geom.js';
+import { releaseRoster } from './release.js';
 import { assignSeats } from './seats.js';
 import { reslot } from '../reslot.js';
 import { applyGarden, teardownGarden, isGarden, cellToWorld as gardenCellToWorld, worldToCell as gardenWorldToCell } from '../garden/index.js';
@@ -152,9 +153,7 @@ export async function applyLayout(layout) {
   drop(app.life && app.life.group);
   app.life = buildLife(L);
   world.add(app.life.group);
-  for (const id of [...app.agents.keys()]) removeAgent(id);
-  app.dynamic = null;
-  app.dimmed = null;
+  releaseRoster(app, removeAgent, drop);
   app.relayoutImpl = refreshSeats;
   refreshSeats();
   for (const rec of agentRecords(app.sessions, app.members)) makeAgent(rec, true);
