@@ -26,6 +26,13 @@ First public release.
   your own accounts only, kept apart, not combined to get more usage.
 - The plugin manifest reports version 0.4.1 and links docs on main.
 
+### Known issues
+
+- Windows stays best effort. Its CI run has known test failures (tests that
+  expect unix file modes and paths, and `feed install`, which is refused on
+  Windows), and saving the state file can fail while another process reads it.
+  The Windows CI job no longer fails the build.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added
