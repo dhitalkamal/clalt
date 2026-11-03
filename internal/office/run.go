@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dhitalkamal/clalt/internal/office/cfaccess"
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 	"github.com/dhitalkamal/clalt/internal/office/summary"
 )
@@ -40,6 +41,8 @@ type Options struct {
 	// Autostart and Version, see Config.
 	Autostart Autostarter
 	Version   string
+	// Access is cloudflare access login on a public host, see Config.
+	Access *cfaccess.Verifier
 	// Started is called once the server listens, with its port and token.
 	Started func(port int, token string)
 }
@@ -78,7 +81,7 @@ func Start(opt Options) (*Instance, error) {
 		Token: tok, Port: port, Hosts: []string{fmt.Sprintf("127.0.0.1:%d", port), fmt.Sprintf("localhost:%d", port)},
 		Snapshot: opt.Snapshot, Logf: opt.Logf, Layouts: opt.Layouts,
 		Generator: opt.Generator, Template: opt.Template, Activity: opt.Activity, Reviews: opt.Reviews,
-		Actions: opt.Actions, Summary: opt.Summary, Autostart: opt.Autostart, Version: opt.Version,
+		Actions: opt.Actions, Summary: opt.Summary, Autostart: opt.Autostart, Version: opt.Version, Access: opt.Access,
 	})
 	if err != nil {
 		ln.Close()

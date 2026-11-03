@@ -201,9 +201,9 @@ changes nothing.
 
 - The page is served from your machine only. The server listens on `127.0.0.1`
   and nothing else, with a random port unless you set one (the background
-  office uses 47321 or the next free port). It needs no network
-  access and the page loads nothing from the internet: the 3D library, the
-  models and the page are inside the clalt binary.
+  office uses 47321 or the next free port). It needs no network access (only
+  the opt-in remote login fetches keys, see [office-remote.md](office-remote.md)) and the page loads
+  nothing from the internet: the 3D library, the models and the page are inside the clalt binary.
 - Every run makes a new random token (the background office keeps it in
   `run.json`, readable by you only). The printed link carries it, the first
   load turns it into a cookie that only this browser sends to this server, and

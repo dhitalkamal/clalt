@@ -106,10 +106,10 @@ func (h *handler) writeAllowed(w http.ResponseWriter, r *http.Request) bool {
 	ok := r.Header.Get(editHeader) == "1"
 	if ok {
 		if o := r.Header.Get("Origin"); o != "" {
-			ok = h.ownOrigin(o)
+			ok = h.ownOrigin(o) || h.accessOrigin(r, o)
 		} else if ref := r.Header.Get("Referer"); ref != "" {
 			u, err := url.Parse(ref)
-			ok = err == nil && h.ownOrigin(u.Scheme+"://"+u.Host)
+			ok = err == nil && (h.ownOrigin(u.Scheme+"://"+u.Host) || h.accessOrigin(r, u.Scheme+"://"+u.Host))
 		} else {
 			ok = false
 		}

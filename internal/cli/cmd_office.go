@@ -184,6 +184,7 @@ func (a *App) runOffice(opt officeArgs, out io.Writer, started func(port int, to
 		Reviews:   revs,
 		Actions:   a.officeActions(),
 		Summary:   a.officeSummary(),
+		Access:    officeAccess(config.OfficeDir(), logf),
 		Snapshot: func() (office.Snapshot, error) {
 			snap, err := office.Build(src)
 			if err == nil {
