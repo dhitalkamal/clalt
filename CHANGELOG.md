@@ -6,8 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
 ### Added
 
+- Open the office from your phone or another computer through a Cloudflare
+  Tunnel: with an access.json, the office trusts Cloudflare Access as the
+  login on that one public hostname and checks every signed request itself
+  (#93, see docs/office-remote.md).
+- PR reviews keep their history: the panel shows reviews of open pull
+  requests, and reviews of merged or closed ones move to a History tab (#77).
+- Big pull requests are reviewed in chunks instead of being skipped or cut;
+  a chunk that fails marks the review as partial, never as clean (#78).
+- A review that fails (a network blip, a failed clone) is retried at the
+  same commit after 5m, 15m, 1h and 3h, up to 5 attempts, and the panel says
+  when the next try is (#79, #80).
+- Delete saved layouts from Settings or the Build mode Layouts menu (#87).
 - When a subagent starts, its main agent gets up, walks to the new helper's
   desk, briefs it for a moment and walks back. With reduced motion agents
   that need you raise a hand in place instead of walking, and a seat with no
@@ -53,6 +67,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The background office started at login can run reviews again: it gets the
+  PATH of your shell and finds gh and claude in the usual places, and
+  `clalt office status` warns when it cannot. Run `clalt office autostart on`
+  once to rewrite the login item (#81).
+- 19 camera fixes: the sky camera no longer flies off or slides at the zoom
+  limit, modes no longer drift or fight each other, keys held while a dialog
+  opens or the tab hides are released, and touch pinch works (#88).
 - The office no longer grows slower each time you switch layouts.
 - Agents in the hall no longer slide through desks and cabins when their
   seat changes: they get up and walk over the floor to the new seat, leaving
@@ -85,45 +106,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   on short wide windows the account cards stay below the status pill.
 - office.log logs a skipped (invalid) layout file once, not on every poll.
 
-## [0.3.0] - 2026-10-28
-
-### Added
-
-- `clalt office on|off|open|status [--link]` runs the office in the
-  background without a terminal (#69); `clalt office autostart on|off|status`
-  and a Settings checkbox start it at login on macOS (launchd). The run token
-  stays in a 0600 run file and the browser cookie only.
-- `clalt mcp`, a read-only stdio MCP server, and a Claude Code plugin (#65):
-  tools limits, best_account, sessions and today. Install with
-  `/plugin marketplace add dhitalkamal/clalt` and `/plugin install clalt@clalt`.
-- Percent history (#64): the feed logs each limit reading per account (numbers
-  only, 90 days) and the office History tab charts the 5h and 7d peak percent
-  per day with a 90 percent line. Today shows the 5h peak and the latest
-  reading.
-- The hall shows only the hall (#72): no outdoor scenery, a plain background,
-  and walls near the camera fade when you orbit low. The camera stays on the
-  area in every template and never goes below the ground.
-
-### Changed
-
-- The office detail panels (activity drawer, hover cards, Today and History,
-  Reviews) use a field notebook style (#70, #73).
-- The office draws on demand (#71): full speed only while you move the camera,
-  slower while only agents move, about 2 frames a second when nothing moves;
-  static shadows are baked once; pixel density is capped. Shift+F shows the
-  frame rate. docs/office.md has a Battery note.
-- The camera bar drops the top, plan, iso and hero presets (keys 6 to 9, #68):
-  the sky camera orbits freely, and Home, Esc and Overview go to one overview.
-
-### Fixed
-
-- Working agents and interns get desks before idle team members, and idle
-  members rest in the cafe when desks run out (#67).
-- One Esc closes the activity drawer and the pinned agent card; the Reviews and
-  Today panels no longer cover the controls row (#73).
-- Two tests that failed under heavy load (#66).
-
 ## Older releases
 
+- [0.3.0] - 2026-10-28: see docs/changelog/0.3.0.md
 - [0.2.0] - 2026-10-28: see docs/changelog/0.2.0.md
 - [0.1.0] - 2026-10-22: see docs/changelog/0.1.0.md
