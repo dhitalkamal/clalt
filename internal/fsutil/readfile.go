@@ -1,12 +1,11 @@
 package fsutil
 
 import (
-	"os"
 	"time"
 )
 
 // openRead is a seam for tests, like rename.
-var openRead = os.ReadFile
+var openRead = readShared
 
 // ReadFile is os.ReadFile that waits out a rename in progress. on Windows an
 // open fails with a sharing violation while another process is replacing the

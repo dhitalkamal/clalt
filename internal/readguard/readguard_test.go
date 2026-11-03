@@ -13,9 +13,10 @@ import (
 
 // allowed lists the files that may call os.ReadFile directly, with why.
 var allowed = map[string]string{
-	"account/switchlog.go": "append-only log, never renamed over",
-	"wrapper/request.go":   "claimed copy is private to the reader",
-	"fsutil/readfile.go":   "the retrying helper itself",
+	"account/switchlog.go":       "append-only log, never renamed over",
+	"wrapper/request.go":         "claimed copy is private to the reader",
+	"fsutil/readfile.go":         "the retrying helper itself",
+	"fsutil/readshared_other.go": "the plain read under the helper, off windows",
 }
 
 // TestNoPlainReadFile fails when a non-test file under internal/ calls
