@@ -22,7 +22,16 @@ First public release.
 - The demo dashboard and the tests use made-up names (robin, casey, morgan,
   jordan, harriet).
 - The full command list moved from the README to docs/commands.md.
+- The README and docs/move.md say how to use clalt within Anthropic's terms:
+  your own accounts only, kept apart, not combined to get more usage.
 - The plugin manifest reports version 0.4.1 and links docs on main.
+
+### Known issues
+
+- Windows stays best effort. Its CI run has known test failures (tests that
+  expect unix file modes and paths, and `feed install`, which is refused on
+  Windows), and saving the state file can fail while another process reads it.
+  The Windows CI job no longer fails the build.
 
 ## [0.4.0] - 2026-11-03
 

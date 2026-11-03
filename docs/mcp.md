@@ -1,7 +1,7 @@
 # MCP server and Claude Code plugin
 
 `clalt mcp` is a read-only MCP server. It lets you ask Claude Code things like
-"which account has the most room right now?" or "what did I do today?" and get
+"how much of my 5-hour window is left?" or "what did I do today?" and get
 the answer from your own clalt data.
 
 It speaks JSON-RPC over stdin and stdout (the MCP stdio transport), opens no
