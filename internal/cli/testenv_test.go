@@ -43,6 +43,8 @@ func newEnv(t *testing.T) *testEnv {
 	app := NewApp()
 	e := &testEnv{t: t, home: home, app: app, claude: installFakeClaude(t), out: &bytes.Buffer{}, errOut: &bytes.Buffer{}}
 	app.Out, app.Err, app.In = e.out, e.errOut, strings.NewReader("")
+	// cleanups run last first, so this waits before the temp dirs are removed
+	t.Cleanup(extChecks.Wait)
 	return e
 }
 
@@ -176,6 +178,10 @@ func (e *testEnv) answer(text string) {
 	e.app.In = strings.NewReader(text)
 	e.app.reader = nil
 }
+
+// feedRefusedOnWindows is the skip reason of the feed install tests:
+// feedSupported refuses the feed there, and its own test covers that.
+const feedRefusedOnWindows = "clalt feed install is refused on windows"
 
 // skipWindows skips a test over a real difference of windows, which the reason
 // names.

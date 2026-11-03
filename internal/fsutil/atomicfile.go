@@ -16,7 +16,7 @@ import (
 
 // rename and retryRename are seams for tests: the retry only matters on Windows
 // and cannot be provoked portably otherwise.
-var rename = os.Rename
+var rename = replaceFile
 var retryRename = runtime.GOOS == "windows"
 
 // the readers of state.json can hold the target open back to back, so the
@@ -27,9 +27,9 @@ const renameAttempts = 50
 // content or the new content in full, never a torn write. It writes to a
 // temp file in the same directory as path (so the later rename stays on one
 // filesystem), fsyncs it, chmods it to perm, then renames it over path.
-// Rename is atomic on both POSIX and Windows (Go's os.Rename uses
-// MoveFileEx with MOVEFILE_REPLACE_EXISTING there), so a crash can only ever
-// leave the old file or the fully-written new one at path.
+// Rename is atomic on both POSIX and Windows (replaceFile uses a posix-style
+// rename there, or MoveFileEx where the file system lacks it), so a crash can
+// only ever leave the old file or the fully-written new one at path.
 func WriteFileAtomic(path string, data []byte, perm os.FileMode) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(path)+"-*")

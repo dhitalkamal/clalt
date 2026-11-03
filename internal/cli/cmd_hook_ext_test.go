@@ -245,6 +245,8 @@ func TestANewPlainClaudeSessionIsNotAttributedWhenTheCheckCannotFinishInTime(t *
 	e.plainClaudeAs("a@example.com")
 	staleMatch(t)
 	e.claude.set("STATUS_HANGS", "1")
+	// past the budget, and short because the test waits for it before cleanup
+	e.claude.set("STATUS_HANG_MS", "1500")
 	old := hookBudget
 	hookBudget = 800 * time.Millisecond
 	t.Cleanup(func() { hookBudget = old })

@@ -14,6 +14,8 @@ type fakeInfo struct{ os.FileInfo }
 
 func (fakeInfo) Mode() os.FileMode { return 0o755 }
 
+// missingResolver follows the unix rules whatever the host, so the paths below
+// hold on a windows runner too.
 func missingResolver(found map[string]bool) reviews.Resolver {
 	return reviews.Resolver{
 		LookPath: func(string) (string, error) { return "", exec.ErrNotFound },
@@ -24,6 +26,7 @@ func missingResolver(found map[string]bool) reviews.Resolver {
 			return nil, os.ErrNotExist
 		},
 		Home: "/home/x",
+		GOOS: "linux",
 	}
 }
 

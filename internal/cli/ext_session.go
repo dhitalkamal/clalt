@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
@@ -137,6 +138,12 @@ func keepExt(store feed.Store, handle string, now time.Time) bool {
 // plain claude session makes a hook ask claude again.
 var extStaleAfter = 5 * time.Minute
 
+// extChecks counts the checks freshExtContext starts, which may outlive the
+// hook. a hook process exits soon after, but the tests run many hooks in one
+// process and wait for these before their temp dirs go: windows cannot delete a
+// claude.exe that is still running.
+var extChecks sync.WaitGroup
+
 // freshExtContext refreshes the cache of the default home inside the hook's
 // budget and returns what it says. false when the check did not finish in time
 // or the home no longer matches an account. the call to claude is not cut short,
@@ -144,7 +151,9 @@ var extStaleAfter = 5 * time.Minute
 // out, so it finishes on its own after the hook is gone.
 func (a *App) freshExtContext(deadline time.Time) (extCtx, bool) {
 	done := make(chan struct{})
+	extChecks.Add(1)
 	go func() {
+		defer extChecks.Done()
 		defer close(done)
 		defer func() { _ = recover() }()
 		_, _ = a.refreshDefault(false)

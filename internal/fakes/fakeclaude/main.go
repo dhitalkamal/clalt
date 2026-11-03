@@ -104,7 +104,12 @@ func fakeStatus(dir, cfg, login string, on func(string) bool, or func(string, st
 		os.Stderr.Write(warn)
 	}
 	if on("STATUS_HANGS") {
-		time.Sleep(10 * time.Second)
+		// STATUS_HANG_MS shortens the hang for tests that wait it out
+		ms, err := strconv.Atoi(or("STATUS_HANG_MS", "10000"))
+		if err != nil {
+			ms = 10000
+		}
+		time.Sleep(time.Duration(ms) * time.Millisecond)
 	}
 	if on("STATUS_BROKEN") {
 		fmt.Fprintln(os.Stderr, percentB(or("STATUS_ERR", "keychain is locked")))

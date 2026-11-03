@@ -41,9 +41,16 @@ func notOnPath(name string) (string, error) {
 	return "", fmt.Errorf("lookup %s: %w", name, exec.ErrNotFound)
 }
 
+// newResolver is a unix resolver whatever the host, so the paths below hold on
+// a windows runner too.
 func newResolver(modes map[string]fs.FileMode) (Resolver, *fakeFS) {
 	f := &fakeFS{modes: modes}
-	return Resolver{LookPath: notOnPath, Stat: f.stat, Home: "/home/u"}, f
+	return Resolver{LookPath: notOnPath, Stat: f.stat, Home: "/home/u", GOOS: "linux"}, f
+}
+
+func newWindowsResolver(modes map[string]fs.FileMode) (Resolver, *fakeFS) {
+	f := &fakeFS{modes: modes}
+	return Resolver{LookPath: notOnPath, Stat: f.stat, Home: `C:\Users\u`, GOOS: "windows"}, f
 }
 
 func TestResolvePathLookupWinsOverFallbackDirs(t *testing.T) {
@@ -149,5 +156,45 @@ func TestResolveWithEmptyHomeSkipsTheHomeDirs(t *testing.T) {
 		if !strings.HasPrefix(p, "/opt/homebrew/bin/") && !strings.HasPrefix(p, "/usr/local/bin/") {
 			t.Errorf("stat ran on %q", p)
 		}
+	}
+}
+
+func TestResolveOnWindowsTakesAPathWithEitherSlashAsGiven(t *testing.T) {
+	for _, p := range []string{`C:\tools\claude.exe`, "C:/tools/claude.exe", "tools/claude"} {
+		r, f := newWindowsResolver(nil)
+		r.LookPath = func(string) (string, error) { t.Error("lookpath ran"); return "", nil }
+		got, err := r.Resolve(p)
+		if err != nil || got != p {
+			t.Errorf("%s: got %q, %v", p, got, err)
+		}
+		if len(f.asked) != 0 {
+			t.Errorf("%s: stat ran on %v", p, f.asked)
+		}
+	}
+}
+
+func TestResolveOnWindowsListsOnlyTheHomeDirs(t *testing.T) {
+	r, _ := newWindowsResolver(nil)
+	want := []string{`C:\Users\u\.local\bin`, `C:\Users\u\go\bin`}
+	if got := r.Dirs(); strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("dirs = %v, want %v", got, want)
+	}
+	r.Home = ""
+	if got := r.Dirs(); len(got) != 0 {
+		t.Errorf("dirs without a home = %v, want none", got)
+	}
+}
+
+// windows files carry no execute bits: a regular file with a program extension
+// is what runs
+func TestResolveOnWindowsFindsTheExeInAFallbackDir(t *testing.T) {
+	r, _ := newWindowsResolver(map[string]fs.FileMode{
+		`C:\Users\u\.local\bin\claude`: 0o666,
+		`C:\Users\u\go\bin\claude.exe`: fs.ModeDir | 0o777,
+		`C:\Users\u\go\bin\claude.cmd`: 0o666,
+	})
+	got, err := r.Resolve("claude")
+	if err != nil || got != `C:\Users\u\go\bin\claude.cmd` {
+		t.Fatalf("got %q, %v", got, err)
 	}
 }

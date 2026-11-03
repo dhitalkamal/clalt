@@ -45,6 +45,7 @@ func feedReady(t *testing.T, body string) *testEnv {
 }
 
 func TestFeedInstallMergesBacksUpAndKeepsTheUsersEntries(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, feedUserFile)
 
 	code := e.run("feed", "install", "--yes")
@@ -88,6 +89,7 @@ func TestFeedInstallKeepsTheUsersStatusLineRunning(t *testing.T) {
 }
 
 func TestFeedInstallAsksFirstAndRefusesWhenNobodyAnswers(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, feedUserFile)
 
 	if code := e.run("feed", "install"); code == 0 {
@@ -104,6 +106,7 @@ func TestFeedInstallAsksFirstAndRefusesWhenNobodyAnswers(t *testing.T) {
 }
 
 func TestFeedInstallNeedsAMatchedDefaultHome(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := newEnv(t)
 	e.signIn("work", "w@example.com")
 	e.plainClaudeAs("someone@else.com")
@@ -117,6 +120,7 @@ func TestFeedInstallNeedsAMatchedDefaultHome(t *testing.T) {
 }
 
 func TestFeedInstallRefusesInvalidJson(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, "")
 	os.WriteFile(e.settingsPath(), []byte(`{"hooks": `), 0o600)
 	e.reset()
@@ -129,6 +133,7 @@ func TestFeedInstallRefusesInvalidJson(t *testing.T) {
 }
 
 func TestFeedInstallTwiceSaysSoAndChangesNothing(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, feedUserFile)
 	e.run("feed", "install", "--yes")
 	after := e.settings()
@@ -145,6 +150,7 @@ func TestFeedInstallTwiceSaysSoAndChangesNothing(t *testing.T) {
 }
 
 func TestFeedUninstallPutsTheUsersFileBack(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, feedUserFile)
 	e.run("feed", "install", "--yes")
 	e.reset()
@@ -157,6 +163,7 @@ func TestFeedUninstallPutsTheUsersFileBack(t *testing.T) {
 }
 
 func TestFeedStatusSaysWhetherItIsInstalled(t *testing.T) {
+	skipWindows(t, feedRefusedOnWindows)
 	e := feedReady(t, feedUserFile)
 	e.run("feed", "status")
 	if !strings.Contains(e.out.String(), "not installed") {
