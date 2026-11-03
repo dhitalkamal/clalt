@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -39,7 +40,7 @@ func TestSaveThenLoadRoundTrips(t *testing.T) {
 	if got.Title != "Mine" || len(got.Furniture) != 2 {
 		t.Errorf("loaded %+v", got)
 	}
-	if st, err := os.Stat(filepath.Join(s.Root, "layouts", "mine.json")); err != nil || st.Mode().Perm()&0o077 != 0 {
+	if st, err := os.Stat(filepath.Join(s.Root, "layouts", "mine.json")); err != nil || (runtime.GOOS != "windows" && st.Mode().Perm()&0o077 != 0) {
 		t.Errorf("file %v mode %v", err, st)
 	}
 }

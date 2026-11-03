@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -36,6 +37,13 @@ func TestDoctorSaysWhichAccountPlainClaudeIs(t *testing.T) {
 
 	if c := got["match"]; c.Status != statusOK || !strings.Contains(c.Detail, "work") || !strings.Contains(c.Detail, "~/.claude") {
 		t.Errorf("match: %+v", c)
+	}
+	if runtime.GOOS == "windows" {
+		// the feed is refused there, so doctor does not offer it
+		if c, ok := got["feed"]; ok {
+			t.Errorf("feed offered on windows: %+v", c)
+		}
+		return
 	}
 	if c := got["feed"]; c.Status != statusOK || !strings.Contains(c.Detail, "clalt feed install") {
 		t.Errorf("feed: %+v", c)

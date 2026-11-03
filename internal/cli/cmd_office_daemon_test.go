@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -178,7 +179,8 @@ func TestServeWritesTheRunFileKeepsTheTokenOutOfTheOutputAndCleansUp(t *testing.
 	if err != nil || r.Port != port || r.PID != os.Getpid() || len(r.Token) != 32 {
 		t.Fatalf("run file %+v %v", r, err)
 	}
-	if fi, _ := os.Stat(filepath.Join(config.OfficeDir(), "run.json")); fi.Mode().Perm() != 0o600 {
+	// windows has no unix permission bits to set
+	if fi, _ := os.Stat(filepath.Join(config.OfficeDir(), "run.json")); runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v", fi.Mode())
 	}
 	if strings.Contains(out.String(), r.Token) {

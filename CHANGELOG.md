@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows: a state file can be replaced while another clalt process is
+  reading it (reads open it with FILE_SHARE_DELETE and the save uses a
+  posix-style rename), so a busy machine no longer fails a save with "Access
+  is denied".
+- Windows: PR reviews find gh and claude under your home (.local\bin,
+  go\bin) as .exe, .cmd or .bat, and take a path written with either slash.
+- The test suite passes on Windows, and the Windows CI job fails the build
+  again.
+
 ## [0.4.1] - 2026-11-03
 
 First public release.

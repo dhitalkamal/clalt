@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -18,11 +19,11 @@ func TestRunFileRoundTripAndModes(t *testing.T) {
 		t.Fatal(err)
 	}
 	fi, err := os.Stat(filepath.Join(dir, "run.json"))
-	if err != nil || fi.Mode().Perm() != 0o600 {
+	if err != nil || (runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600) {
 		t.Fatalf("file mode %v %v", fi, err)
 	}
 	di, _ := os.Stat(dir)
-	if di.Mode().Perm() != 0o700 {
+	if runtime.GOOS != "windows" && di.Mode().Perm() != 0o700 {
 		t.Errorf("dir mode %v", di.Mode().Perm())
 	}
 	got, err := ReadRun(dir)
