@@ -1,0 +1,7 @@
+# fake values in old test files (test tokens, malformed ids), kept in history
+2f54211ff6c0447266552c50900611bf4f664f06:internal/registry/record_test.go:generic-api-key:21
+42acbf5ce83536412ee1b76cdcc9c726bdd97a67:internal/registry/record_test.go:generic-api-key:21
+536db63d23e4834ba8d155dcaa9b55906812edc6:internal/office/server_test.go:generic-api-key:10
+5f72cff6e649e3010acfadf284bf1dd0f450ed63:internal/crew/env_test.go:generic-api-key:80
+93feae668e1947902f47b78de5864ab90670a3f0:internal/office/server_test.go:generic-api-key:10
+ca06db29b5ed9a5d31ba33e6a21422dd9507eab5:internal/crew/env_test.go:generic-api-key:80

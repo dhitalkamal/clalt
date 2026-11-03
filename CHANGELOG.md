@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-03
+
+First public release.
+
+### Added
+
+- SECURITY.md with private vulnerability reporting, CONTRIBUTING.md, issue
+  and pull request templates.
+- The README points to the release archives and how to verify them, and
+  shows how to install the Claude Code plugin.
+
+### Changed
+
+- The demo dashboard and the tests use made-up names (robin, casey, morgan,
+  jordan, harriet).
+- The full command list moved from the README to docs/commands.md.
+- The plugin manifest reports version 0.4.1 and links docs on main.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added

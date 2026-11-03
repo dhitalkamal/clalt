@@ -1,10 +1,10 @@
 {
   "name": "clalt",
   "displayName": "clalt accounts",
-  "version": "0.1.0",
+  "version": "0.4.1",
   "description": "Ask Claude about your clalt accounts: limits, the best account right now, running sessions and today's summary. Read-only, local only.",
   "author": { "name": "dhitalkamal" },
-  "homepage": "https://github.com/dhitalkamal/clalt/blob/develop/docs/mcp.md",
+  "homepage": "https://github.com/dhitalkamal/clalt/blob/main/docs/mcp.md",
   "repository": "https://github.com/dhitalkamal/clalt",
   "keywords": ["clalt", "accounts", "usage", "limits"]
 }

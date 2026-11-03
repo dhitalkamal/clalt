@@ -55,8 +55,7 @@ In Claude Code:
 /plugin install clalt@clalt
 ```
 
-While the repo is private this works for anyone with access to it. The plugin
-lives in [plugin/](../plugin) and the marketplace file is
+The plugin lives in [plugin/](../plugin) and the marketplace file is
 [.claude-plugin/marketplace.json](../.claude-plugin/marketplace.json). The
 tools show up as `mcp__plugin_clalt_clalt__limits` and so on.
 

@@ -17,16 +17,16 @@ func TestFilterNarrowsTheListAndShowsTheTextAboveIt(t *testing.T) {
 	if !strings.Contains(screen(m), "/ type to filter") {
 		t.Error("an empty filter should show a placeholder")
 	}
-	m = typeText(m, "sh")
+	m = typeText(m, "e")
 	out := screen(m)
 	for _, gone := range []string{"| > robin", "|   morgan", "|   jordan"} {
 		if strings.Contains(out, gone) {
-			t.Errorf("filter sh should hide the row %q", gone)
+			t.Errorf("filter e should hide the row %q", gone)
 		}
 	}
 	filterRow, listRow := -1, -1
 	for i, l := range strings.Split(out, "\n") {
-		if strings.Contains(l, "/ sh") {
+		if strings.Contains(l, "/ e") {
 			filterRow = i
 		}
 		if strings.Contains(l, "|   harriet") {
@@ -44,9 +44,9 @@ func TestFilterNarrowsTheListAndShowsTheTextAboveIt(t *testing.T) {
 func TestFilterBackspaceEscAndEnter(t *testing.T) {
 	m := sized(config{ascii: true}, 100, 30)
 	m, _ = press(m, "/")
-	m = typeText(m, "sh")
+	m = typeText(m, "ey")
 	m, _ = press(m, "backspace")
-	if !strings.Contains(screen(m), "/ s") {
+	if !strings.Contains(screen(m), "/ e") {
 		t.Error("backspace should drop the last character")
 	}
 	m, _ = press(m, "backspace")
@@ -57,20 +57,20 @@ func TestFilterBackspaceEscAndEnter(t *testing.T) {
 		}
 	}
 
-	m = typeText(m, "sh")
+	m = typeText(m, "e")
 	kept, cmd := press(m, "enter")
-	if quits(cmd) || !strings.Contains(screen(kept), "/ sh") || strings.Contains(screen(kept), "morgan") {
+	if quits(cmd) || !strings.Contains(screen(kept), "/ e") || strings.Contains(screen(kept), "morgan") {
 		t.Error("enter should keep the filter and leave typing mode")
 	}
 	if _, cmd := press(kept, "q"); !quits(cmd) {
 		t.Error("q should quit once the filter is no longer being typed")
 	}
 	cleared, cmd := press(kept, "esc")
-	if quits(cmd) || strings.Contains(screen(cleared), "/ sh") || !strings.Contains(screen(cleared), "morgan") {
+	if quits(cmd) || strings.Contains(screen(cleared), "/ e") || !strings.Contains(screen(cleared), "morgan") {
 		t.Error("esc should clear a kept filter")
 	}
 	cleared, _ = press(m, "esc")
-	if strings.Contains(screen(cleared), "/ sh") || !strings.Contains(screen(cleared), "morgan") {
+	if strings.Contains(screen(cleared), "/ e") || !strings.Contains(screen(cleared), "morgan") {
 		t.Error("esc while typing should clear the filter")
 	}
 }
@@ -106,8 +106,8 @@ func TestSlashFocusesTheAccountsPane(t *testing.T) {
 		t.Fatal("setup: expected the detail pane")
 	}
 	m, _ = press(m, "/")
-	m = typeText(m, "an")
-	if out := screen(m); !strings.Contains(out, "/ an") || !strings.Contains(out, "casey") {
+	m = typeText(m, "ca")
+	if out := screen(m); !strings.Contains(out, "/ ca") || !strings.Contains(out, "casey") {
 		t.Errorf("/ should bring the accounts pane forward so the filter is visible:\n%s", out)
 	}
 }
@@ -115,7 +115,7 @@ func TestSlashFocusesTheAccountsPane(t *testing.T) {
 func TestKeptFilterHintsAtEscape(t *testing.T) {
 	m := sized(config{ascii: true}, 100, 30)
 	m, _ = press(m, "/")
-	m = typeText(m, "sh")
+	m = typeText(m, "e")
 	m, _ = press(m, "enter")
 	if !strings.Contains(screen(m), "esc clear filter") {
 		t.Error("a kept filter should be announced in the footer")

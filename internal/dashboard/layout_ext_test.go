@@ -25,7 +25,7 @@ func TestEveryStateFitsEverySize(t *testing.T) {
 			base := sized(config{ascii: ascii}, w, h)
 			help, _ := press(base, "?")
 			flt, _ := press(base, "/")
-			flt = typeText(flt, "sh")
+			flt = typeText(flt, "e")
 			none := typeText(flt, "zz")
 			flashed, cmd := press(base, "enter")
 			flashed = settle(flashed, cmd)

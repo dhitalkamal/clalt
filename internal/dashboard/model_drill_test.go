@@ -209,11 +209,11 @@ func TestEscOnTheAccountsPaneLeavesTheDrillAlone(t *testing.T) {
 
 func TestEscBacksOutOneLevelAtATime(t *testing.T) {
 	m, _ := actionModel(&fakeActions{})
-	m = pressSettle(m, "/", "k", "a", "m", "enter", "4", "tab", "l", "enter")
-	if !m.drill.open() || m.filter != "kam" {
+	m = pressSettle(m, "/", "r", "o", "b", "enter", "4", "tab", "l", "enter")
+	if !m.drill.open() || m.filter != "rob" {
 		t.Fatalf("setup: drill %q, filter %q", m.drill.project, m.filter)
 	}
-	if m = pressSettle(m, "esc"); m.drill.open() || m.filter != "kam" {
+	if m = pressSettle(m, "esc"); m.drill.open() || m.filter != "rob" {
 		t.Errorf("the first esc leaves the drill-in and keeps the filter: %q %q", m.drill.project, m.filter)
 	}
 	if m = pressSettle(m, "esc"); m.filter != "" {

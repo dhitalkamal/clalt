@@ -1,6 +1,6 @@
  clalt                                                        5 accounts, 3 running, updated 4s ago
  +- Accounts -------------+ +- casey -------------------------------------------------------------+
- | / sh                   | | [Overview]   Sessions    Limits    History    Profile               |
+ | / e                    | | [Overview]   Sessions    Limits    History    Profile               |
  |                        | |                                                                     |
  | > casey     95% ! * 1  | | casey@example.com   Example   max plan                              |
  |   harriet  signed out  | | Signed in. Re-login due in 19 days. Last used 11m ago.              |

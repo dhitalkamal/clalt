@@ -18,7 +18,7 @@ func TestValidHandleRefusesAnythingThatCouldLeaveTheFolder(t *testing.T) {
 	if !ValidHandle(good) {
 		t.Errorf("%q refused", good)
 	}
-	for _, bad := range []string{"", "../etc/passwd", "0123456789abcde", "0123456789abcdef0", "0123456789ABCDEF", "0123456789abcde/", "zzzzzzzzzzzzzzzz"} {
+	for _, bad := range []string{"", "../etc/passwd", "0123456789abcde", "0123456789abcdef0", "0123456789ABCDEF", "0123456789abcde/", "zzzzzzzzzzzzzzzz"} { // gitleaks:allow, malformed handles
 		if ValidHandle(bad) {
 			t.Errorf("%q accepted", bad)
 		}
