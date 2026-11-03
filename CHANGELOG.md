@@ -47,6 +47,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Agents in the hall no longer slide through desks and cabins when their
+  seat changes: they get up and walk over the floor to the new seat, leaving
+  a cabin through its door. A walk that starts inside furniture now heads for
+  the nearest open floor first instead of cutting straight across.
 - Two office tabs no longer overwrite each other: idle choices merge the
   change of each tab, and the layout editor asks before replacing a layout
   another tab saved ("Load theirs" or "Keep mine").

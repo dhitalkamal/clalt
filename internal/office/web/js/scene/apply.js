@@ -17,6 +17,7 @@ import { makeBuilder, placeItem } from './items.js';
 import { buildDynamic } from './dynamic.js';
 import { levels, cellToWorld as c2w, worldToCell as w2c } from './geom.js';
 import { assignSeats } from './seats.js';
+import { reslot } from '../reslot.js';
 import { applyGarden, teardownGarden, isGarden, cellToWorld as gardenCellToWorld, worldToCell as gardenWorldToCell } from '../garden/index.js';
 
 export { levels };
@@ -97,13 +98,10 @@ function refreshSeats() {
   const sway = [...(app.statics ? app.statics.b.sway : []), ...app.dynamic.sway];
   app.ticks = [...(app.statics ? app.statics.b.ticks : []), (t) => { for (const s of sway) s.obj.rotation.z = Math.sin(t * 0.8 + s.phase) * 0.03; }];
   syncHidden(slots);
+  // a moved seat walks over the floor: gliding the rig there would cut through the furniture
   for (const [id, a] of [...app.agents]) {
     const ns = slots.get(id);
-    if (ns && (a.slot.kind !== ns.kind || a.slot.side !== ns.side)) {
-      removeAgent(id);
-      const rec = recordOf(id);
-      if (rec) makeAgent(rec, true);
-    }
+    if (ns) reslot(L, id, a, ns, { recordOf, removeAgent, makeAgent });
   }
   refreshLabels();
 }

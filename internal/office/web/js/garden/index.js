@@ -38,7 +38,7 @@ import { disposeRes } from './res.js';
 import { enterGardenStage, leaveGardenStage, fitLight, fitFog } from './stagefx.js';
 import { goTo, cameraTick, presetPose, fitBounds } from './cameras.js';
 import { assignGardenSeats } from './slots.js';
-import { carryAction, snapshotMove, walkToSeat, remapAgent } from './carry.js';
+import { reslot } from '../reslot.js';
 import { buildSpares } from './dynamic.js';
 import { gardenLabels } from './labels.js';
 import { onBadgeChange, syncBadges } from './badge.js';
@@ -67,24 +67,7 @@ function spaceOf(L, slot) {
   return pav ? pav.type : 'lobby';
 }
 
-// one agent after a re-plan. carryAction (pure, carry.js) decides: same seat keeps its object (re-pointed at a rebuilt
-// layout), a moved seat or another kind of seat gets a fresh rig and walks there from where the old agent stood, an
-// intern past the stools loses its character (counted in a badge), an agent the roster no longer has is dropped
-function reslot(L, id, a, ns) {
-  const rec = recordOf(id);
-  const act = carryAction(a, ns, rec, L);
-  if (act === 'keep') return;
-  if (act === 'drop') { removeAgent(id); return; }
-  if (act === 'hide') { rec.hid = true; removeAgent(id); return; }
-  if (act === 'remap') { remapAgent(a, L, ns); return; }
-  const snap = snapshotMove(a);
-  removeAgent(id);
-  const n = makeAgent(rec, true);
-  if (!n) return;
-  n.scale = 0.001;
-  n.rig.scale.setScalar(0.001);
-  walkToSeat(n, snap, L);
-}
+const reslotDeps = { recordOf, removeAgent, makeAgent };
 
 // a hidden intern gets its character back when a stool frees up
 function unhide(slots) {
@@ -112,7 +95,7 @@ export function refreshGardenSeats() {
   drop(app.dynamic && app.dynamic.group);
   app.dynamic = { group: buildSpares(L, taken, tintFor), sway: [], wings: [] };
   world.add(app.dynamic.group);
-  for (const [id, a] of [...app.agents]) reslot(L, id, a, slots.get(id));
+  for (const [id, a] of [...app.agents]) reslot(L, id, a, slots.get(id), reslotDeps);
   unhide(slots);
   ui.setLabels(gardenLabels(L, app.accounts));
   refreshShadows(stage);

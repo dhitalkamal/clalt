@@ -38,22 +38,28 @@ export function makeRouter({ grids, f, stairs, entry, door, cellOf, levels }) {
     return cells.map((c) => ({ ...centre({ x: c.x - 0.5, z: c.z - 0.5 }), y: levels[level] }));
   }
 
+  const sameCell = (n) => { const c = cellOf(n.ap); return c.x === n.cell.x && c.z === n.cell.z; };
+
   // points between two nodes, both ends included
   function route(a, b) {
     const out = [pt(a, a.level)];
     for (let i = a.inner.length - 2; i >= 0; i--) out.push(pt(a.inner[i], a.level));
     if (a.inner.length) out.push(pt(a.ap, a.level));
     const middle = [];
+    // the walk's end cells are dropped when the node's own point stands in them; a point inside furniture was moved
+    // to the nearest open cell, and that cell is kept so nobody heads straight for a far waypoint through the furniture
+    const from = sameCell(a) ? 1 : 0;
+    const cut = (w) => (sameCell(b) ? w.slice(0, -1) : w);
     if (a.level === b.level) {
       const w = walk(a.level, a.cell, b.cell);
-      if (w) middle.push(...w.slice(1, -1));
+      if (w) middle.push(...cut(w.slice(from)));
     } else if (st) {
       const up = a.level === 0;
       const w1 = up ? walk(0, a.cell, st.entry) : walk(1, a.cell, st.land);
       const w2 = up ? walk(1, st.land, b.cell) : walk(0, st.entry, b.cell);
-      if (w1) middle.push(...w1.slice(1));
+      if (w1) middle.push(...w1.slice(from));
       middle.push(...(up ? st.up : [...st.up].reverse()));
-      if (w2) middle.push(...w2.slice(0, -1));
+      if (w2) middle.push(...cut(w2));
     }
     out.push(...middle);
     out.push(pt(b.ap, b.level));
