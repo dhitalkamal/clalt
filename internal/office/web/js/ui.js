@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { el, clear, age } from './dom.js';
 import { MAX_SESSIONS } from './model.js';
-import { fitLabels } from './labelfit.js';
+import { fitLabels, topBand } from './labelfit.js';
 import { teamCard } from './cardinfo.js';
 import { stampNode, chipNode } from './notebook.js';
 
@@ -26,13 +26,15 @@ let wingExtra = null;
 export function setWingExtra(fn) { wingExtra = fn; }
 export const wingKey = (id) => (wingExtra && id ? wingExtra(id).key : '');
 
-export function renderWing(div, label, limits, id) {
+export function renderWing(div, label, limits, id, line = '') {
   // zpct is what the compact one-line card shows in place of the bars: the busiest window
   const used = [limits && limits.fiveHour, limits && limits.sevenDay].filter(Boolean).map((w) => Math.round(w.usedPct));
   const worst = used.length ? Math.max(...used) : null;
   const zname = el('div', 'zname', label);
   zname.append(el('span', 'zpct ' + (worst === null ? '' : barClass(worst)), worst === null ? '?' : worst + '%'));
-  div.append(zname, bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
+  div.append(zname);
+  if (line) div.append(el('div', 'zline', line));
+  div.append(bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
   if (wingExtra && id) wingExtra(id).render(div);
 }
 
@@ -123,6 +125,22 @@ export class UI {
     return size;
   }
 
+  // the status pill and the bottom buttons as boxes labels must stay clear of. re-measured only when
+  // the window or the pill text changes
+  fixedBoxes(w, h) {
+    const key = `${w}x${h}|${this.sig}`;
+    if (this.fixedKey !== key) {
+      this.fixedKey = key;
+      this.fixedRects = ['status', 'controls'].map((id) => $(id)).filter((n) => n && n.offsetWidth).map((n) => {
+        const r = n.getBoundingClientRect();
+        return { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
+      });
+      const band = topBand(w, h, this.fixedRects[0] && this.fixedRects[0].y0 < 100 ? this.fixedRects[0] : null);
+      if (band) this.fixedRects = [band, ...this.fixedRects];
+    }
+    return this.fixedRects;
+  }
+
   place() {
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
@@ -137,7 +155,7 @@ export class UI {
       const z = this.sizes(rec);
       items.push({ id, x: rec.sx, y: rec.sy, w: z.w * sc, h: z.h * sc, cw: z.cw ? z.cw * sc : 0, ch: z.ch ? z.ch * sc : 0, pri: rec.cls === 'zone' ? 1 : 0 });
     }
-    const fit = fitLabels(items, { prev: this.fitPrev });
+    const fit = fitLabels(items, { prev: this.fitPrev, fixed: this.fixedBoxes(w, h) });
     this.fitPrev = fit;
     const live = new Set();
     for (const [id, rec] of this.labels) {

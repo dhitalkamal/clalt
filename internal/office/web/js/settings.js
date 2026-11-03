@@ -1,4 +1,5 @@
 // settings model: what the dialog lists, what it sends and what it says when that fails. no dom.
+import { failText } from './lostaccess.js';
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 export const SAVE_LABEL = 'Set as default';
 const PREFIX = 'could not save the default office: ';
@@ -22,7 +23,18 @@ export function layoutOptions(reply) {
   return { active, options };
 }
 
-export const confirmText = (title) => title + ' is now your default. It opens every time you run clalt office.';
+// line sketches for the picture cards, drawn in a 100x58 box. saved layouts have no known shape, they get a plain floor.
+const SKETCHES = {
+  rows: 'M10 14h80M10 30h80M10 46h80',
+  village: 'M20 20h18v14H20zM60 12h22v18H60zM34 40h26v10H34z',
+  river: 'M0 30c20-14 40 14 60 0s30-10 40 0',
+  street: 'M0 30h100M20 10v40M50 10v40M80 10v40',
+  hall: 'M8 8h84v42H8zM8 26h50M58 8v42',
+};
+const PLAIN_SKETCH = 'M14 10h72v38H14zM14 22h72';
+export const templateSketch = (id) => SKETCHES[id === 'default' ? 'hall' : id] || PLAIN_SKETCH;
+
+export const confirmText =(title) => title + ' is now your default. It opens every time you run clalt office.';
 
 // nothing to set when no option is picked or the pick already is the default
 export const canSetDefault = (picked, current) => !!picked && picked !== current;
@@ -37,7 +49,7 @@ export function saveRequest(id) {
 // one line for the error row. text is the server's one line body, status the http code
 export function errorText({ status, text, network } = {}) {
   if (network) return PREFIX + 'clalt office is not reachable';
-  return PREFIX + ((text || '').trim() || 'http ' + status);
+  return PREFIX + (failText(status, text));
 }
 
 // resolves to the reply body, throws an Error whose message is ready to show
@@ -49,6 +61,39 @@ export async function saveDefault(id, fetchFn = fetch) {
     let text = '';
     try { text = await res.text(); } catch (e) { /* no body, the status says enough */ }
     throw new Error(errorText({ status: res.status, text }));
+  }
+  return res.json();
+}
+
+// delete a saved layout: POST /api/layout/delete answers with the new list, like GET /api/layouts
+export const DELETE_LABEL = 'Delete';
+export const CONFIRM_LABEL = 'Delete layout?';
+export const deletedNote = (title) => 'Deleted ' + title + '.';
+// templates are generated and never deleted: only saved layouts get the button
+export const canDelete = (option) => !!option && option.group === 'saved';
+
+export function deleteRequest(name) {
+  return {
+    url: '/api/layout/delete',
+    init: { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ name }) },
+  };
+}
+
+export function deleteErrorText({ status, text, network } = {}) {
+  const prefix = 'could not delete the layout: ';
+  if (network) return prefix + 'clalt office is not reachable';
+  return prefix + (failText(status, text));
+}
+
+// resolves to the new list, a failure throws an Error whose message is ready to show
+export async function deleteLayout(name, fetchFn = fetch) {
+  const { url, init } = deleteRequest(name);
+  let res;
+  try { res = await fetchFn(url, init); } catch (e) { throw new Error(deleteErrorText({ network: true })); }
+  if (!res.ok) {
+    let text = '';
+    try { text = await res.text(); } catch (e) { /* no body, the status says enough */ }
+    throw new Error(deleteErrorText({ status: res.status, text }));
   }
   return res.json();
 }
@@ -79,13 +124,13 @@ export function autostartRequest(on) {
 export function autostartErrorText({ status, text, network } = {}) {
   const prefix = 'could not change start at login: ';
   if (network) return prefix + 'clalt office is not reachable';
-  return prefix + ((text || '').trim() || 'http ' + status);
+  return prefix + (failText(status, text));
 }
 
 // both resolve to the model, a failure throws an Error whose message is ready to show
 export async function loadAutostart(fetchFn = fetch) {
   const res = await fetchFn(AUTOSTART_URL, { cache: 'no-store', credentials: 'same-origin' });
-  if (!res.ok) throw new Error('http ' + res.status);
+  if (!res.ok) throw new Error(failText(res.status, ''));
   return autostartModel(await res.json());
 }
 

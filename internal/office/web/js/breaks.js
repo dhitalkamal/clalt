@@ -82,6 +82,7 @@ export function installBreaks(Agent) {
 
   P.tickLeisure = function tickLeisure(t) {
     this.syncProps();
+    if (this.act === 'brief') { this.tickBrief(t); return; }
     if (!this.plan && this.act !== 'handoff') return;
     const abort = this.abort || (this.s.state !== 'idle' && this.act !== 'handoff');
     if (this.act === 'handoff') {

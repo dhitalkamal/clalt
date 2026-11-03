@@ -6,6 +6,9 @@ import { goCam } from './camseam.js';
 import { loadCatalog } from './catalog.js';
 import { applyLayout, cellToWorld, worldToCell } from './scene/apply.js';
 import { roomTypeFor } from './routing.js';
+import { deleteLayout } from './settings.js';
+import { createLayoutSaver } from './layoutsave.js';
+import { failText } from './lostaccess.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
 
@@ -13,15 +16,14 @@ const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' }
 async function check(res) {
   if (res.ok) return res;
   const text = (await res.text()).trim();
-  throw new Error(text || 'http ' + res.status);
+  throw new Error(failText(res.status, text));
 }
 
 const getJSON = async (url) => (await check(await fetch(url, { cache: 'no-store', credentials: 'same-origin' }))).json();
 
-async function save(layout) {
-  const res = await fetch('/api/layout', { method: 'PUT', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify(layout) });
-  await check(res);
-}
+// holds the version of the layout the editor has, sent as If-Match on every save
+const saver = createLayoutSaver();
+const save = (layout) => saver.save(layout);
 
 // built-in templates: the layouts the server lists as built in, as the page ships them
 async function templates() {
@@ -35,18 +37,25 @@ async function templates() {
   return out;
 }
 
-const layouts = {
+// onSwitched runs after the active layout was deleted and the server fell back to the default
+const layouts = (onSwitched) => ({
+  async remove(name, wasActive) {
+    await deleteLayout(name);
+    if (wasActive) await saver.refresh().catch(() => {});
+    if (wasActive && onSwitched) await onSwitched();
+  },
   async list() {
     const { active, layouts: list } = await getJSON('/api/layouts');
-    return list.map((l) => ({ name: l.name, title: l.title || l.name, active: l.name === active }));
+    return list.map((l) => ({ name: l.name, title: l.title || l.name, active: l.name === active, builtin: !!l.builtin }));
   },
   async use(name) {
     const res = await check(await fetch('/api/layout/use', { method: 'POST', headers: JSON_HEADERS, credentials: 'same-origin', body: JSON.stringify({ name }) }));
+    saver.adopt(res);
     const body = await res.json();
     await applyLayout(body.layout);
     return body.layout;
   },
-};
+});
 
 // how many live agents want a seat in a room of this type, for the seat count check
 function demand(room) {
@@ -56,11 +65,12 @@ function demand(room) {
 }
 
 // button is the settings dialog's Build mode button, it toggles the editor
-export async function startEditor(layout, button) {
+export async function startEditor(layout, button, onSwitched) {
+  await saver.refresh().catch(() => {});
   const accounts = () => [...app.accounts].map(([id, a]) => ({ id, name: a.label }));
   return mountEditor({
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,
-    camera: stage.camera, renderer: stage.renderer, templates, layouts, sessionCount: demand,
+    camera: stage.camera, renderer: stage.renderer, templates, layouts: layouts(onSwitched), sessionCount: demand,
     get accounts() { return accounts(); },
     onOpen: () => { app.editing = true; setPreset(stage, 'top'); goCam('top', true); },
     onClose: () => { app.editing = false; },

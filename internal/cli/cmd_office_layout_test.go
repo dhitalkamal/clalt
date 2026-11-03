@@ -164,7 +164,7 @@ func TestOfficeEditFlagIsANoOp(t *testing.T) {
 		url, stop := startOffice(t, e, func(string) error { return nil }, args...)
 		base, token, _ := strings.Cut(url, "/?t=")
 		code, body := fetch(t, base+"/api/layout", token)
-		if code != 200 || !strings.Contains(body, `"edit":true`) || !strings.Contains(body, `"name":"rows"`) {
+		if code != 200 || !strings.Contains(body, `"edit":true`) || !strings.Contains(body, `"name":"default"`) {
 			t.Errorf("edit=%v: %d %s", edit, code, body)
 		}
 		req, _ := http.NewRequest("GET", base+"/api/layouts", nil)
@@ -198,7 +198,7 @@ func TestOfficeLayoutListShowsTemplatesAndUseTakesThem(t *testing.T) {
 			t.Errorf("list misses %q:\n%s", want, out)
 		}
 	}
-	if !strings.Contains(out, "* rows") {
+	if !strings.Contains(out, "* hall") {
 		t.Errorf("the default template is not marked active:\n%s", out)
 	}
 	if e.run("office", "layout", "use", "river") != 0 {

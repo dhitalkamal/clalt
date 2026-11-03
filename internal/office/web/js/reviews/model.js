@@ -6,6 +6,9 @@ const REPO = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 
 export const badgeText = (n) => (n > 99 ? '99+' : String(n));
 
+// reviews the open tab shows, for the badge: merged and closed pull requests are history
+export const openCount = (reply) => list(reply && reply.reviews).filter((r) => r.state !== 'merged' && r.state !== 'closed').length;
+
 // the inbox button shows when reviews are on, or when old results are still there
 export const showButton = (r) => !!r && (r.enabled === true || r.count > 0);
 
@@ -27,15 +30,48 @@ function toneOf(row) {
   return SEVERITIES.find((s) => c[s] > 0) || 'clean';
 }
 
+const pad = (n) => String(n).padStart(2, '0');
+
+// the attempt cap comes from the reply. anything but a positive integer means unknown, so no max is shown
+const capOf = (reply) => (reply && Number.isInteger(reply.maxAttempts) && reply.maxAttempts > 0 ? reply.maxAttempts : 0);
+
+// retry state of a failed review: only while the server still has a retry pending (nextRetryAt set)
+function retryOf(row, max) {
+  if (!row.error || !row.nextRetryAt) return '';
+  const t = new Date(row.nextRetryAt);
+  if (Number.isNaN(t.getTime())) return '';
+  const next = (Number.isInteger(row.attempts) && row.attempts > 0 ? row.attempts : 1) + 1;
+  return 'retrying at ' + pad(t.getHours()) + ':' + pad(t.getMinutes()) + ' (attempt ' + next + (max ? ' of ' + max : '') + ')';
+}
+
 // rows of the inbox, newest first. now is epoch ms
 export function inboxRows(reply, now) {
+  const max = capOf(reply);
   const rows = list(reply && reply.reviews).map((r) => ({
     id: r.id, title: r.title || '(no title)', ref: r.repo + '#' + r.number, author: r.author || '-', handle: r.handle || '',
     when: age(Math.max(0, now - Date.parse(r.endedAt))), at: Date.parse(r.endedAt) || 0,
-    tone: toneOf(r), summary: summaryOf(r), account: r.account || '',
-  }));
+    tone: toneOf(r), summary: summaryOf(r), retry: retryOf(r, max), account: r.account || '',
+  })).map((r) => ({ ...r, tip: r.title + ' (' + r.ref + ')' }));
   return rows.sort((a, b) => b.at - a.at || (a.id < b.id ? -1 : 1));
 }
+
+// the two tabs. history is merged and closed rows with a badge and the utc day, anything else is open
+export function tabRows(reply, now) {
+  const state = new Map(list(reply && reply.reviews).map((r) => [r.id, r.state]));
+  const out = { open: [], history: [] };
+  for (const r of inboxRows(reply, now)) {
+    const s = state.get(r.id);
+    if (s === 'merged' || s === 'closed') out.history.push({ ...r, state: s, badge: s.toUpperCase(), date: new Date(r.at).toISOString().slice(0, 10) });
+    else out.open.push({ ...r, state: s === 'open' ? s : 'unknown', badge: '' });
+  }
+  return out;
+}
+
+// the tab button labels with the size of each list, capped like the badge
+export const tabLabels = (tabs) => ({
+  open: 'Open (' + badgeText(list(tabs && tabs.open).length) + ')',
+  history: 'History (' + badgeText(list(tabs && tabs.history).length) + ')',
+});
 
 export const whereText = (f) => (f.file ? (f.line > 0 ? f.file + ':' + f.line : f.file) : '');
 
@@ -64,18 +100,28 @@ export function lastCheckedText(iso, now) {
 // the settings section: on/off and every repo that is opted in or suggested
 export function settingsModel(view, now = Date.now()) {
   const on = new Set(list(view && view.repos));
-  const names = [...new Set([...on, ...list(view && view.suggestions)])].sort();
+  const seen = new Set();
+  const names = [...on, ...list(view && view.suggestions)].filter((n) => !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase())).sort();
   return { enabled: !!(view && view.enabled), repos: names.map((name) => ({ name, on: on.has(name) })), lastChecked: lastCheckedText(view && view.lastChecked, now) };
 }
 
 export const setEnabled = (m, enabled) => ({ ...m, enabled });
 export const toggleRepo = (m, name, on) => ({ ...m, repos: m.repos.map((r) => (r.name === name ? { ...r, on } : r)) });
 
+// pasted forms: owner/name, a trailing slash or .git, a github.com url, or a pull/issue url of the repo
+export function normalizeRepo(text) {
+  let s = String(text || '').trim().replace(/\/+$/, '');
+  const url = /^(?:https?:\/\/)?(?:www\.)?github\.com\/(.*)$/i.exec(s);
+  if (url) s = url[1].split('/').slice(0, 2).join('/');
+  return s.replace(/\.git$/i, '');
+}
+
 // adds a repo typed by hand, opted in. an existing name is just switched on
 export function addRepo(m, text) {
-  const name = String(text || '').trim();
+  const name = normalizeRepo(text);
   if (!REPO.test(name) || name.startsWith('.') || name.includes('..')) return { model: m, error: 'a repository is written owner/name' };
-  if (m.repos.some((r) => r.name === name)) return { model: toggleRepo(m, name, true), error: '' };
+  const same = m.repos.find((r) => r.name.toLowerCase() === name.toLowerCase());
+  if (same) return { model: toggleRepo(m, same.name, true), error: '' };
   const repos = [...m.repos, { name, on: true }].sort((a, b) => (a.name < b.name ? -1 : 1));
   return { model: { ...m, repos }, error: '' };
 }

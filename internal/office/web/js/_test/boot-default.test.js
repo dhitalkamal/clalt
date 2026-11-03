@@ -30,7 +30,7 @@ test('viewstate keeps no template pick', () => {
 });
 
 test('boot and view wiring do not read the hash template or localStorage', () => {
-  for (const f of ['main.js', 'viewctl.js', 'chrome.js']) {
+  for (const f of ['main.js', 'viewctl.js', 'viewsection.js']) {
     const s = src(f);
     assert.equal(/localStorage|pickTemplate|recall\(|template=/.test(s), false, f);
   }

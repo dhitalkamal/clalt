@@ -12,6 +12,7 @@ import (
 	"github.com/dhitalkamal/clalt/internal/config"
 	"github.com/dhitalkamal/clalt/internal/office"
 	"github.com/dhitalkamal/clalt/internal/officed"
+	"github.com/dhitalkamal/clalt/internal/reviews"
 	"github.com/dhitalkamal/clalt/internal/version"
 )
 
@@ -29,6 +30,13 @@ func (a *App) mgr() officed.Manager {
 			Now: a.clock, Verify: officed.Probe, Alive: officed.Alive, Stop: officed.Terminate,
 			Spawn: func(log string) (officed.Child, error) { return officed.Spawn(exe, []string{"office", "serve"}, log) },
 			Open:  a.officeOpener(), Sleep: time.Sleep,
+			Missing: func() []officed.MissingTool {
+				claude := os.Getenv("CLALT_CLAUDE_BIN")
+				if claude == "" {
+					claude = "claude"
+				}
+				return missingTools(reviews.DefaultResolver(), claude)
+			},
 		}
 	}
 	m.Out = a.Out
@@ -50,7 +58,8 @@ func (a *App) autostart() officed.Autostart {
 	exe, _ := os.Executable()
 	return officed.Autostart{
 		Home: config.Home(), UID: os.Getuid(), Exe: exe, LogPath: officed.LogPath(config.OfficeDir()), GOOS: runtime.GOOS,
-		Run: func(args []string) ([]byte, error) { return exec.Command("launchctl", args...).CombinedOutput() },
+		PATH: os.Getenv("PATH"),
+		Run:  func(args []string) ([]byte, error) { return exec.Command("launchctl", args...).CombinedOutput() },
 	}
 }
 

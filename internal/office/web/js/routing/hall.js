@@ -27,19 +27,44 @@ function priority(a) {
   return RANK[a.kind] ?? 2;
 }
 
+// shared cabin seats (cabins rooms with no account) in reading order, one contiguous block per account.
+// accounts go in id order and a block is as long as the account's live mains that its own cabins rooms cannot hold
+function cabinBlocks(seats, agents) {
+  const shared = seats.filter((s) => s.room.type === 'cabins' && !s.room.account)
+    .sort((p, q) => (p.level - q.level) || (p.z - q.z) || (p.x - q.x));
+  const owned = new Map();
+  for (const s of seats) if (s.room.type === 'cabins' && s.room.account) owned.set(s.room.account, (owned.get(s.room.account) || 0) + 1);
+  const count = new Map();
+  for (const a of agents) if (a.kind === 'main') count.set(a.account, (count.get(a.account) || 0) + 1);
+  for (const [acc, n] of count) count.set(acc, Math.max(0, n - (owned.get(acc) || 0)));
+  const blocks = new Map();
+  let at = 0;
+  for (const acc of [...count.keys()].sort((p, q) => (String(p) < String(q) ? -1 : String(p) > String(q) ? 1 : 0))) {
+    blocks.set(acc, shared.slice(at, at + count.get(acc)));
+    at += count.get(acc);
+  }
+  return { blocks };
+}
+
 // seats an agent may use in preference order. interns sit nearest to their member, anywhere on a working desk
-function poolFor(a, seats, got) {
+function poolFor(a, seats, got, cabins) {
   const on = (t) => seats.filter((s) => s.room.type === t);
-  if (a.kind === 'team') return WORK.flatMap(on);
+  if (a.kind === 'team') {
+    const home = roomTypeFor(a.type);
+    return (home === 'review' || home === 'meeting' ? on(home) : []).concat(WORK.flatMap(on));
+  }
   if (a.kind === 'intern') {
-    const list = WORK.flatMap(on);
     const m = got.get('team:' + a.team);
+    // an intern may also sit in the room its member got (the review or meeting room)
+    const list = (m && !WORK.includes(m.room.type) ? on(m.room.type) : []).concat(WORK.flatMap(on));
     return m ? list.map((s) => [dist(m, s), s]).sort((p, q) => p[0] - q[0]).map((p) => p[1]) : list;
   }
   if (a.kind === 'main') {
     const own = on('cabins').filter((s) => !s.room.account || s.room.account === a.account);
-    own.sort((p, q) => (q.room.account === a.account ? 1 : 0) - (p.room.account === a.account ? 1 : 0));
-    return own.concat(on('workspace'));
+    const mine = own.filter((s) => s.room.account === a.account);
+    const block = cabins.blocks.get(a.account) || [];
+    const rest = own.filter((s) => s.room.account !== a.account && !block.includes(s));
+    return mine.concat(block, rest, on('workspace'));
   }
   const primary = roomTypeFor(a.type);
   return primary === 'workspace' ? on('workspace') : on(primary).concat(on('workspace'));
@@ -53,7 +78,11 @@ export function planHall(layout, by, roster, prev) {
   const order = new Map(roster.map((a, i) => [a.key, i]));
   const agents = [...first.values()].sort((a, b) => (priority(a) - priority(b))
     || (a.kind === 'team' && b.kind === 'team' ? order.get(a.key) - order.get(b.key) : byKey(a, b)));
-  const { got } = allocDesks({ agents, prev, seats, idOf: (s) => s.id, pool: (a, g) => poolFor(a, seats, g), idle, evictable: (a) => a.kind !== 'main' });
+  const cabins = cabinBlocks(seats, agents);
+  // a main keeps an old shared cabin only while it is in its own block; workspace seats are kept as before
+  const carryOk = (a, s) => a.kind !== 'main' || s.room.type !== 'cabins' || !!s.room.account
+    || (cabins.blocks.get(a.account) || []).includes(s);
+  const { got } = allocDesks({ agents, prev, seats, idOf: (s) => s.id, pool: (a, g) => poolFor(a, seats, g, cabins), idle, evictable: (a) => a.kind !== 'main', carryOk });
   const plan = new Map();
   for (const [key, s] of got) plan.set(key, planned(s));
 

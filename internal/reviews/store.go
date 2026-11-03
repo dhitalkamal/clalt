@@ -53,6 +53,9 @@ func (s Store) Get(id string) (Review, bool, error) {
 	if r.Findings == nil {
 		r.Findings = []Finding{}
 	}
+	if r.State == "" {
+		r.State = StateUnknown
+	}
 	return r, true, nil
 }
 

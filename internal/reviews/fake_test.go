@@ -24,6 +24,12 @@ type fakeExec struct {
 	calls []call
 	rules []fakeRule
 	hook  func(c call)
+	// answer, when set, may reply to a call by its content (stdin included)
+	// before the rules are tried. ok false falls through to the rules.
+	answer func(c call) (out string, ok bool)
+	// fail, when set, may make a call return an error by its content (stdin
+	// included). it is tried before answer and the rules.
+	fail func(c call) error
 }
 
 type fakeRule struct {
@@ -42,9 +48,21 @@ func (f *fakeExec) Run(ctx context.Context, dir string, env []string, stdin stri
 	f.mu.Lock()
 	f.calls = append(f.calls, c)
 	hook := f.hook
+	answer := f.answer
+	fail := f.fail
 	f.mu.Unlock()
 	if hook != nil {
 		hook(c)
+	}
+	if fail != nil {
+		if err := fail(c); err != nil {
+			return nil, err
+		}
+	}
+	if answer != nil {
+		if out, ok := answer(c); ok {
+			return []byte(out), nil
+		}
 	}
 	for _, r := range f.rules {
 		if strings.Contains(c.line(), r.has) {

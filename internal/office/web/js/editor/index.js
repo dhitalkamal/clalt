@@ -14,7 +14,7 @@ import { cloneLayout } from './model.js';
 
 // opts: layout, catalog, applyLayout, cellToWorld, worldToCell, save, camera,
 // renderer, scene (unused, accepted), dom (parent, default body), onOpen, onClose,
-// templates() -> [{name, title, layout}], layouts {list(), use(name)},
+// templates() -> [{name, title, layout}], layouts {list(), use(name), remove?(name, wasActive)},
 // sessionCount (number or room => number), accounts [{id, name}], button (existing element)
 export function mountEditor(opts) {
   const ed = createState(opts);
@@ -43,6 +43,13 @@ export function mountEditor(opts) {
       ed.dirty = false;
       ed.setStatus('Saved.', 'ok');
     } catch (e) {
+      if (e && e.conflict) {
+        ed.setStatus(e.message, 'bad', [
+          { text: 'Load theirs', run: () => { ed.reset(e.theirs); ed.setStatus('Loaded the layout saved in the other tab.', 'ok'); } },
+          { text: 'Keep mine', run: save },
+        ]);
+        return;
+      }
       ed.setStatus('Save failed: ' + (e && e.message ? e.message : e), 'bad');
     } finally {
       saving = false;

@@ -65,3 +65,102 @@ test('a missing ground module falls back to sky', async () => {
   assert.equal(await nav.follow('x'), false);
   assert.equal(nav.mode, 'sky');
 });
+
+// the fake ground controller keeps the view it was entered with
+const groundView = (log) => (o) => ({ ...fake('ground', log)(), enter() { log.push('view ' + (o && o.view)); }, setView(v) { log.push('setView ' + v); } });
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+test('V outside ground only flips the view and keeps the mode', async () => {
+  const log = [];
+  const nav = createNav(mkctx(true), { factories: { sky: fake('sky', log), ground: groundView(log) } });
+  await nav.ready;
+  await nav.toggleView();
+  assert.equal(nav.mode, 'sky');
+  assert.equal(nav.view, 'first');
+  await nav.toggleGround();
+  assert.ok(log.includes('view first'), log.join());
+});
+
+test('entering ground uses the current view', async () => {
+  const log = [];
+  const nav = createNav(mkctx(true), { factories: { sky: fake('sky', log), ground: groundView(log) } });
+  await nav.ready;
+  await nav.toggleView();
+  await nav.toggleGround();
+  await nav.toggleGround();
+  await nav.toggleGround();
+  assert.equal(log.filter((l) => l.startsWith('view ')).pop(), 'view first');
+});
+
+test('two quick G presses cancel out', async () => {
+  const log = [];
+  const slow = async (o) => { await tick(); return groundView(log)(o); };
+  const nav = createNav(mkctx(true), { factories: { sky: fake('sky', log), ground: slow } });
+  const a = nav.toggleGround();
+  const b = nav.toggleGround();
+  await Promise.all([a, b]);
+  assert.equal(nav.mode, 'sky');
+});
+
+test('dispose while a switch is pending leaves no ghost', async () => {
+  const log = [];
+  const changes = [];
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  const ctx = mkctx(true);
+  ctx.onChange = (s) => changes.push(s.mode);
+  const nav = createNav(ctx, { factories: { sky: fake('sky', log), ground: async () => { await gate; return groundView(log)(); } } });
+  await nav.ready;
+  const p = nav.setMode('ground');
+  await tick();
+  nav.dispose();
+  release();
+  assert.equal(await p, false);
+  assert.equal(nav.mode, 'sky');
+  assert.ok(!log.includes('view undefined') && !log.some((l) => l.startsWith('view ')), log.join());
+  assert.ok(log.includes('dispose ground'), log.join());
+  assert.deepEqual(changes, []);
+});
+
+test('follow with an agent that is gone returns false', async () => {
+  const log = [];
+  const ctx = mkctx(true);
+  ctx.app = { agents: new Map() };
+  const nav = createNav(ctx, { factories: { sky: fake('sky', log), follow: fake('follow', log) } });
+  await nav.ready;
+  assert.equal(await nav.follow('ghost'), false);
+  assert.equal(nav.mode, 'sky');
+});
+
+test('ready rejects when sky is missing', async () => {
+  const nav = createNav(mkctx(true), { factories: { sky: async () => null } });
+  await assert.rejects(nav.ready);
+});
+
+test('refit re-applies the preset through the sky controller', async () => {
+  const log = [];
+  const calls = [];
+  const ctx = mkctx(true);
+  ctx.presetPose = (id) => ({ id });
+  const nav = createNav(ctx, { factories: { sky: fake('sky', log, { ctrl: { flyToPreset() {}, refit(c, to) { calls.push(to.id); return true; } } }) } });
+  await nav.ready;
+  assert.equal(nav.refit(), false, 'no preset yet');
+  await nav.toPreset('top');
+  assert.equal(nav.refit(), true);
+  assert.deepEqual(calls, ['top']);
+  nav.pause(true);
+  assert.equal(nav.refit(), false, 'paused');
+  nav.pause(false);
+  nav.dispose();
+  assert.equal(nav.refit(), false, 'disposed');
+});
+
+test('refit does not throw when the controller has none', async () => {
+  const log = [];
+  const ctx = mkctx(true);
+  ctx.presetPose = () => ({});
+  const nav = createNav(ctx, { factories: { sky: fake('sky', log, { ctrl: { flyToPreset() {} } }) } });
+  await nav.ready;
+  await nav.toPreset('top');
+  assert.equal(nav.refit(), false);
+});

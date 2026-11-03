@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { box } from '../details.js';
 import { MEZ } from './geom.js';
+import { wallParts } from './partitions.js';
 
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 
@@ -39,6 +40,27 @@ function edgeRail(g, d, land, kind) {
   if (!cut) { seg(spec.from, spec.to); return; }
   seg(spec.from, Math.max(spec.from, cut[0]));
   seg(Math.min(spec.to, cut[1]), spec.to);
+}
+
+// a wall between deck rooms with a lintel over its doorway: solid in the building's wall colour between two rooms,
+// frosted glass on a front onto the corridor so the room still shows from the hall. pt maps a cell along the wall
+// to its world point
+function roomWall(g, w, pt, color) {
+  const mat = w.look === 'glass'
+    ? new THREE.MeshPhysicalMaterial({ color: 0xdfeef5, transparent: true, opacity: 0.35, roughness: 0.15, depthWrite: false })
+    : new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.9 });
+  for (const part of wallParts(w)) {
+    const a = pt(part.from);
+    const b = pt(part.to);
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    const h = part.y1 - part.y0;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(len, h, 0.08), mat);
+    m.position.set((a.x + b.x) / 2, MEZ + part.y0 + h / 2, (a.z + b.z) / 2);
+    m.rotation.y = -Math.atan2(b.z - a.z, b.x - a.x);
+    m.castShadow = w.look !== 'glass';
+    m.receiveShadow = true;
+    g.add(m);
+  }
 }
 
 function stairs(g, S, f) {
@@ -97,5 +119,9 @@ export function buildDeck(L) {
   // no rail against the back wall
   for (const k of ['s', 'w', 'e', ...(d.z0 - L.zmin > 1.0 ? ['n'] : [])]) edgeRail(g, d, land, k);
   if (S) stairs(g, S, L);
+  const color = L.layout.walls && L.layout.walls.color ? L.layout.walls.color : '#ffffff';
+  for (const w of L.partitions.walls) {
+    roomWall(g, w, (c) => (w.axis === 'x' ? { x: L.X(w.at), z: L.Z(c) } : { x: L.X(c), z: L.Z(w.at) }), color);
+  }
   return g;
 }

@@ -3,6 +3,7 @@
 // sub records gain team (id or null), mapped (first run of a team type, shown as the member) and
 // intern (a later run, a character of its own) plus owner (handle of the session that started it).
 import { hash } from './model.js';
+import { trackRecord, memberDoing } from './behave/records.js';
 
 export const teamIdOf = (type) => String(type || '').toLowerCase();
 
@@ -58,6 +59,7 @@ export function updateMembers(prev, team, sessions) {
     for (const [s] of runs) if (!users.some((u) => u.handle === s.handle)) users.push({ handle: s.handle, project: s.project });
     Object.assign(m, { name: e.name || e.id, desc: e.desc || '', source: e.source || '', color: e.color, tint: colorNum(e.color),
       busy: e.busy || 0, state: (e.busy || 0) > 0 || runs.length > 0 ? 'busy' : 'idle', users, leaving: false });
+    trackRecord(m, memberDoing(runs), Date.now());
     out.push(m);
   }
   for (const m of prev) if (!seen.has(m.team)) { m.leaving = true; m.state = 'idle'; out.push(m); }

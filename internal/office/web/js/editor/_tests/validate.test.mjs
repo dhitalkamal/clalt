@@ -138,3 +138,16 @@ test('a cabins room with fewer seats than sessions is a warning', () => {
 test('codes helper stays in sync', () => {
   assert.ok(Array.isArray(codes(baseLayout())));
 });
+
+test('an empty or blank title is an error', () => {
+  for (const title of ['', '   ', '\t']) {
+    const l = baseLayout();
+    l.title = title;
+    const e = validateLayout(l, catalog, {}).errors.find((i) => i.code === 'title-empty');
+    assert.ok(e, JSON.stringify(title));
+    assert.equal(e.msg, 'Title is empty.');
+  }
+  const ok = baseLayout();
+  ok.title = 'Mine';
+  assert.ok(!errs(ok).includes('title-empty'));
+});

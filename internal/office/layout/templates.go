@@ -10,7 +10,7 @@ type Template struct {
 const HallTemplate = "hall"
 
 // DefaultActive is the template shown when active.json names nothing.
-const DefaultActive = "rows"
+const DefaultActive = HallTemplate
 
 // Templates are the names that answer a read without a stored file: four
 // generated gardens and the hall. a user layout cannot take these names.

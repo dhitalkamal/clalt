@@ -125,8 +125,9 @@ export function createState(opts) {
     ed.dragRect = null;
     ed.emit('tool');
   };
-  ed.setStatus = (text, kind = '') => {
-    ed.status = { text, kind };
+  // actions: [{text, run}] shown as buttons next to the text
+  ed.setStatus = (text, kind = '', actions = []) => {
+    ed.status = { text, kind, actions };
     ed.emit('status');
   };
   ed.dispose = () => {

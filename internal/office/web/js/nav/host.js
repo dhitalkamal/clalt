@@ -55,12 +55,18 @@ export function createNavHost(deps) {
         navP = (async () => {
           const mods = await deps.load();
           const nav = mods.createNav(makeCtx(mods), deps.navOpts);
-          await nav.ready;
+          try { await nav.ready; } catch (e) { nav.dispose(); throw e; }
           // a reset while loading: this manager belongs to a template that is gone
           if (mine !== gen) { nav.dispose(); return null; }
           stage.nav = nav;
+          stage.navFailed = false;
           return nav;
-        })().catch((e) => { console.error(e); return null; });
+        })().catch((e) => {
+          console.warn('camera navigation failed to load', e);
+          // forget the failure so the next get retries, and let the page fall back to its own orbit
+          if (mine === gen) { navP = null; stage.navFailed = true; }
+          return null;
+        });
       }
       return navP;
     },
@@ -69,6 +75,7 @@ export function createNavHost(deps) {
       gen++;
       const p = navP;
       navP = null;
+      stage.navFailed = false;
       const old = stage.nav;
       stage.nav = null;
       if (old) old.dispose();

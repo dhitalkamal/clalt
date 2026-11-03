@@ -172,8 +172,8 @@ export const currentId = (stage) => (stage.rig ? stage.rig.id : null);
 export function setSafe(stage, safe) {
   if (!stage.rig) return;
   stage.rig.safe = safe;
-  // a free camera must not jump when the window resizes
-  if (stage.nav) return;
+  // a free camera must not jump when the window resizes, an untouched preset refits
+  if (stage.nav) { if (stage.nav.refit) stage.nav.refit(); return; }
   goTo(stage, stage.rig.id, { instant: true });
 }
 

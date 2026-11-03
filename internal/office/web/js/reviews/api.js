@@ -1,5 +1,6 @@
 // the page's calls for PR reviews. same credential as the snapshot (the cookie); the save is a write, so it
 // carries the edit header the server wants.
+import { failText } from '../lostaccess.js';
 const TIMEOUT = 8000;
 
 async function call(path, init) {
@@ -10,7 +11,7 @@ async function call(path, init) {
     if (!res.ok) {
       let text = '';
       try { text = (await res.text()).trim(); } catch (e) { /* the status says enough */ }
-      throw new Error(text || 'http ' + res.status);
+      throw new Error(failText(res.status, text));
     }
     return await res.json();
   } finally {

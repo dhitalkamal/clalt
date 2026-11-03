@@ -81,13 +81,25 @@ func allowedGH(args []string) error {
 }
 
 // GH is the one way this package runs gh.
-type GH struct{ X Exec }
+type GH struct {
+	X Exec
+	// R finds the gh binary, nil means a bare "gh" on PATH.
+	R *Resolver
+}
 
 func (g GH) run(ctx context.Context, dir string, args ...string) ([]byte, error) {
 	if err := allowedGH(args); err != nil {
 		return nil, fmt.Errorf("%w: gh %s", err, strings.Join(args, " "))
 	}
-	return g.X.Run(ctx, dir, nil, "", "gh", args...)
+	bin := "gh"
+	if g.R != nil {
+		p, err := g.R.Resolve(bin)
+		if err != nil {
+			return nil, err
+		}
+		bin = p
+	}
+	return g.X.Run(ctx, dir, nil, "", bin, args...)
 }
 
 var repoRe = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$`)
@@ -174,6 +186,30 @@ func (g GH) View(ctx context.Context, repo string, number int) (PRInfo, error) {
 		return PRInfo{}, fmt.Errorf("reviews: gh pr view answered something else: %w", err)
 	}
 	return PRInfo{SHA: v.SHA, Lines: v.Add + v.Del, Files: v.Files, Title: v.Title, URL: v.URL, Author: v.Author.Login}, nil
+}
+
+// PRState says whether a pull request is open, merged or closed. any other
+// answer, or output that is not the expected json, is an error.
+func (g GH) PRState(ctx context.Context, repo string, number int) (string, error) {
+	out, err := g.run(ctx, "", "pr", "view", strconv.Itoa(number), "--repo", repo, "--json", "state")
+	if err != nil {
+		return "", err
+	}
+	var v struct {
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(out, &v); err != nil {
+		return "", fmt.Errorf("reviews: gh pr view answered something else: %w", err)
+	}
+	switch v.State {
+	case "OPEN":
+		return "open", nil
+	case "MERGED":
+		return "merged", nil
+	case "CLOSED":
+		return "closed", nil
+	}
+	return "", fmt.Errorf("reviews: gh pr view gave an unknown state %q", v.State)
 }
 
 // Diff is the unified diff of a pull request.

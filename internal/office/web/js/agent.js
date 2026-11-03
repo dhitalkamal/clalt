@@ -1,13 +1,20 @@
 import * as THREE from 'three';
 import { applyPose } from './agentPose.js';
 import { installBreaks } from './breaks.js';
+import { installBrief } from './agentBrief.js';
+import { installDesk } from './agentDesk.js';
 import { installBuild } from './agentBuild.js';
 import { disposeTree } from './dispose.js';
 import { installMove } from './agentMove.js';
 import { ACCOUNT_TINT } from './model.js';
 import { recColor, isTeamRec, isInternRec, makeInternLook, tickMemberLook, disposeLook } from './garden/teamlook.js';
 import { TAU, BUBBLE_Y, angleDiff } from './agentConst.js';
+import { currentAct } from './behave/work.js';
+import { LOOK } from './behave/look.js';
+import { seatedAsk } from './behave/ask.js';
+import { workIcon } from './workIcons.js';
 import { makeBlob, placeBlob, stripCast } from './agentShadow.js';
+import { makeAccountRing, placeAccountRing, disposeAccountRing } from './agentRing.js';
 
 export class Agent {
   constructor(s, world, slot, look) {
@@ -39,6 +46,7 @@ export class Agent {
     world.add(this.rig, this.flair);
     if (isInternRec(s)) makeInternLook(this, recColor(s));
     this.blob = makeBlob(world);
+    this.groundRing = makeAccountRing(this, world);
     if (this.blob) stripCast(this);
   }
 
@@ -61,13 +69,13 @@ export class Agent {
     if (!gone && this.mode === 'away') this.startWalkIn();
     if (gone && this.mode === 'seated') { if (!this.isMain && this.s.leaving) this.startHandoff(); else this.startOut(); }
     else if (gone && (this.mode === 'standing' || (this.mode === 'leisure' && this.act !== 'handoff'))) this.startOut();
-    if (!gone && this.mode === 'seated') {
-      if (this.s.state === 'needs-you' && slot.stand) this.startStand();
-      else if (this.s.state === 'idle' && this.planOffer && t >= this.nextBreakAt) this.startBreak();
-    }
-    if (this.mode === 'standing' && this.s.state !== 'needs-you' && slot.kind !== 'stand') this.startBack();
+    this.tickDesk(t, gone);
     if (this.mode === 'leisure') this.tickLeisure(t);
     if (this.mode === 'walking') this.stepPath(dt);
+
+    // the work shown at the desk comes from the snapshot's doing field, only while busy and seated
+    const act = !gone && this.mode === 'seated' && this.s.state === 'busy' ? currentAct(this.s.track, Date.now()) : null;
+    if (act !== this.workAct) { this.workAct = act; this.workAt = t; }
 
     this.mixer.update(dt);
     const c = t + this.ph;
@@ -77,14 +85,38 @@ export class Agent {
     if (isTeamRec(this.s)) tickMemberLook(this, dt);
     this.updateFlair(t, gone);
     placeBlob(this);
+    placeAccountRing(this);
+    if (this.hidden || this.wasHidden) this.paintHidden();
+  }
+
+  // an idle agent set to hide draws nothing and cannot be picked (input.js skips it). the parts that set their own
+  // visibility every frame are forced off here, after they ran
+  setHidden(on) { this.hidden = !!on; }
+
+  paintHidden() {
+    const on = !this.hidden;
+    this.rig.visible = on;
+    this.model.visible = on;
+    if (!on) {
+      this.flair.visible = false;
+      if (this.blob) this.blob.visible = false;
+      if (this.groundRing) this.groundRing.visible = false;
+    }
+    this.wasHidden = this.hidden;
   }
 
   updateScreen(t, gone) {
     const seated = this.mode === 'seated';
-    const busy = seated && this.s.state === 'busy' && !gone && this.pausing == null;
+    const act = this.workAct;
+    // keys light up only while typing, or in plain busy with no work known
+    const busy = seated && this.s.state === 'busy' && !gone && this.pausing == null && (!act || act === 'type');
     const shown = this.mode === 'away' || gone ? 'ended' : this.s.state;
     this.screenTex.draw(shown, t);
-    const lit = shown === 'ended' ? 0 : shown === 'busy' ? 0.14 : shown === 'needs-you' ? 0.1 : 0.04;
+    const look = act && shown === 'busy' ? LOOK[act] : null;
+    const lit = shown === 'ended' ? 0 : look ? 0.2 : shown === 'busy' ? 0.14 : shown === 'needs-you' ? 0.1 : 0.04;
+    // the glow takes the colour of the work, back to the warm default without it
+    this.screenGlow.material.color.setHex(look ? look.glow : 0xffc98a);
+    this.deskGlow.material.color.setHex(look ? look.glow : 0xffb870);
     this.screenGlow.material.opacity = lit;
     this.deskGlow.material.opacity = lit * 0.5;
     this.keys.forEach((m, i) => {
@@ -107,9 +139,16 @@ export class Agent {
     const pulse = 0.8 + 0.25 * Math.sin(t * 4);
     this.ring.children.forEach((d, i) => d.scale.setScalar(pulse * (0.7 + 0.3 * Math.sin(t * 4 + i))));
     const bob = Math.sin(t * 2.4) * 0.03;
-    this.bubble.visible = this.mode === 'standing' && state === 'needs-you';
+    this.bubble.visible = (this.mode === 'standing' && state === 'needs-you') || seatedAsk(this.mode, state, this.slot);
     this.bubble.position.y = BUBBLE_Y + bob;
     this.bubble.material.opacity = 0.85 + 0.15 * Math.sin(t * 3);
+    const look = this.workAct && seated && !gone ? LOOK[this.workAct] : null;
+    this.work.visible = !!look && !this.bubble.visible;
+    if (look) {
+      const map = workIcon(look.icon);
+      if (this.work.material.map !== map) { this.work.material.map = map; this.work.material.needsUpdate = true; }
+      this.work.position.y = BUBBLE_Y + bob;
+    }
     this.done.visible = this.mode === 'leisure' && this.act === 'handoff' && this.now - this.actStart > 0.9;
     this.done.position.y = BUBBLE_Y + bob;
     this.chat.visible = !!this.chatSpeaker;
@@ -124,6 +163,7 @@ export class Agent {
   dispose() {
     this.world.remove(this.rig, this.model, this.flair);
     if (this.blob) this.world.remove(this.blob);
+    disposeAccountRing(this);
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.model);
     for (const part of [this.rig, this.model, this.flair]) disposeTree(part);
@@ -135,3 +175,5 @@ export class Agent {
 installBuild(Agent);
 installMove(Agent);
 installBreaks(Agent);
+installBrief(Agent);
+installDesk(Agent);

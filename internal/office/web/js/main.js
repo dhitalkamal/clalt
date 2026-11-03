@@ -10,14 +10,13 @@ import { startView } from './viewctl.js';
 import { installActions } from './actions/index.js';
 import { initSummary } from './summary/index.js';
 import { bindDock } from './dock.js';
+import { pollErrorText } from './lostaccess.js';
 
 const loadingEl = document.getElementById('loading');
 
 // the poll tells the page when it cannot reach clalt, and says what to do about it
 function onError(e) {
-  ui.setNotice(e.message === 'auth'
-    ? 'this page lost its access. restart clalt office and open the new link'
-    : 'lost the connection to clalt office, trying again');
+  ui.setNotice(pollErrorText(e));
 }
 
 async function boot() {

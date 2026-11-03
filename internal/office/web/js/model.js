@@ -13,6 +13,12 @@ export function tintFor(account) {
   return ACCOUNT_TINT[account];
 }
 
+// colour of the ring an agent stands on: its account colour, none for team members or no account
+export function ringColor(s) {
+  if (!s || s.role === 'team' || !s.account) return null;
+  return tintFor(s.account);
+}
+
 // small stable hash, so a session looks and behaves the same after a reload
 export function hash(str) {
   let h = 2166136261;

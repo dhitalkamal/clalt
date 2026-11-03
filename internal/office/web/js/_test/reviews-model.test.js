@@ -46,6 +46,13 @@ test('inboxRows copes with nothing', () => {
   assert.deepEqual(inboxRows({ reviews: 'x' }, NOW), []);
 });
 
+test('inboxRows carry the full title and ref as a tooltip, also when the title is empty', () => {
+  const long = 'x'.repeat(200);
+  const rows = inboxRows({ reviews: [{ id: 'a', repo: 'o/r', number: 5, title: long, endedAt: '2026-10-27T11:00:00Z' }, { id: 'b', repo: 'o/r', number: 6, title: '', endedAt: '2026-10-27T10:00:00Z' }] }, NOW);
+  assert.equal(rows[0].tip, long + ' (o/r#5)');
+  assert.equal(rows[1].tip, '(no title) (o/r#6)');
+});
+
 test('groupFindings orders high, medium, low and drops empty groups', () => {
   const g = groupFindings([
     { severity: 'low', file: 'c.go', line: 0, title: 'c', detail: '' },
@@ -95,4 +102,23 @@ test('lastCheckedText', () => {
   assert.equal(lastCheckedText(null, NOW), 'not checked yet');
   assert.equal(lastCheckedText('2026-10-27T11:55:00Z', NOW), 'checked 5m ago');
   assert.equal(lastCheckedText('2026-10-27T11:59:59Z', NOW), 'checked just now');
+});
+
+test('add repo ignores case when matching existing names', () => {
+  const m = settingsModel({ enabled: true, repos: [], suggestions: ['acme/widgets'] });
+  const r = addRepo(m, 'ACME/Widgets');
+  assert.equal(r.error, '');
+  assert.deepEqual(r.model.repos, [{ name: 'acme/widgets', on: true }]);
+});
+
+test('add repo accepts pasted forms', () => {
+  const m = settingsModel({ enabled: true, repos: [], suggestions: [] });
+  for (const text of ['https://github.com/o/n', 'github.com/o/n', 'o/n.git', 'o/n/', 'https://github.com/o/n.git', 'https://github.com/o/n/pull/5', 'http://github.com/o/n/issues/7/']) {
+    const r = addRepo(m, text);
+    assert.equal(r.error, '', text);
+    assert.deepEqual(r.model.repos.map((x) => x.name), ['o/n'], text);
+  }
+  assert.match(addRepo(m, 'https://github.com/owner').error, /owner\/name/);
+  assert.match(addRepo(m, 'github.com/owner/').error, /owner\/name/);
+  assert.match(addRepo(m, 'a/b/c').error, /owner\/name/);
 });

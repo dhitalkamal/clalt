@@ -18,7 +18,7 @@ test('busy and needs-you agents stay at their desk', () => {
   assert.equal(planBreaks(app(list), true).length, 0);
 });
 
-test('team members never take breaks, idle or not', () => {
+test('team members stay at their desk by default, idle or not', () => {
   const list = [agent('team', 'idle'), agent('team', 'idle'), agent('team', 'busy')];
   assert.equal(planBreaks(app(list), true).length, 0);
   for (const a of list) assert.equal(a.planOffer, null);

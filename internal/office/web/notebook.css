@@ -1,6 +1,6 @@
 /* field notebook: shared tokens and parts for the activity drawer, hover cards, Today and Reviews.
    system fonts only, the paper grain is gradients, no images. */
-.activity, .summary, .reviews, #card {
+.activity, .summary, .reviews, #card, dialog.settings {
   --nb-ink: #3a2d1f; --nb-pencil: #7b6b55; --nb-faint: #a29274; --nb-rule: rgb(90 130 160 / .22);
   --nb-paper: #f8f1de; --nb-paper2: #efe4c8; --nb-wood: #6d4c2a; --nb-card: #fffaf0;
   --nb-busy: #3f7a2e; --nb-idle: #5d7388; --nb-need: #e0980f; --nb-ok: #3f7a2e; --nb-bad: #bf3f26; --nb-marker: #f2b53c;

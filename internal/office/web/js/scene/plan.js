@@ -6,6 +6,7 @@ import { makeGrid, setOpen, isOpen, findCells, nearestOpen } from './nav.js';
 import { stairWorld } from './stairs.js';
 import { SEAT_OFF } from '../layout.js';
 import { makeRouter } from './route.js';
+import { deckWalls } from './partitions.js';
 
 const same = (a, b) => a.x === b.x && a.z === b.z;
 
@@ -66,6 +67,12 @@ export function compile(layout, catalog) {
     if (!rect) continue;
     for (const c of solidCells(rect, it.def.footprint, it.rot)) setOpen(grids[it.level], it.rec.x + c.i, it.rec.z + c.j, 0);
   }
+  // deck walls: agents cross only at the doorways. cells under furniture stay as the furniture left them, and a front
+  // door is placed where no furniture stands just inside it (rugs do not count)
+  const deckItem = (x, z, solidOnly = false) => items.some((it) => it.level === 1 && !(solidOnly && it.def.tags.includes('floor'))
+    && x >= it.rec.x && x < it.rec.x + it.fw && z >= it.rec.z && z < it.rec.z + it.fd);
+  const partitions = deck ? deckWalls(layout, (x, z) => !deckItem(x, z, true)) : { walls: [], closed: [] };
+  for (const c of partitions.closed) if (!deckItem(c.x, c.z)) setOpen(grids[1], c.x, c.z, 0);
 
   const door = doorOf(layout, f);
   const entry = door.cells.map(([x, z]) => ({ x, z })).find((c) => isOpen(grids[0], c.x, c.z)) || nearestOpen(grids[0], { x: door.cells[0][0], z: door.cells[0][1] }, 6)
@@ -151,7 +158,7 @@ export function compile(layout, catalog) {
   const deckW = deck ? { x0: f.X(deck.x), x1: f.X(deck.x + deck.w), z0: f.Z(deck.z), z1: f.Z(deck.z + deck.d), y: MEZ } : null;
 
   const L = { layout, catalog: by, frame: f, W: f.W, D: f.D, xmin: f.xmin, zmin: f.zmin, X: f.X, Z: f.Z, items, itemById, rooms, grids,
-    door, entry, stairs, deck: deckW, regions, spots, groups, seatSlot, standSlot, node, cellOf, spawn: router.spawn, path: router.path, flood,
+    door, entry, stairs, deck: deckW, partitions, regions, spots, groups, seatSlot, standSlot, node, cellOf, spawn: router.spawn, path: router.path, flood,
     key: JSON.stringify([layout.size, layout.door, layout.deck, layout.stairs, layout.walls, layout.floorColor]) };
   L.same = same;
   return L;

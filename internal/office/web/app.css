@@ -13,13 +13,14 @@ html, body { margin: 0; height: 100%; background: #e6eff3; overflow: hidden; col
 /* the crowded form of an account card: one line, name and busiest window */
 .zpct { display: none; margin-left: 8px; font-weight: 700; }
 .zone.compact { width: auto; padding: 3px 9px; border-radius: 999px; }
-.zone.compact .bar { display: none; }
+.zone.compact .bar, .zone.compact .zline { display: none; }
 .zone.compact .zname { display: flex; align-items: baseline; margin: 0; white-space: nowrap; }
 .zone.compact .zpct { display: inline; }
 .zpct.red { color: #c0392b; }
 .zpct.amber { color: #b9770e; }
 .zpct.green { color: #1e8e5a; }
 button.on { background: rgba(242,181,60,.5); border-color: var(--amber); }
+.zline { font-size: 10px; opacity: .8; margin: -2px 0 4px; line-height: 1.25; }
 .zname { font-weight: 650; letter-spacing: .04em; text-transform: uppercase; font-size: 11px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar { position: relative; height: 12px; margin-top: 3px; border-radius: 6px; background: rgba(40,30,50,.12); overflow: hidden; }
 .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
@@ -31,7 +32,8 @@ button.on { background: rgba(242,181,60,.5); border-color: var(--amber); }
 #status b { font-weight: 700; } #status .warn { color: #c47f00; } #status .sep { opacity: .4; margin: 0 4px; }
 #notice { position: fixed; top: 56px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-radius: 8px;
   background: #fff3d6; border: 1px solid var(--amber); font-size: 13px; z-index: 6; max-width: 90%; }
-#controls { position: fixed; left: 14px; bottom: 14px; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 28px);
+/* the three panel buttons, centered at the bottom: margin auto with width max-content, so no transform shifts the box */
+#controls { position: fixed; left: 0; right: 0; width: max-content; margin: 0 auto; bottom: 14px; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 28px);
   padding: 8px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(6px); }
 button { font: inherit; color: var(--ink); background: rgba(255,255,255,.65); border: 1px solid rgba(60,50,40,.18);
   border-radius: 8px; padding: 6px 12px; cursor: pointer; }

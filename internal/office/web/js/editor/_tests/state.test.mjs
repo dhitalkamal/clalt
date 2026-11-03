@@ -59,3 +59,12 @@ test('undo clears a drag in progress', () => {
   assert.equal(ed.dragRect, null);
   ed.dispose();
 });
+
+test('a status can carry actions, and a plain one clears them', () => {
+  const ed = make(async () => {});
+  const run = () => {};
+  ed.setStatus('changed', 'bad', [{ text: 'Load theirs', run }]);
+  assert.deepEqual(ed.status.actions, [{ text: 'Load theirs', run }]);
+  ed.setStatus('Saved.', 'ok');
+  assert.deepEqual(ed.status.actions, []);
+});

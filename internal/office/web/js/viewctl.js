@@ -1,17 +1,21 @@
-// wires the camera bar, settings dialog, url hash and key map to the page.
+// wires the settings dialog (with its View switches), url hash and key map to the page.
 // the layout watcher owns loading; this file owns what the user sees change.
 import { app, ui } from './app.js';
 import { applyLayout } from './scene/apply.js';
 import { startEditor } from './editorhook.js';
-import { createChrome } from './chrome.js';
+import { reloadEditorAfterDelete } from './editorsync.js';
 import { createLayoutWatcher } from './layoutwatch.js';
 import { actionFor } from './keymap.js';
 import { goCam, spinCam, safeCam, navAction, onNavChange, resetNav } from './camseam.js';
-import { parseHash, buildHash, camAfterSwitch, camOfNav } from './viewstate.js';
+import { parseHash, buildHash, camOfNav } from './viewstate.js';
+import { runSwitch } from './viewswitch.js';
 import { createSettingsDialog } from './settingsdialog.js';
-import { saveDefault } from './settings.js';
+import { saveDefault, deleteLayout } from './settings.js';
 import { el } from './dom.js';
 import { startReviews } from './reviews/index.js';
+import { createViewSection } from './viewsection.js';
+import { startIdle } from './idle/index.js';
+import { failText } from './lostaccess.js';
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -20,20 +24,27 @@ export function startView(first) {
   const saveHash = () => { try { history.replaceState(null, '', buildHash({ cam: state.cam }) || location.pathname + location.search); } catch (e) { /* hash stays as it was */ } };
   const notice = (msg) => ui.setNotice(msg);
 
-  const chrome = createChrome({
-    cam: (id) => setCam(id, reduced()),
-    spin: toggleSpin,
-    labels: toggleLabels,
+  // the switches that used to be buttons at the bottom: they read and flip the same state as the keys
+  const view = createViewSection({
+    get: () => ({ labels: state.labels, lines: app.linesOn, tags: app.tagsAll, spin: state.spin, cam: state.cam, reduced: reduced() }),
+    set: (id, on) => {
+      if (id === 'labels' && on !== state.labels) toggleLabels();
+      else if (id === 'spin' && on !== state.spin) toggleSpin();
+      else if (id === 'lines') app.linesOn = on;
+      else if (id === 'tags') app.tagsAll = on;
+      else if (id === 'ground') setCam(on ? 'ground' : 'sky', reduced());
+    },
   });
   const gear = document.getElementById('b-settings');
   const build = el('button', '', 'Build mode');
   build.type = 'button';
   const reviews = startReviews();
+  const idle = startIdle();
   const dialog = createSettingsDialog({
-    gear, build, save: saveAndShow, sections: [reviews.section],
+    gear, build, save: saveAndShow, remove: removeAndShow, sections: [reviews.section, idle.section], left: [view],
     loadList: async () => {
       const res = await fetch('/api/layouts', { cache: 'no-store', credentials: 'same-origin' });
-      if (!res.ok) throw new Error('http ' + res.status);
+      if (!res.ok) throw new Error(failText(res.status, ''));
       return res.json();
     },
   });
@@ -44,31 +55,21 @@ export function startView(first) {
     if (state.layout.v !== 1) return { ok: false, text: 'build mode edits the hall only: pick Hall as the default office first' };
     return { ok: true, text: 'edit the floor plan of the hall' };
   }
-  if (reduced()) chrome.disableSpin('off because the system asks for less motion');
 
   // a new layout arrived: show it, keep the roster (app.sessions) and the seat plan so agents keep their seats
-  async function show(body) {
-    state.layout = body.layout;
-    state.edit = body.edit;
-    // the old manager walks the old layout, so it goes before the new one is built
-    resetNav();
-    state.cam = camAfterSwitch(state.cam);
-    await applyLayout(body.layout);
-    chrome.showBar();
-    notice('');
-    keepClear();
-    chrome.markCam(state.cam);
-    goCam(state.cam, true);
-    // the editor works on hall layouts only: it starts the first time a hall shows and follows later halls
-    maybeEditor(body);
+  function show(body) {
+    return runSwitch({ resetNav, apply: applyLayout, notice, keepClear, goCam, saveHash, closeEditor, maybeEditor }, state, body);
   }
 
-  // the nav manager reports presets and mode changes: the bar and the url follow
+  function closeEditor() {
+    if (state.editor) state.editor.then((api) => { if (api.isOpen()) api.close(); }, () => {});
+  }
+
+  // the nav manager reports presets and mode changes: the url follows
   onNavChange((s) => {
     const id = camOfNav(s);
     if (id === state.cam) return;
     state.cam = id;
-    chrome.markCam(id);
     saveHash();
   });
 
@@ -78,24 +79,22 @@ export function startView(first) {
   function toggleSpin() {
     if (reduced()) return;
     state.spin = !state.spin;
-    chrome.setSpin(state.spin);
     spinCam(state.spin);
   }
 
   function toggleLabels() {
     state.labels = !state.labels;
-    chrome.setLabels(state.labels);
     ui.layer.hidden = !state.labels;
   }
 
   function maybeEditor(body) {
     if (!body.edit || body.layout.v !== 1) return;
     if (state.editor) { state.editor.then((api) => { if (!api.isOpen()) api.setLayout(body.layout); }, () => {}); return; }
-    state.editor = startEditor(body.layout, build);
+    state.editor = startEditor(body.layout, build, afterDelete);
     state.editor.catch((e) => { console.error(e); notice('the editor could not start: ' + e.message); });
   }
 
-  // screen fractions the presets keep free: the camera bar at the bottom
+  // screen fractions the presets keep free: the panel buttons at the bottom
   function keepClear() {
     safeCam({ left: 0, bottom: 70 / Math.max(1, innerHeight), top: 0.02 });
   }
@@ -106,16 +105,27 @@ export function startView(first) {
     try { await watcher.select(null); } catch (e) { console.error(e); throw new Error('saved, but the page could not load it: ' + e.message); }
   }
 
+  // the active layout was deleted: the server is on the default template now, show it without a reload
+  async function afterDelete() {
+    let body;
+    try { body = await watcher.select(null); } catch (e) { console.error(e); throw new Error('deleted, but the page could not load the default: ' + e.message); }
+    if (body) await reloadEditorAfterDelete(state.editor, body);
+  }
+
+  // delete a saved layout, switch the page when it was the one on show. resolves to the new list
+  async function removeAndShow(name, wasActive) {
+    const reply = await deleteLayout(name);
+    if (wasActive) await afterDelete();
+    return reply;
+  }
+
   function setCam(id, instant) {
     state.cam = id;
-    chrome.markCam(id);
     goCam(id, instant);
     saveHash();
   }
 
   watcher.adopt(first.template, first.rev);
-  chrome.showBar();
-  chrome.markCam(state.cam);
   keepClear();
   goCam(state.cam, true);
   ui.layer.hidden = false;
@@ -134,7 +144,7 @@ export function startView(first) {
     const h = parseHash(location.hash);
     if (h.cam && h.cam !== state.cam) setCam(h.cam, reduced());
   });
-  // the bar sits over the scene: the camera fits the island into what is left
+  // the buttons sit over the scene: the camera fits the island into what is left
   addEventListener('resize', keepClear);
 
   return { check: () => watcher.check(), reviews: reviews.update };

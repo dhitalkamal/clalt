@@ -4,11 +4,11 @@ import { zoomAt, resetZoom, orbit, pan } from './stage.js';
 import { app, stage, ui, canvas } from './app.js';
 import { regionInfo } from './regioncard.js';
 import { isGarden } from './garden/index.js';
-import { goCam } from './camseam.js';
 import { openActivity } from './activity/index.js';
 
 // the nav manager owns the camera of every template once it runs (nav/input.js reads the same events)
-const navOwns = () => isGarden() || !!stage.nav;
+// a failed nav load (stage.navFailed) hands the camera back to the plain orbit
+const navOwns = () => !!stage.nav || (isGarden() && !stage.navFailed);
 
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -85,7 +85,7 @@ function onMove(e) {
 // the agent under a screen point, or null
 function pickAgent(x, y) {
   castFrom(x, y);
-  const targets = [...app.agents.values()].flatMap((a) => [a.rig, a.model]);
+  const targets = [...app.agents.values()].filter((a) => !a.hidden).flatMap((a) => [a.rig, a.model]);
   const hit = ray.intersectObjects(targets, true)[0];
   if (!hit) return null;
   let o = hit.object;
@@ -104,8 +104,8 @@ export function updateHover() {
     canvas.style.cursor = agent ? 'pointer' : 'grab';
   }
   const shown = app.hover || app.selected;
-  if (shown && !app.agents.has(shown.s.id)) { app.selected = null; app.hover = null; }
-  if (shown && app.agents.has(shown.s.id)) {
+  if (shown && (!app.agents.has(shown.s.id) || shown.hidden)) { app.selected = null; app.hover = null; }
+  if (shown && app.agents.has(shown.s.id) && !shown.hidden) {
     const at = app.hover ? mouse : app.selectPos;
     ui.showCard(shown, at.x, at.y);
   } else if (app.selectedRegion) ui.showRegion(regionCard(app.selectedRegion), app.selectPos.x, app.selectPos.y);
@@ -139,8 +139,4 @@ export function bindInput() {
     zoomAt(stage, new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), Math.exp(e.deltaY * 0.0012));
   }, { passive: false });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') clearSelection(); });
-  const on = (id, fn) => document.getElementById(id).addEventListener('click', fn);
-  on('b-home', () => { if (navOwns()) goCam('top'); else resetZoom(stage); });
-  on('b-lines', (e) => { app.linesOn = !app.linesOn; e.currentTarget.classList.toggle('on', app.linesOn); });
-  on('b-tags', (e) => { app.tagsAll = !app.tagsAll; e.currentTarget.classList.toggle('on', app.tagsAll); });
 }

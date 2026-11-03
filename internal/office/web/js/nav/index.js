@@ -35,9 +35,9 @@ export function createNav(ctx, opts = {}) {
   const dom = ctx.stage.renderer && ctx.stage.renderer.domElement;
   const input = opts.input || (dom && typeof window !== 'undefined' ? createInput(dom)
     : { keys: new Set(), mouse: { x: 0, y: 0, dx: 0, dy: 0, buttons: 0, over: false }, wheel: 0, dbl: null, consume() {}, dispose() {} });
-  const st = { mode: 'sky', ctrl: null, prev: 'sky', tw: null, spin: false, view: 'third', preset: null, busy: false, paused: false };
+  const st = { mode: 'sky', ctrl: null, prev: 'sky', tw: null, spin: false, view: 'third', preset: null, busy: false, paused: false, dead: false, want: 'sky', queued: 0, tail: Promise.resolve() };
 
-  const emit = () => { if (ctx.onChange) ctx.onChange({ mode: st.mode, preset: st.preset }); };
+  const emit = () => { if (!st.dead && ctx.onChange) ctx.onChange({ mode: st.mode, preset: st.preset }); };
   const userFree = ctx.onFree;
   ctx.onFree = () => { st.preset = null; emit(); if (userFree) userFree(); };
 
@@ -54,11 +54,46 @@ export function createNav(ctx, opts = {}) {
     st.prev = from;
     st.ctrl = next;
     st.mode = name;
-    next.enter(ctx, old ? fromPose : null, o);
+    next.enter(ctx, old ? fromPose : null, o, input);
     st.tw = old && !ctx.reducedMotion ? { t: 0, from: fromPose, fromFov } : null;
     if (name !== 'sky') st.preset = null;
     emit();
     return true;
+  }
+
+  // mode changes run one at a time, so a toggle during a slow load cannot see a stale mode.
+  // st.want is the mode the queue ends in: toggles read it, two quick G presses cancel out
+  function enqueue(want, job) {
+    if (want) st.want = want;
+    st.queued++;
+    const run = st.tail.then(job);
+    st.tail = run.catch(() => {}).then(() => { if (--st.queued === 0) st.want = st.mode; });
+    return run;
+  }
+  // awaits the sky load without throwing: false when it failed or the manager was disposed
+  const alive = async () => { try { await api.ready; } catch (e) { return false; } return !st.dead && !!st.ctrl; };
+
+  async function doSetMode(name, o) {
+    if (!(await alive())) return false;
+    if (name === 'follow') return doFollow(o.agentId);
+    if (name === st.mode && o.view && st.ctrl.setView) { st.ctrl.setView(o.view); return true; }
+    if (name === st.mode) return true;
+    const next = await make(name, { ...o, view: o.view || st.view });
+    if (st.dead) { if (next) next.dispose(); return false; }
+    if (!next) { if (ctx.onNotice) ctx.onNotice(name + ' mode is not available'); return false; }
+    return switchTo(name, next, st.mode === 'follow' ? 'sky' : st.mode);
+  }
+
+  async function doFollow(agentId) {
+    if (!(await alive())) return false;
+    const a = ctx.app || {};
+    const id = agentId || (a.selected && a.selected.s && a.selected.s.id) || (a.hover && a.hover.s && a.hover.s.id);
+    if (!id) return false;
+    if (a.agents && a.agents.has && !a.agents.has(id)) return false;
+    const next = await make('follow', id);
+    if (st.dead) { if (next) next.dispose(); return false; }
+    if (!next) { if (ctx.onNotice) ctx.onNotice('follow mode is not available'); return false; }
+    return switchTo('follow', next, st.mode === 'follow' ? st.prev : st.mode);
   }
 
   const api = {
@@ -70,30 +105,15 @@ export function createNav(ctx, opts = {}) {
     ready: null,
 
     // switch controller. resolves true on success, false when the module is missing (the mode stays as it was)
-    async setMode(name, o = {}) {
-      await api.ready;
-      if (name === 'follow') return api.follow(o.agentId);
-      if (name === st.mode && !o.view) return true;
-      if (name === st.mode && st.ctrl.setView) { st.ctrl.setView(o.view); return true; }
-      const next = await make(name, o);
-      if (!next) { if (ctx.onNotice) ctx.onNotice(name + ' mode is not available'); return false; }
-      return switchTo(name, next, st.mode === 'follow' ? 'sky' : st.mode);
-    },
+    setMode(name, o = {}) { return enqueue(name, () => doSetMode(name, o)); },
 
-    async follow(agentId) {
-      await api.ready;
-      const a = ctx.app || {};
-      const id = agentId || (a.selected && a.selected.s && a.selected.s.id) || (a.hover && a.hover.s && a.hover.s.id);
-      if (!id) return false;
-      const next = await make('follow', id);
-      if (!next) { if (ctx.onNotice) ctx.onNotice('follow mode is not available'); return false; }
-      return switchTo('follow', next, st.mode === 'follow' ? st.prev : st.mode);
-    },
+    follow(agentId) { return enqueue('follow', () => doFollow(agentId)); },
 
     // fly the sky camera to a preset pose supplied by ctx.presetPose(id)
     async toPreset(id, o = {}) {
-      await api.ready;
+      if (!(await alive())) return false;
       if (st.mode !== 'sky' && !(await api.setMode('sky'))) return false;
+      if (st.dead) return false;
       const to = ctx.presetPose && ctx.presetPose(id);
       if (!to) return false;
       st.preset = id;
@@ -102,11 +122,22 @@ export function createNav(ctx, opts = {}) {
       return true;
     },
 
+    // re-apply the current preset after a resize or a safe-area change. true only while the user has not moved the camera
+    refit() {
+      if (st.dead || st.paused) return false;
+      const to = st.preset && ctx.presetPose && ctx.presetPose(st.preset);
+      return !!(to && st.mode === 'sky' && st.ctrl && st.ctrl.refit && st.ctrl.refit(ctx, to));
+    },
+
     // a paused manager leaves the camera alone (the build editor owns it) and drops what the input collected
     pause(on) { st.paused = !!on; if (st.paused) input.consume(); },
     setSpin(on) { st.spin = !!on; if (st.mode === 'sky' && st.ctrl) st.ctrl.spin = st.spin; },
-    toggleGround() { return api.setMode(st.mode === 'ground' ? 'sky' : 'ground'); },
-    toggleView() { st.view = st.view === 'first' ? 'third' : 'first'; return api.setMode('ground', { view: st.view }); },
+    toggleGround() { return api.setMode(st.want === 'ground' ? 'sky' : 'ground'); },
+    // outside ground it only picks the view the next G uses
+    toggleView() {
+      st.view = st.view === 'first' ? 'third' : 'first';
+      return st.want === 'ground' ? api.setMode('ground', { view: st.view }) : Promise.resolve(true);
+    },
     // Esc: ground and follow go back to sky where they are, sky goes to the top preset
     escape() { return st.mode === 'sky' ? api.toPreset('top') : api.setMode('sky'); },
 
@@ -133,16 +164,18 @@ export function createNav(ctx, opts = {}) {
       }
     },
 
-    dispose() { if (st.ctrl) st.ctrl.dispose(); st.ctrl = null; input.dispose(); },
+    dispose() { st.dead = true; if (st.ctrl) st.ctrl.dispose(); st.ctrl = null; input.dispose(); },
   };
   ctx.nav = api;
 
   api.ready = (async () => {
     const sky = await make('sky');
-    if (!sky) return;
+    if (st.dead) { if (sky) sky.dispose(); return; }
+    if (!sky) throw new Error('sky navigation failed to load');
     st.ctrl = sky;
     sky.spin = st.spin;
     sky.enter(ctx, null);
   })();
+  api.ready.catch(() => {});
   return api;
 }

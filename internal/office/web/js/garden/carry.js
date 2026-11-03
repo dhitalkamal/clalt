@@ -52,6 +52,8 @@ const KEEP = ['cupHeld', 'cupHotUntil', 'cupHideAt', 'nextBreakAt', 'breakCount'
 export function snapshotMove(a) {
   const snap = { mode: a.mode, pos: worldPos(a), yaw: a.model.rotation.y };
   for (const k of KEEP) snap[k] = a[k];
+  // a seated agent leaves the way it came in, so the walk can start from its seat node on the same graph
+  if (a.mode === 'seated' && a.L && a.slot && a.slot.node) snap.from = { L: a.L, node: a.slot.node };
   return snap;
 }
 
@@ -70,7 +72,7 @@ export function walkToSeat(a, snap, L) {
   a.planOffer = null;
   a.detach();
   a.place(pos, snap.yaw);
-  const pts = replanPath(L, pos, a.slot.node);
+  const pts = snap.from && snap.from.L === L ? L.path(snap.from.node, a.slot.node) : replanPath(L, pos, a.slot.node);
   a.follow('back', () => pts, () => a.arrive(), (_L, ag) => ag.slot.node);
   a.curNode = a.slot.node;
 }
@@ -100,7 +102,7 @@ export function remapAgent(a, L, slot) {
       a.curSpot = null;
       a.abort = true;
       a.curNode = tempNode(L, worldPos(a));
-    } else if (a.act === 'handoff') a.curNode = tempNode(L, worldPos(a));
+    } else if (a.act === 'handoff' || a.act === 'brief') a.curNode = tempNode(L, worldPos(a));
   }
   const p = a.path;
   if (a.mode === 'walking' && p && p.dest) {

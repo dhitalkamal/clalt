@@ -4,6 +4,7 @@ import { ScreenTex, bubbleTexture } from './screen.js';
 import { makeStool, makeCrown, makeRing, textSprite, glowSprite, makeMug } from './props.js';
 import { deskDetails, monitorExtras, steamPuffs, box } from './details.js';
 import { SEAT_OFF } from './layout.js';
+import { workIcon } from './workIcons.js';
 import { mixin } from './mixin.js';
 import { CHAR_SCALE, K, TAG_Y, BUBBLE_Y } from './agentConst.js';
 
@@ -182,7 +183,9 @@ class Build {
     }
     this.done = bubbleSprite(doneTex, 0.3);
     this.chat = bubbleSprite(dotsTex, 0.3);
-    f.add(this.bubble, this.done, this.chat);
+    // the picture of the current work, its texture is set by name in updateFlair
+    this.work = bubbleSprite(workIcon('read'), 0.34);
+    f.add(this.bubble, this.done, this.chat, this.work);
     f.visible = false;
   }
 }

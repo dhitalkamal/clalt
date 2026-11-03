@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dhitalkamal/clalt/internal/office/cfaccess"
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 	"github.com/dhitalkamal/clalt/internal/office/summary"
 )
@@ -55,6 +56,8 @@ type Config struct {
 	Autostart Autostarter
 	// Version is what /api/ping says.
 	Version string
+	// Access lets cloudflare access log in on its public host, nil turns it off.
+	Access *cfaccess.Verifier
 }
 
 type handler struct {
@@ -65,6 +68,8 @@ type handler struct {
 	store *layout.Store
 	// mu makes a layout write one step: check, save, switch. it also guards start.
 	mu sync.Mutex
+	// idleMu makes an idle save one step: read, compare the version, write.
+	idleMu sync.Mutex
 	// start is Config.Template until a write from the page picks another layout.
 	start string
 	// now is the clock of the activity cache.
@@ -125,8 +130,9 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hd.Set("X-Content-Type-Options", "nosniff")
 	hd.Set("Referrer-Policy", "no-referrer")
 	hd.Set("Cross-Origin-Resource-Policy", "same-origin")
+	r = h.withAccess(r)
 	// a name that resolves to this machine from another site would pass the token check by cookie, so the Host must be ours
-	if !h.hosts[strings.ToLower(r.Host)] {
+	if !h.hosts[strings.ToLower(r.Host)] && !viaAccess(r) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -162,6 +168,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.autostartGet(w)
 		return
 	}
+	if r.URL.Path == idlePath {
+		h.idleGet(w)
+		return
+	}
 	if r.URL.Path == "/api/snapshot" {
 		h.snapshot(w)
 		return
@@ -193,9 +203,12 @@ func (h *handler) tokenOK(got string) bool {
 	return subtle.ConstantTimeCompare([]byte(got), []byte(h.cfg.Token)) == 1
 }
 
-// authorized is the token in the header or the cookie. the query token is only
-// good for the first load, see ServeHTTP.
+// authorized is a checked access assertion, or the token in the header or the
+// cookie. the query token is only good for the first load, see ServeHTTP.
 func (h *handler) authorized(r *http.Request) bool {
+	if viaAccess(r) {
+		return true
+	}
 	if t := r.Header.Get(tokenHeader); t != "" && h.tokenOK(t) {
 		return true
 	}

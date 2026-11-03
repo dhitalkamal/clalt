@@ -3,6 +3,9 @@
 import { planBreaks } from './planner.js';
 import { app, ui, relayout, makeAgent, refreshLabels } from './app.js';
 import { classifySubs, updateMembers, rosterOf } from './roster.js';
+import { trackRecord } from './behave/records.js';
+import { subIdsOf, newBriefs } from './behave/brief.js';
+import { reduced } from './behave/motion.js';
 import { MAX_SESSIONS, MAX_SUBS, makeSession, makeSub, modelName, tintFor } from './model.js';
 
 const KNOWN_VERSION = 1;
@@ -25,12 +28,13 @@ function updateKnown(snapSessions) {
     s.reason = snap.needsYouReason || '';
     s.model = modelName(snap.model);
     s.actions = snap.actions;
+    trackRecord(s, snap.doing, Date.now());
     const subBy = new Map((snap.subagents || []).map((x) => [s.id + '/' + x.id, x]));
     for (const sub of s.subs) {
       if (sub.leaving) continue;
       const cur = subBy.get(sub.id);
       if (!cur || cur.state === 'done') sub.leaving = true;
-      else sub.task = cur.label || sub.task;
+      else { sub.task = cur.label || sub.task; trackRecord(sub, cur.doing, Date.now()); }
     }
   }
 }
@@ -42,6 +46,7 @@ function addSubs(session, snapSubs) {
     if (sub.state === 'done' || session.subs.some((x) => x.id === session.id + '/' + sub.id)) continue;
     if (session.subs.filter((x) => !x.leaving).length >= MAX_SUBS) break;
     const rec = makeSub(session, app.sessions.flatMap((x) => x.subs), sub);
+    trackRecord(rec, sub.doing, Date.now());
     session.subs.push(rec);
     made.push(rec);
   }
@@ -60,6 +65,7 @@ function addNew(snapSessions, born) {
       if (app.sessions.filter((x) => !x.leaving).length >= MAX_SESSIONS) { app.hidden++; continue; }
       s = makeSession(snap, snap.account);
       s.state = stateOf(snap.state);
+      trackRecord(s, snap.doing, Date.now());
       app.sessions.push(s);
       born.push(s);
       changed = true;
@@ -83,6 +89,7 @@ export function applySnapshot(snap) {
   order.forEach(tintFor);
   app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || a.id, limits: a.limits, forecast: a.forecast }]));
   ui.accounts = app.accounts;
+  const before = subIdsOf(app.sessions);
   updateKnown(snap.sessions);
   const born = [];
   let changed = addNew(snap.sessions, born);
@@ -98,6 +105,8 @@ export function applySnapshot(snap) {
   if (changed || reorder || !app.layout) relayout();
   else refreshLabels();
   for (const rec of born) if (!rec.mapped && !app.agents.has(rec.id)) makeAgent(rec, first);
+  // a main agent walks over to brief each subagent that appeared while the page was running
+  if (!reduced()) for (const b of newBriefs(before, subIdsOf(app.sessions), first)) app.agents.get(b.main)?.queueBrief(b.sub);
   if (first) {
     // idle agents start in the middle of a break so the cafe and play area are in use from the first frame
     for (const a of planBreaks(app, true)) a.instantBreak(a.planOffer, a.planOffer.steps.length - 1);

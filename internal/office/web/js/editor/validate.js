@@ -69,7 +69,8 @@ function checkLayoutFields(l, err) {
   if (!COLOR_RE.test(l.walls?.color || '')) err('color-bad', 'Wall colour must be like #e9e4dc.');
   if (!COLOR_RE.test(l.floorColor || '')) err('color-bad', 'Floor colour must be like #d9b88f.');
   const tp = textProblem(l.title || '', 60);
-  if (tp) err(tp.startsWith('is longer') ? 'title-long' : 'text-bad', 'Title ' + tp + '.');
+  if (!(l.title || '').trim()) err('title-empty', 'Title is empty.');
+  else if (tp) err(tp.startsWith('is longer') ? 'title-long' : 'text-bad', 'Title ' + tp + '.');
   const door = l.door;
   if (!door || !SIDES.includes(door.side)) err('door-range', 'Door needs a side: left, right, back or front.');
   else if (!Number.isInteger(door.at) || door.at < 0 || door.at >= doorSideLength(l, door.side)) {

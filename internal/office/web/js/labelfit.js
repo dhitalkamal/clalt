@@ -40,10 +40,11 @@ function search(it, w, h, placed, gap, cap) {
 
 // reach: how far a full card may move, in card heights. prev: last frame's result, keeps a layout that
 // is still valid from flipping to an equal one when anchors drift by a pixel
-export function fitLabels(items, { gap = 3, nudge: reach = 1, prev = null } = {}) {
+// fixed: screen boxes {x0, y0, x1, y1} that never move (status pill, bottom buttons). labels route around them
+export function fitLabels(items, { gap = 3, nudge: reach = 1, prev = null, fixed = [] } = {}) {
   // cards before pills, then the lowest on screen first so the front ones stay put
   const order = [...items].sort((a, b) => (b.pri || 0) - (a.pri || 0) || b.y - a.y || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const placed = [];
+  const placed = [...fixed];
   const out = new Map();
   const done = (it, w, h, pick) => {
     const d = Math.hypot(pick.dx, pick.dy);
@@ -81,3 +82,8 @@ export function fitLabels(items, { gap = 3, nudge: reach = 1, prev = null } = {}
   }
   return out;
 }
+
+// below this window height a card may not sit above the bottom edge of the status pill: wide short windows
+// would otherwise tuck the account cards under it or off the top. returns a fixed box, or null
+const SHORT = 700;
+export const topBand = (width, height, pill) => (pill && height < SHORT ? { x0: 0, y0: -10000, x1: width, y1: pill.y1 } : null);

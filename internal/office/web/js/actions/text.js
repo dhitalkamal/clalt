@@ -1,6 +1,6 @@
 // confirm sentences and the requests of the session actions. no dom.
+import { LOST_ACCESS as LOST } from '../lostaccess.js';
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Clalt-Edit': '1' };
-const LOST = 'this page lost its access, restart clalt office and open the new link';
 
 export const confirmStop = (project, account) => 'Stop ' + project + ' on ' + account + '? It ends after the current step.';
 

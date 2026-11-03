@@ -16,7 +16,7 @@ const PAGE = 100;
 const EVERY = 3000;
 const NEAR = 48;
 
-// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, onClose: optional, fetch: optional }
+// h: { ctx() -> {accounts, sessions}, fallback: element to focus when the opener is gone, onClose: optional, fetch: optional, quick: optional idle row {el, update(rec)} }
 export function createActivityPanel(h) {
   const newView = () => ({ expanded: new Set(), opened: new Set(), openRun: (a, t) => openRun(a, t) });
   const fetchIt = h.fetch || defaultFetch;
@@ -51,7 +51,8 @@ export function createActivityPanel(h) {
   fresh.type = 'button';
   fresh.hidden = true;
   const bar = createActionBar({ ctx: h.ctx });
-  root.append(el('header', '', backBtn, title, closeBtn), bar.el, meta, note, err, log, fresh);
+  const quick = h.quick || null;
+  root.append(el('header', '', backBtn, title, closeBtn), ...(quick ? [quick.el] : []), bar.el, meta, note, err, log, fresh);
   document.body.append(root);
 
   let st = null;
@@ -68,6 +69,8 @@ export function createActivityPanel(h) {
     // a run opened from its group is named by the run, Back returns to the session
     title.textContent = st.back ? st.runTitle || 'subagent run' : d.title;
     bar.update(st.target.handle);
+    // the rule belongs to the session or member, not to a run opened from its log
+    if (quick) quick.update(st.back ? null : st.rec);
     meta.replaceChildren();
     const add = (k, v) => meta.append(el('div', '', el('dt', '', k), el('dd', '', v)));
     add('state', stampNode(d.state, d.stateText));

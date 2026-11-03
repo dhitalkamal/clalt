@@ -14,6 +14,9 @@ import (
 	"github.com/dhitalkamal/clalt/internal/office/layout"
 )
 
+// deletePath removes a saved layout, on the write surface like the others.
+const deletePath = "/api/layout/delete"
+
 // editHeader must be sent with every write. a page of another origin cannot
 // set it without a preflight, and the server answers no preflight.
 const editHeader = "X-Clalt-Edit"
@@ -25,9 +28,9 @@ func isEditRoute(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/api/layout":
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
-	case "/api/layouts", "/api/layout/use":
+	case "/api/layouts", "/api/layout/use", deletePath:
 		return true
-	case "/api/reviews/settings", autostartPath:
+	case "/api/reviews/settings", autostartPath, idlePath:
 		return r.Method != http.MethodGet && r.Method != http.MethodHead
 	}
 	return false
@@ -73,10 +76,18 @@ func (h *handler) editRoute(w http.ResponseWriter, r *http.Request) {
 		h.autostartSave(w, body)
 		return
 	}
+	if r.URL.Path == idlePath {
+		h.idleSave(w, r, body)
+		return
+	}
 	if want == http.MethodPut {
 		h.mu.Lock()
 		defer h.mu.Unlock()
-		h.layoutPut(w, body)
+		h.layoutPut(w, r, body)
+		return
+	}
+	if r.URL.Path == deletePath {
+		h.layoutDelete(w, body)
 		return
 	}
 	h.layoutUse(w, body)
@@ -95,10 +106,10 @@ func (h *handler) writeAllowed(w http.ResponseWriter, r *http.Request) bool {
 	ok := r.Header.Get(editHeader) == "1"
 	if ok {
 		if o := r.Header.Get("Origin"); o != "" {
-			ok = h.ownOrigin(o)
+			ok = h.ownOrigin(o) || h.accessOrigin(r, o)
 		} else if ref := r.Header.Get("Referer"); ref != "" {
 			u, err := url.Parse(ref)
-			ok = err == nil && h.ownOrigin(u.Scheme+"://"+u.Host)
+			ok = err == nil && (h.ownOrigin(u.Scheme+"://"+u.Host) || h.accessOrigin(r, u.Scheme+"://"+u.Host))
 		} else {
 			ok = false
 		}
@@ -147,13 +158,17 @@ type listSaved struct {
 }
 
 func (h *handler) layoutList(w http.ResponseWriter) {
+	h.replyList(w, h.activeName())
+}
+
+// replyList answers with the layout lists, marking active.
+func (h *handler) replyList(w http.ResponseWriter, active string) {
 	infos, err := h.store.List()
 	if err != nil {
 		h.logf("listing layouts failed: %v", err)
 		http.Error(w, "list failed", http.StatusInternalServerError)
 		return
 	}
-	active := h.activeName()
 	tpls := make([]listTemplate, 0, len(layout.Templates))
 	for _, t := range layout.Templates {
 		tpls = append(tpls, listTemplate{t.ID, t.Title, "template", t.ID == active})
@@ -178,10 +193,50 @@ func customName(name string) string {
 	return name + suffix
 }
 
+// saveTarget is the name a save from the active layout lands on: the layout
+// itself, or its "-custom" copy when it is a template or a built-in (a hall
+// (v1) edit never lands on a garden template's name).
+func (h *handler) saveTarget(active string, v int) string {
+	switch {
+	case layout.IsTemplate(active):
+		base := active
+		if v != layout.Version {
+			base = layout.HallTemplate
+		}
+		return customName(base)
+	case h.store.IsBuiltin(active):
+		return customName(active)
+	}
+	return active
+}
+
+// layoutVersion is the version of the stored file of a layout name.
+func (h *handler) layoutVersion(name string) string {
+	raw, err := h.store.StoredBytes(name)
+	switch {
+	case errors.Is(err, layout.ErrNotFound):
+		return noVersion
+	case err != nil:
+		return "unreadable"
+	}
+	return versionOf(raw)
+}
+
+// layoutConflict answers 409 for a save made on an old version: the layout
+// that is stored now (or the active one when nothing is stored) and its version.
+func (h *handler) layoutConflict(w http.ResponseWriter, active string, v int, cur string) {
+	l, err := h.store.Load(h.saveTarget(active, v))
+	if err != nil {
+		l, _ = h.resolve(active)
+	}
+	setVersion(w, cur)
+	h.conflict(w, map[string]any{"error": "this layout changed since it was loaded", "layout": l, "active": active, "version": cur})
+}
+
 // layoutPut saves the body as the active layout. a built-in or generated
 // template is never written: the copy is saved as "<name>-custom" and made
 // active. a layout that names a template is refused, templates are generated.
-func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
+func (h *handler) layoutPut(w http.ResponseWriter, r *http.Request, body []byte) {
 	l, err := layout.Decode(body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -192,24 +247,17 @@ func (h *handler) layoutPut(w http.ResponseWriter, body []byte) {
 		return
 	}
 	active := h.activeNameLocked()
-	l.Name = active
-	switch {
-	case layout.IsTemplate(active):
-		// a hall (v1) edit never lands on a garden template's name
-		base := active
-		if l.V != layout.Version {
-			base = layout.HallTemplate
-		}
-		l.Name = customName(base)
-	case h.store.IsBuiltin(active):
-		l.Name = customName(active)
-	}
+	l.Name = h.saveTarget(active, l.V)
 	if err := h.store.Check(l); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if h.store.IsBuiltin(l.Name) {
 		http.Error(w, layout.ErrBuiltin.Error(), http.StatusBadRequest)
+		return
+	}
+	if cur := h.layoutVersion(l.Name); staleWrite(r, cur) {
+		h.layoutConflict(w, active, l.V, cur)
 		return
 	}
 	// a stored layout keeps its format: v1 over v2 (or back) would destroy it

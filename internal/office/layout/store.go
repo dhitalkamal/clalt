@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/dhitalkamal/clalt/internal/fsutil"
 )
@@ -40,6 +41,10 @@ type Store struct {
 	// Builtin is the folder of built-in templates, nil means the embedded one.
 	Builtin fs.FS
 	Logf    func(format string, args ...any)
+
+	// skips holds the skip lines already logged, so a poll does not repeat them
+	skipMu sync.Mutex
+	skips  map[string]bool
 }
 
 // NewStore is a store at root. logf gets one line per layout it had to skip.
@@ -50,6 +55,22 @@ func NewStore(root string, logf func(string, ...any)) *Store {
 func (s *Store) logf(format string, args ...any) {
 	if s.Logf != nil {
 		s.Logf(format, args...)
+	}
+}
+
+// logSkip logs a skipped file once per server run: the same line is not repeated on every poll, a new
+// problem in the same file is a new line.
+func (s *Store) logSkip(format string, args ...any) {
+	line := fmt.Sprintf(format, args...)
+	s.skipMu.Lock()
+	seen := s.skips[line]
+	if s.skips == nil {
+		s.skips = map[string]bool{}
+	}
+	s.skips[line] = true
+	s.skipMu.Unlock()
+	if !seen {
+		s.logf("%s", line)
 	}
 }
 
@@ -104,6 +125,15 @@ func (s *Store) readUser(name string) ([]byte, error) {
 		return nil, fmt.Errorf("layout %s is not a regular file of at most %d KB", name, MaxBytes/1024)
 	}
 	return fsutil.ReadFile(s.path(name))
+}
+
+// StoredBytes is the user file of a layout as it is on disk, ErrNotFound when
+// there is none. a built-in template has no user file until it is copied.
+func (s *Store) StoredBytes(name string) ([]byte, error) {
+	if !ValidName(name) {
+		return nil, errors.New("not a layout name")
+	}
+	return s.readUser(name)
 }
 
 // parse decodes and validates a stored layout, which must carry the name it
@@ -234,7 +264,7 @@ func (s *Store) addInfo(into map[string]Info, name, file string, builtin bool) {
 		return
 	}
 	if !ValidName(name) {
-		s.logf("layout file %q skipped: not a layout name", file)
+		s.logSkip("layout file %q skipped: not a layout name", file)
 		return
 	}
 	var l Layout
@@ -251,7 +281,7 @@ func (s *Store) addInfo(into map[string]Info, name, file string, builtin bool) {
 		}
 	}
 	if err != nil {
-		s.logf("layout %s skipped: %v", name, err)
+		s.logSkip("layout %s skipped: %v", name, err)
 		return
 	}
 	into[name] = Info{Name: name, Title: l.Title, Builtin: builtin}

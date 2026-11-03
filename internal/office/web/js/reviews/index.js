@@ -2,7 +2,7 @@
 import { openActivity } from '../activity/index.js';
 import { createInbox } from './inbox.js';
 import { createReviewsSection } from './section.js';
-import { showButton, badgeText } from './model.js';
+import { showButton, badgeText, openCount } from './model.js';
 
 export function startReviews() {
   const btn = document.getElementById('b-reviews');
@@ -17,7 +17,7 @@ export function startReviews() {
   const inbox = createInbox({
     openRun: (rec) => openActivity(rec),
     // the list reply has no count field, the snapshot does: keep the badge in step with what the inbox just read
-    onList: (l) => paint({ enabled: l.enabled, running: l.running, count: (l.reviews || []).length }),
+    onList: (l) => paint({ enabled: l.enabled, running: l.running, count: openCount(l) }),
   });
   btn.addEventListener('click', () => (inbox.isOpen() ? inbox.close() : inbox.open(btn)));
   return { section: createReviewsSection(), update: (snapReviews) => paint(snapReviews || null) };

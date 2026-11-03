@@ -66,6 +66,9 @@ export async function spinCam(on) {
 // the screen fractions the camera keeps free for the page chrome
 export async function safeCam(safe) {
   getHost().setSafe(safe);
+  // the hall presets read the host's safe fractions, so re-apply them (cameras.setSafe only covers the garden rig)
+  const hall = app.layout && app.layoutJson && app.layoutJson.v !== 2 && app.layout.grids;
+  if (hall && stage.nav) stage.nav.refit();
   const m = await cams();
   if (m.setSafe) m.setSafe(stage, safe);
 }

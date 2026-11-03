@@ -1,7 +1,7 @@
 // screen-space label de-overlap: pure boxes in, offsets out
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fitLabels } from '../labelfit.js';
+import { fitLabels, topBand } from '../labelfit.js';
 
 // a card anchored at (x, y) occupies [x - w/2, y - h, x + w/2, y]
 const card = (id, x, y, extra = {}) => ({ id, x, y, w: 132, h: 60, cw: 90, ch: 22, pri: 1, ...extra });
@@ -155,4 +155,36 @@ test('pills that cannot find room nearby are hidden, never cards', () => {
   assert.deepEqual(overlaps(items, out), []);
   assert.ok([...out.entries()].some(([id, r]) => id[0] === 'p' && r.hidden));
   for (const it of items) if (it.id[0] === 'c') assert.equal(out.get(it.id).hidden, false);
+});
+
+const boxHit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+test('fixed obstacles (status pill, buttons) are never covered by a card or pill', () => {
+  const fixed = [{ x0: 400, x1: 700, y0: 10, y1: 46 }, { x0: 450, x1: 650, y0: 840, y1: 890 }];
+  const items = [card('a', 550, 100), card('b', 560, 880), pill('c', 540, 60)];
+  const out = fitLabels(items, { fixed });
+  for (const it of items) {
+    const r = out.get(it.id);
+    if (r.hidden) continue;
+    for (const f of fixed) assert.equal(boxHit(boxOf(it, r), f), false, it.id);
+  }
+});
+
+test('a card with no fixed obstacle nearby is untouched by the fixed list', () => {
+  const out = fitLabels([card('a', 100, 300)], { fixed: [{ x0: 400, x1: 700, y0: 10, y1: 46 }] });
+  assert.deepEqual(still(out.get('a')), { dy: 0, compact: false });
+});
+
+test('topBand: a short window keeps labels below the status pill, a tall one adds nothing', () => {
+  const pillBox = { x0: 780, y0: 12, x1: 1120, y1: 47 };
+  assert.equal(topBand(1900, 900, pillBox), null);
+  assert.equal(topBand(1900, 600, null), null);
+  assert.deepEqual(topBand(1900, 600, pillBox), { x0: 0, y0: -10000, x1: 1900, y1: 47 });
+});
+
+test('with the band as a fixed box a card anchored at the top lands below the pill', () => {
+  const band = topBand(1900, 600, { x0: 780, y0: 12, x1: 1120, y1: 47 });
+  const it = card('a', 900, 30);
+  const out = fitLabels([it], { fixed: [band] });
+  assert.ok(boxOf(it, out.get('a')).y0 >= 47);
 });

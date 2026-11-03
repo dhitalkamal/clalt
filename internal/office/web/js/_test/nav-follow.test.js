@@ -59,3 +59,16 @@ test('exit returns the current camera pose', () => {
   assert.equal(pose.pos.length, 3);
   assert.equal(pose.target.length, 3);
 });
+
+test('a key held at enter does not end follow until released and pressed again', () => {
+  const ctx = mk([['a', fakeAgent(0, 0, 0)]]);
+  const f = createFollow('a');
+  const inp = { ...idle(), keys: new Set(['KeyW']) };
+  f.enter(ctx, { pos: [0, 5, 0], target: [0, 0, 0] }, {}, inp);
+  assert.notEqual(f.update(ctx, 0.016, inp), 'back');
+  assert.equal(f.done, false);
+  inp.keys.delete('KeyW');
+  f.update(ctx, 0.016, inp);
+  inp.keys.add('KeyW');
+  assert.equal(f.update(ctx, 0.016, inp), 'back');
+});
