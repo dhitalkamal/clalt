@@ -87,6 +87,10 @@ func (h *handler) sessionRoute(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusConflict, map[string]string{"reason": outsideWhy})
 		return
 	}
+	if feed.IsCopilot(body.Handle) {
+		writeJSON(w, http.StatusConflict, map[string]string{"reason": copilotWhy})
+		return
+	}
 	h.runAction(w, r, verb, body)
 }
 

@@ -1,5 +1,6 @@
 // Move all: confirm, then one move request per session. a small dialog over the page.
 import { el } from '../dom.js';
+import { accountLabel } from '../tool.js';
 import { planMoveAll } from './plan.js';
 import { confirmMoveAll, sendAction } from './text.js';
 
@@ -8,7 +9,7 @@ let box = null;
 // ctx() -> {accounts, sessions}; fromId: the account running out
 export function openMoveAll(ctx, fromId, send = sendAction) {
   const c = ctx();
-  const from = (c.accounts.get(fromId) || {}).label || fromId;
+  const from = accountLabel(c.accounts, fromId);
   const plan = planMoveAll(c.sessions, fromId, c.accounts);
   close();
   const root = el('div', 'moveall');

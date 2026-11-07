@@ -28,7 +28,11 @@ const nearest = (list, at) => near(list.filter((s) => s.type !== 'team'), at).co
 // seats an agent may use in preference order. members: their own team desk, then desks nearby. interns: the
 // stools of their member, then the free desks nearest to it. subs: the kind of desk their type wants, then any work desk.
 function poolFor(a, layout, desks, got) {
-  if (a.kind === 'main') return desks.filter((s) => s.type === 'cabin' && s.kind === 'desk' && s.account === a.account);
+  if (a.kind === 'main') {
+    const own = desks.filter((s) => s.type === 'cabin' && s.kind === 'desk' && s.account === a.account);
+    // an account with no cabin at all (the Copilot team on a layout made before it existed) works at a plain desk
+    return own.length ? own : desks.filter((s) => s.kind === 'desk' && s.type !== 'team' && isWork(s));
+  }
   const work = desks.filter(isWork);
   if (a.kind === 'team') {
     const own = teamDesk(layout, desks, a.team);

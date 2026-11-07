@@ -3,6 +3,7 @@
 import { planBreaks } from './planner.js';
 import { app, ui, relayout, makeAgent, refreshLabels } from './app.js';
 import { classifySubs, updateMembers, rosterOf } from './roster.js';
+import { accountLabel } from './tool.js';
 import { trackRecord } from './behave/records.js';
 import { subIdsOf, newBriefs } from './behave/brief.js';
 import { reduced } from './behave/motion.js';
@@ -87,7 +88,7 @@ export function applySnapshot(snap) {
   const reorder = orderKey !== lastOrder;
   lastOrder = orderKey;
   order.forEach(tintFor);
-  app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || a.id, limits: a.limits, forecast: a.forecast }]));
+  app.accounts = new Map(snap.accounts.map((a) => [a.id, { label: a.label || accountLabel(null, a.id), limits: a.limits, forecast: a.forecast, tool: a.tool || 'claude' }]));
   ui.accounts = app.accounts;
   const before = subIdsOf(app.sessions);
   updateKnown(snap.sessions);

@@ -1,6 +1,7 @@
 // the history tab body: per account the 5h and 7d peak percent charts, then the
 // tokens chart and the busiest-5h chart.
 import { el } from '../dom.js';
+import { claudeOnly } from '../tool.js';
 import { drawChart } from './chartsvg.js';
 import { chipNode } from '../notebook.js';
 import { pctModel, pctReadout, pctSeries, pctNote } from './pctchart.js';
@@ -13,7 +14,7 @@ const hasUsage = (a) => a.days.some((d) => d.tokens > 0);
 // hist is the /api/history reply, width the chart width in pixels
 export function renderHistory(hist, width) {
   const root = el('div', 'histview');
-  const accounts = (hist && Array.isArray(hist.accounts) ? hist.accounts : []).filter((a) => Array.isArray(a.days));
+  const accounts = claudeOnly(hist && hist.accounts).filter((a) => Array.isArray(a.days));
   if (!accounts.length) {
     root.append(el('p', 'quiet', 'No accounts to show.'));
     return root;

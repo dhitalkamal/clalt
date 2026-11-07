@@ -311,7 +311,7 @@ func validatePavilionFields(p Pavilion) error {
 		return err
 	}
 	if p.Type == "cabin" {
-		if !accountRe.MatchString(p.Account) {
+		if !ValidAccount(p.Account) {
 			return fmt.Errorf("cabin %s needs an account id", p.ID)
 		}
 	} else if p.Account != "" {

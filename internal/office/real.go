@@ -34,7 +34,7 @@ func RealSources(r Real) Sources {
 
 // Sessions lists the sessions whose wrapper is alive, with what the feed says
 // they are doing (starting when it has not heard of them), and the plain
-// claude sessions the feed knows. it only reads.
+// claude and Copilot sessions the feed knows. it only reads.
 func (r Real) Sessions() ([]Session, error) {
 	entries, _, err := r.Registry.Scan()
 	if err != nil {
@@ -59,13 +59,18 @@ func (r Real) Sessions() ([]Session, error) {
 		return out, nil
 	}
 	for _, st := range all {
-		if !feed.IsExt(st.Handle) || st.State == feed.StateEnded || r.Now().Sub(st.UpdatedAt) > extFresh {
+		cp := feed.IsCopilot(st.Handle)
+		if !(feed.IsExt(st.Handle) || cp) || st.State == feed.StateEnded || r.Now().Sub(st.UpdatedAt) > extFresh {
 			continue
 		}
-		out = append(out, Session{
-			Handle: st.Handle, Account: st.Account, Cwd: st.Cwd, Model: st.Model, State: string(st.State),
+		s := Session{
+			Handle: st.Handle, Account: st.Account, Tool: ToolClaude, Cwd: st.Cwd, Model: st.Model, State: string(st.State),
 			Reason: st.Reason, StartedAt: st.Since,
-		})
+		}
+		if cp {
+			s.Account, s.Tool = CopilotAccount, ToolCopilot
+		}
+		out = append(out, s)
 	}
 	return out, nil
 }

@@ -58,6 +58,7 @@
 .chip { display: inline-block; padding: 1px 9px; font: 700 13px var(--nb-hand); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--ac, var(--nb-work));
   transform: rotate(1.2deg); clip-path: polygon(0 8%, 4% 0, 100% 4%, 98% 100%, 3% 94%); }
 .chip.a-work { --ac: var(--nb-work); } .chip.a-personal { --ac: var(--nb-personal); } .chip.a-client { --ac: var(--nb-client); }
+.chip.a-copilot { --ac: #a42b86; }
 
 /* rotated review flags */
 .flag { display: inline-flex; align-items: center; font: 700 14px var(--nb-hand); text-transform: uppercase; border: 2px solid var(--nb-pencil); color: var(--nb-pencil); padding: 0 7px; border-radius: 4px; transform: rotate(-2deg); }

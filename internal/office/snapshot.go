@@ -26,6 +26,7 @@ type Snapshot struct {
 type AccountOut struct {
 	ID     string    `json:"id"`
 	Label  string    `json:"label"`
+	Tool   string    `json:"tool"`
 	Limits LimitsOut `json:"limits"`
 	// Forecast is when the 5h window fills at the current pace, see forecastOf.
 	Forecast ForecastOut `json:"forecast"`
@@ -48,6 +49,7 @@ type WindowOut struct {
 type SessionOut struct {
 	Handle         string     `json:"handle"`
 	Account        string     `json:"account"`
+	Tool           string     `json:"tool"`
 	Project        string     `json:"project"`
 	Model          string     `json:"model"`
 	State          string     `json:"state"`
@@ -85,7 +87,7 @@ func Build(src Sources) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 	for _, a := range accts {
-		out := AccountOut{ID: noEmail(clean(a.ID, maxName)), Label: noEmail(clean(a.Label, maxName))}
+		out := AccountOut{ID: noEmail(clean(a.ID, maxName)), Label: noEmail(clean(a.Label, maxName)), Tool: ToolClaude}
 		if l, ok := src.Limits.Limits(a.ID); ok {
 			out.Limits = limitsOut(l, now())
 		}
@@ -109,14 +111,20 @@ func Build(src Sources) (Snapshot, error) {
 		return list[i].Handle < list[j].Handle
 	})
 	var cwds []string
+	copilot := false
 	seen := map[string]bool{}
 	for _, s := range list {
 		snap.Sessions = append(snap.Sessions, sessionOut(s, src.Subagents, src.Doing))
+		copilot = copilot || toolOf(s.Tool) == ToolCopilot
 		// the team reads each project folder once, by its real path
 		if s.Cwd != "" && !seen[s.Cwd] {
 			seen[s.Cwd] = true
 			cwds = append(cwds, s.Cwd)
 		}
+	}
+	if copilot {
+		// after the sorted claude accounts so their colours do not move
+		snap.Accounts = append(snap.Accounts, AccountOut{ID: CopilotAccount, Label: copilotLabel, Tool: ToolCopilot})
 	}
 	var defs []AgentDef
 	if src.Team != nil {
@@ -148,7 +156,7 @@ func windowOut(w *Window, now time.Time) *WindowOut {
 
 func sessionOut(s Session, subs SubagentSource, doing DoingSource) SessionOut {
 	out := SessionOut{
-		Handle: clean(s.Handle, maxName), Account: noEmail(clean(s.Account, maxName)), Project: clean(folderName(s.Cwd), maxName),
+		Handle: clean(s.Handle, maxName), Account: noEmail(clean(s.Account, maxName)), Tool: toolOf(s.Tool), Project: clean(folderName(s.Cwd), maxName),
 		Model: clean(s.Model, maxName), State: clean(s.State, 20), StartedAt: s.StartedAt, Subagents: []Subagent{},
 	}
 	if out.Account == "" {
@@ -160,6 +168,9 @@ func sessionOut(s Session, subs SubagentSource, doing DoingSource) SessionOut {
 	out.Actions = s.Can
 	if feed.IsExt(s.Handle) {
 		out.Actions = ActionsOut{Why: outsideWhy}
+	}
+	if out.Tool == ToolCopilot {
+		out.Actions = ActionsOut{Why: copilotWhy}
 	}
 	// the reason is the notification type of the hook, and only means something while the session waits
 	if s.State == "needs-you" {
@@ -202,6 +213,9 @@ func (s *Snapshot) fillForecasts(src Sources, now time.Time) {
 	}
 	for i := range s.Accounts {
 		a := &s.Accounts[i]
+		if a.Tool == ToolCopilot {
+			continue
+		}
 		if l, ok := src.Limits.Limits(a.ID); ok {
 			a.Forecast = forecastOf(l, live[a.ID], now)
 		}

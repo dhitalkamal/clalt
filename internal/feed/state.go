@@ -20,8 +20,10 @@ const (
 
 // SessionState is feed/sessions/<handle>.json.
 type SessionState struct {
-	Handle     string    `json:"handle"`
-	Account    string    `json:"account"`
+	Handle  string `json:"handle"`
+	Account string `json:"account"`
+	// Tool is "copilot" for a Copilot CLI session, empty means claude.
+	Tool       string    `json:"tool,omitempty"`
 	State      State     `json:"state"`
 	Since      time.Time `json:"since"`
 	Reason     string    `json:"reason,omitempty"`

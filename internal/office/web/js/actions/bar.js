@@ -2,6 +2,7 @@
 // pure decisions live in availability.js, plan.js and text.js; this file only draws and sends.
 import { el } from '../dom.js';
 import { actionView } from './availability.js';
+import { accountLabel } from '../tool.js';
 import { rankAccounts } from './plan.js';
 import { confirmStop, sendAction } from './text.js';
 
@@ -38,7 +39,7 @@ export function createActionBar(h) {
     const c = h.ctx();
     const s = c.sessions.find((x) => x.handle === handle && !x.leaving);
     const view = s ? actionView(s.actions) : actionView({ move: false, focus: false, stop: false, why: 'this session has ended' });
-    const label = (id) => (c.accounts.get(id) || {}).label || id;
+    const label = (id) => accountLabel(c.accounts, id);
     const choices = s ? rankAccounts(c.accounts, s.account) : [];
     const key = JSON.stringify([handle, view, state, choices, s && s.project, s && s.account]);
     if (!force && key === lastKey) return;

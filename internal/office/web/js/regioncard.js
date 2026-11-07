@@ -1,5 +1,7 @@
 // the card shown when a room or pavilion is clicked: its name, the account of a cabin and who is inside.
 // pure: agents are plain {id, label, x, y, z, away} records, input.js builds them from the live agents.
+import { accountLabel } from './tool.js';
+
 const NAMES = { cabin: 'Cabin', research: 'Research', workspace: 'Open workspace', lobby: 'Lobby', cafe: 'Cafe', play: 'Play', treehouse: 'Treehouse', team: 'Team', review: 'Review', meeting: 'Meeting', cabins: 'Cabins' };
 const SHOWN = 6;
 
@@ -10,8 +12,7 @@ export function regionInfo(r, layout, accounts, agents) {
   const rows = [];
   const pav = ((layout && layout.pavilions) || []).find((p) => p.id === r.pavilion);
   if (pav && pav.account) {
-    const info = accounts && accounts.get(pav.account);
-    rows.push(['account', info ? info.label : pav.account]);
+    rows.push(['account', accountLabel(accounts, pav.account)]);
   }
   if (pav && pav.type === 'team') {
     const members = agents.filter((a) => a.team);
