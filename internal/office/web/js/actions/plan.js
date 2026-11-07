@@ -1,3 +1,5 @@
+import { isCopilot } from '../tool.js';
+
 // picks accounts for a move. pure: accounts is the page's Map of id -> {label, limits, forecast}.
 const used = (a) => {
   const w = a.limits && a.limits.fiveHour;
@@ -10,7 +12,7 @@ const soon = (a) => !!(a.forecast && a.forecast.fiveHourAt);
 // the other accounts, best first: known room before unknown, accounts that run out themselves last
 export function rankAccounts(accounts, excludeId) {
   const list = [];
-  for (const [id, a] of accounts) if (id !== excludeId) list.push({ id, label: a.label || id, pct: used(a), soon: soon(a) });
+  for (const [id, a] of accounts) if (id !== excludeId && !isCopilot({ id, tool: a.tool })) list.push({ id, label: a.label || id, pct: used(a), soon: soon(a) });
   const key = (x) => (x.soon ? 2 : x.pct === null ? 1 : 0);
   return list.map((x, i) => [x, i]).sort(([a, i], [b, j]) => key(a) - key(b) || (a.pct ?? 0) - (b.pct ?? 0) || i - j).map(([x]) => x);
 }

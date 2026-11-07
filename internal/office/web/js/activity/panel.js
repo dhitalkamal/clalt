@@ -74,6 +74,7 @@ export function createActivityPanel(h) {
     meta.replaceChildren();
     const add = (k, v) => meta.append(el('div', '', el('dt', '', k), el('dd', '', v)));
     add('state', stampNode(d.state, d.stateText));
+    if (d.tool) add('tool', chipNode(d.tool));
     add('account', chipNode(d.account));
     add('project', el('span', 'projname', d.project));
     const gone = st.rec.leaving || (st.rec.role === 'main' && st.rec.state === 'ended') || st.rec.role === 'review';

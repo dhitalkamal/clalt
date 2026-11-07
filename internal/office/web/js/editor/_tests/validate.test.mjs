@@ -151,3 +151,14 @@ test('an empty or blank title is an error', () => {
   ok.title = 'Mine';
   assert.ok(!errs(ok).includes('title-empty'));
 });
+
+test('a cabins room may belong to the copilot team, no other id with a tilde', () => {
+  const ok = baseLayout();
+  ok.rooms.find((r) => r.type === 'cabins').account = '~copilot';
+  assert.ok(!errs(ok).includes('account-bad'));
+  for (const bad of ['~other', '~copilot2', '~']) {
+    const l = baseLayout();
+    l.rooms.find((r) => r.type === 'cabins').account = bad;
+    assert.ok(errs(l).includes('account-bad'), bad);
+  }
+});

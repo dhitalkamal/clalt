@@ -10,6 +10,7 @@ import { disposeTree } from './dispose.js';
 import { pickLook } from './looks.js';
 import { agentRecords } from './roster.js';
 import { accountLine } from './accountline.js';
+import { accountLabel } from './tool.js';
 import { workingByRoom } from './roomcount.js';
 
 // takes a built group out of the world and frees what it held
@@ -51,7 +52,7 @@ export function refreshLabels() {
   if (app.labelsImpl) { app.labelsImpl(); return; }
   const labels = [];
   for (const w of app.dynamic ? app.dynamic.wings : []) {
-    const info = app.accounts.get(w.account) || { label: w.account, limits: null };
+    const info = { label: accountLabel(app.accounts, w.account), limits: (app.accounts.get(w.account) || {}).limits || null };
     const line = accountLine(app.sessions.filter((s) => !s.leaving && s.account === w.account && (!w.room || L.slots?.get(s.id)?.room === w.room.id))
       .map((s) => ({ state: s.state, away: ['leisure', 'walking'].includes(app.agents.get(s.id)?.mode), rest: !!app.agents.get(s.id)?.plan?.rest })));
     labels.push({ id: 'w-' + (w.room ? w.room.id : '') + '-' + w.account, cls: 'zone', key: JSON.stringify([info.label, info.limits, wingKey(w.account), line]),
