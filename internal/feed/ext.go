@@ -37,5 +37,7 @@ func IsExt(handle string) bool {
 }
 
 // ValidKey says whether handle may name a session file: the handle of a clalt
-// run session or an ext key.
-func ValidKey(handle string) bool { return registry.ValidHandle(handle) || IsExt(handle) }
+// run session, an ext key or a Copilot key.
+func ValidKey(handle string) bool {
+	return registry.ValidHandle(handle) || IsExt(handle) || IsCopilot(handle)
+}

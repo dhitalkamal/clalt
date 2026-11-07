@@ -111,7 +111,7 @@ func validateRoom(l Layout, r Room) error {
 		if r.Type != "cabins" {
 			return fmt.Errorf("room %s sets an account, which only cabins rooms may", r.ID)
 		}
-		if !accountRe.MatchString(r.Account) {
+		if !ValidAccount(r.Account) {
 			return fmt.Errorf("room %s has an account that is not an account id", r.ID)
 		}
 	}
