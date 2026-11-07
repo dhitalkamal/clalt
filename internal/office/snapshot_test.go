@@ -26,6 +26,7 @@ type fixture struct {
 	reg  registry.Registry
 	feed feed.Store
 	accs []Account
+	cp   CopilotSource
 }
 
 func newFixture(t *testing.T) *fixture {
@@ -70,7 +71,7 @@ func (f *fixture) subagents(handle, account string, subs ...feed.Subagent) {
 func (f *fixture) build() Snapshot {
 	f.t.Helper()
 	snap, err := Build(RealSources(Real{
-		Registry: f.reg, Feed: f.feed, Accounts: staticAccounts(f.accs), Now: func() time.Time { return t0 },
+		Registry: f.reg, Feed: f.feed, Accounts: staticAccounts(f.accs), Copilot: f.cp, Now: func() time.Time { return t0 },
 	}))
 	if err != nil {
 		f.t.Fatal(err)
