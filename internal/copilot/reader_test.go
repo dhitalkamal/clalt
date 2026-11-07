@@ -190,7 +190,8 @@ func TestACopilotHomeEnvIsRespected(t *testing.T) {
 	}
 	t.Setenv("COPILOT_HOME", "")
 	t.Setenv("HOME", "/h")
-	if Home() != "/h/.copilot" {
+	// filepath.Join, not a literal: the separator is a backslash on windows
+	if Home() != filepath.Join("/h", ".copilot") {
 		t.Errorf("%q", Home())
 	}
 }
