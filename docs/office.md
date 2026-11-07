@@ -287,7 +287,8 @@ includes plain `claude` sessions when [the feed is installed for
 it](feed.md). Without the feed, sessions show as starting and limits as
 unknown. Subagents come from the feed's subagent hooks too. An existing feed
 install needs `clalt feed install` run again to add them, see
-[feed.md](feed.md).
+[feed.md](feed.md). Copilot CLI sessions are read from Copilot's own
+files, see [office-copilot.md](office-copilot.md).
 
 ## Credits
 
