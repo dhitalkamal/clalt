@@ -1,6 +1,7 @@
 // wires the editor into the page: it talks to clalt's layout routes and hands the editor the scene seams
 import { mountEditor } from './editor/index.js';
 import { app, stage } from './app.js';
+import { editorAccounts } from './tool.js';
 import { setPreset } from './stage.js';
 import { goCam } from './camseam.js';
 import { loadCatalog } from './catalog.js';
@@ -67,7 +68,7 @@ function demand(room) {
 // button is the settings dialog's Build mode button, it toggles the editor
 export async function startEditor(layout, button, onSwitched) {
   await saver.refresh().catch(() => {});
-  const accounts = () => [...app.accounts].map(([id, a]) => ({ id, name: a.label }));
+  const accounts = () => editorAccounts(app.accounts);
   return mountEditor({
     layout, catalog: await loadCatalog(), applyLayout, cellToWorld, worldToCell, save, button,
     camera: stage.camera, renderer: stage.renderer, templates, layouts: layouts(onSwitched), sessionCount: demand,

@@ -1,15 +1,18 @@
 // session records the scene works on. sync.js makes them from snapshots, the scene reads them.
 import { spaceFor } from './layout.js';
+import { COPILOT_ID, COPILOT_TINT, toolName } from './tool.js';
 
 export const MAX_SESSIONS = 20;
 export const MAX_SUBS = 8;
 
-const PALETTE = [0x4f86c6, 0x58b08a, 0xd98a3d, 0xa67bc9, 0xc9677b, 0x5fb3b3, 0xb5a23c, 0x7a8aa8];
-export const ACCOUNT_TINT = {};
+export const PALETTE = [0x4f86c6, 0x58b08a, 0xd98a3d, 0xa67bc9, 0xc9677b, 0x5fb3b3, 0xb5a23c, 0x7a8aa8];
+export const ACCOUNT_TINT = { [COPILOT_ID]: COPILOT_TINT };
+let handedOut = 0;
 
-// the first time an account is seen it gets the next colour, and keeps it for the page's life
+// the first time an account is seen it gets the next colour, and keeps it for the page's life.
+// the Copilot team is in the table from the start and never counts against the palette.
 export function tintFor(account) {
-  if (ACCOUNT_TINT[account] === undefined) ACCOUNT_TINT[account] = PALETTE[Object.keys(ACCOUNT_TINT).length % PALETTE.length];
+  if (ACCOUNT_TINT[account] === undefined) ACCOUNT_TINT[account] = PALETTE[handedOut++ % PALETTE.length];
   return ACCOUNT_TINT[account];
 }
 
@@ -36,7 +39,7 @@ export function modelName(id) {
 
 export function makeSession(snap, account) {
   return {
-    id: snap.handle, role: 'main', seed: hash(snap.handle), account, leaving: false, subs: [],
+    id: snap.handle, role: 'main', tool: toolName(snap), seed: hash(snap.handle), account, leaving: false, subs: [],
     state: snap.state, reason: snap.needsYouReason || '', handle: snap.handle, project: snap.project,
     model: modelName(snap.model), actions: snap.actions, startedAt: Date.parse(snap.startedAt) || 0,
   };

@@ -9,7 +9,7 @@ Unofficial community tool, not affiliated with Anthropic.
 
 ## Getting started
 
-You need claude 2.1.301 or newer on your PATH, and Go 1.26.10 or newer to build
+You need claude 2.1.301 or newer on your PATH, and Go 1.26.11 or newer to build
 clalt.
 
 ### 1. Install

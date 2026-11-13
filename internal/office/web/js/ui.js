@@ -4,6 +4,8 @@ import { MAX_SESSIONS } from './model.js';
 import { fitLabels, topBand } from './labelfit.js';
 import { teamCard } from './cardinfo.js';
 import { stampNode, chipNode } from './notebook.js';
+import { wingView } from './wingview.js';
+import { accountLabel, toolName } from './tool.js';
 
 const $ = (id) => document.getElementById(id);
 const tmp = new THREE.Vector3();
@@ -28,12 +30,12 @@ export const wingKey = (id) => (wingExtra && id ? wingExtra(id).key : '');
 
 export function renderWing(div, label, limits, id, line = '') {
   // zpct is what the compact one-line card shows in place of the bars: the busiest window
-  const used = [limits && limits.fiveHour, limits && limits.sevenDay].filter(Boolean).map((w) => Math.round(w.usedPct));
-  const worst = used.length ? Math.max(...used) : null;
-  const zname = el('div', 'zname', label);
-  zname.append(el('span', 'zpct ' + (worst === null ? '' : barClass(worst)), worst === null ? '?' : worst + '%'));
+  const v = wingView(label, limits, id);
+  const zname = el('div', 'zname', v.label);
+  if (v.pct) zname.append(el('span', 'zpct ' + (v.worst === null ? '' : barClass(v.worst)), v.worst === null ? '?' : v.worst + '%'));
   div.append(zname);
   if (line) div.append(el('div', 'zline', line));
+  if (!v.bars) { div.classList.add('copilot'); return; }
   div.append(bar('5h', limits && limits.fiveHour), bar('7d', limits && limits.sevenDay));
   if (wingExtra && id) wingExtra(id).render(div);
 }
@@ -211,14 +213,14 @@ export class UI {
   showCard(agent, x, y) {
     if (!agent) { this.card.hidden = true; this.cardKey = ''; return; }
     const s = agent.s;
-    const acct = this.accounts.get(s.account);
-    const label = acct ? acct.label : s.account;
+    const label = accountLabel(this.accounts, s.account);
+    const copilot = toolName(s) === 'copilot';
     if (agent.isMain) {
       const reason = s.state === 'needs-you' && s.reason ? ` (${s.reason.replace(/_/g, ' ')})` : '';
       const subs = s.subs.filter((a) => !a.leaving).length;
-      const key = ['m', s.id, s.state, s.reason, s.project, s.model, subs, age(Date.now() - s.startedAt)].join('|');
-      this.fill(key, (c) => c.append(el('div', 'h', 'claude (main) ', el('span', 'crown', 'crown')), dl([
-        ['handle', s.handle], ['project', s.project], ['model', s.model], ['state', stateCell(s.state, s.state + reason)],
+      const key = ['m', s.id, s.tool, s.state, s.reason, s.project, s.model, subs, age(Date.now() - s.startedAt)].join('|');
+      this.fill(key, (c) => c.append(el('div', 'h', (copilot ? 'copilot' : 'claude') + ' (main) ', el('span', 'crown', 'crown')), dl([
+        ['handle', s.handle], ...(copilot ? [['tool', chipNode('Copilot')]] : []), ['project', s.project], ['model', s.model], ['state', stateCell(s.state, s.state + reason)],
         ['account', chipNode(label)], ['subagents', String(subs)], ['running', age(Date.now() - s.startedAt)]])), x, y);
       return;
     }

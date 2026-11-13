@@ -1,5 +1,6 @@
 // the summary reply as a view model: strings ready to show. the panel and the
 // copy as text both read it, so they never disagree. no dom here.
+import { claudeOnly } from '../tool.js';
 import { fmtTokens, fmtCost, fmtMinutes } from './format.js';
 
 const list = (v) => (Array.isArray(v) ? v : []);
@@ -45,7 +46,7 @@ function section(title, s) {
 }
 
 export function summaryModel(sum) {
-  const accounts = list(sum && sum.accounts).map((a) => ({
+  const accounts = claudeOnly(list(sum && sum.accounts)).map((a) => ({
     id: a.id, ...section(a.label || a.id, a), projects: list(a.projects).map((p) => section(p.name, p)),
   }));
   return {

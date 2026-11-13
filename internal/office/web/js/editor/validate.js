@@ -1,5 +1,6 @@
 // live validation: every rule of the layout contract, plus seat warnings.
 // pure, no dom. issue = {sev: 'error'|'warn', code, msg, id?}.
+import { COPILOT_ID } from '../tool.js';
 import { furnitureRect, rectsOverlap, rectInside, levelBounds, rectCenterCell, pointInRect, doorSideLength, stairsRects } from './geometry.js';
 
 export const MAX_ROOMS = 64;
@@ -8,6 +9,8 @@ const ID_RE = /^[a-z0-9-]{1,32}$/;
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const NAME_RE = /^[a-z0-9-]{1,40}$/;
 const ACCOUNT_RE = /^[A-Za-z0-9._-]{1,64}$/;
+// a claude account id, or the reserved id of the Copilot team (same rule as layout.ValidAccount)
+const okAccount = (a) => a === COPILOT_ID || ACCOUNT_RE.test(a);
 const TYPES = ['lobby', 'cabins', 'research', 'workspace', 'review', 'meeting', 'cafe', 'play'];
 const SIDES = ['left', 'right', 'back', 'front'];
 const ROTS = [0, 90, 180, 270];
@@ -127,7 +130,7 @@ function checkRooms(l, err) {
     if (!TYPES.includes(r.type)) err('room-type', 'Unknown room type "' + r.type + '".', r.id);
     const rp = textProblem(r.label || '', 40);
     if (rp) err('text-bad', 'Room label ' + rp + '.', r.id);
-    if (r.account && r.type === 'cabins' && !ACCOUNT_RE.test(r.account)) err('account-bad', 'Account is not an account id.', r.id);
+    if (r.account && r.type === 'cabins' && !okAccount(r.account)) err('account-bad', 'Account is not an account id.', r.id);
     const bounds = levelBounds(l, r.level);
     if (!bounds) err('room-outside', r.label + ' is on level ' + r.level + ', which this layout does not have.', r.id);
     else if (!rectInside(r, bounds)) {

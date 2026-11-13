@@ -1,6 +1,7 @@
 // the "When idle" section of the settings dialog: a one-line summary and a button that opens the full list on its
 // own notebook page (a dialog over the settings). rows save on change through the shared store.
 import { el, clear } from '../dom.js';
+import { accountLabel } from '../tool.js';
 import { roomsOf } from './resolve.js';
 import { summaryText, subtypesOf } from './view.js';
 import { choiceSelect } from './select.js';
@@ -81,7 +82,7 @@ function createIdlePage(h) {
       if (!rows.length) return;
       body.append(el('h4', '', head), ...rows);
     };
-    group('Accounts', [...(app.accounts || new Map())].map(([id, a]) => row(a.label || id, 'sessions', 'accounts', id, 'everyone')));
+    group('Accounts', [...(app.accounts || new Map())].map(([id, a]) => row(accountLabel(app.accounts, id), 'sessions', 'accounts', id, 'everyone')));
     group('Team members', (app.team || []).map((t) => row(t.name || t.id, '', 'teams', t.id, 'all team members')));
     group('Subagent types', subtypesOf(app.sessions || [], store.rules().subtypes).map((t) => row(t, 'subagents', 'subtypes', t, 'everyone')));
   }

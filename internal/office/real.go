@@ -4,9 +4,15 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/dhitalkamal/clalt/internal/copilot"
 	"github.com/dhitalkamal/clalt/internal/feed"
 	"github.com/dhitalkamal/clalt/internal/registry"
 )
+
+// CopilotSource lists the open Copilot CLI sessions it finds on disk.
+type CopilotSource interface {
+	Sessions() ([]copilot.Session, error)
+}
 
 // Real is the machine's own registry, feed and accounts. Now is time.Now when
 // nil.
@@ -15,6 +21,8 @@ type Real struct {
 	Feed     feed.Store
 	Accounts AccountSource
 	Team     TeamSource
+	// Copilot reads Copilot CLI's own session files, nil means none.
+	Copilot CopilotSource
 	// Projects are the folders that hold the project folders of transcripts.
 	Projects []string
 	Now      func() time.Time
@@ -34,7 +42,7 @@ func RealSources(r Real) Sources {
 
 // Sessions lists the sessions whose wrapper is alive, with what the feed says
 // they are doing (starting when it has not heard of them), and the plain
-// claude sessions the feed knows. it only reads.
+// claude and Copilot sessions the feed knows. it only reads.
 func (r Real) Sessions() ([]Session, error) {
 	entries, _, err := r.Registry.Scan()
 	if err != nil {
@@ -58,16 +66,56 @@ func (r Real) Sessions() ([]Session, error) {
 	if err != nil {
 		return out, nil
 	}
+	fed := map[string]time.Time{}
 	for _, st := range all {
-		if !feed.IsExt(st.Handle) || st.State == feed.StateEnded || r.Now().Sub(st.UpdatedAt) > extFresh {
+		cp := feed.IsCopilot(st.Handle)
+		if !(feed.IsExt(st.Handle) || cp) || st.State == feed.StateEnded || r.Now().Sub(st.UpdatedAt) > extFresh {
 			continue
 		}
-		out = append(out, Session{
-			Handle: st.Handle, Account: st.Account, Cwd: st.Cwd, Model: st.Model, State: string(st.State),
+		s := Session{
+			Handle: st.Handle, Account: st.Account, Tool: ToolClaude, Cwd: st.Cwd, Model: st.Model, State: string(st.State),
 			Reason: st.Reason, StartedAt: st.Since,
-		})
+		}
+		if cp {
+			s.Account, s.Tool = CopilotAccount, ToolCopilot
+			fed[st.Handle] = st.UpdatedAt
+		}
+		out = append(out, s)
 	}
-	return out, nil
+	return r.withCopilotFiles(out, fed), nil
+}
+
+// withCopilotFiles adds the sessions found in Copilot's own folder. when the
+// feed has the same handle too, the fresher of the two is listed, once. fed
+// maps the Copilot handles already in out to their feed update time.
+func (r Real) withCopilotFiles(out []Session, fed map[string]time.Time) []Session {
+	if r.Copilot == nil {
+		return out
+	}
+	found, err := r.Copilot.Sessions()
+	if err != nil {
+		return out
+	}
+	for _, c := range found {
+		s := Session{
+			Handle: c.Handle, Account: CopilotAccount, Tool: ToolCopilot, Cwd: c.Cwd, Model: c.Model,
+			State: string(c.State), Reason: c.Reason, StartedAt: c.StartedAt,
+		}
+		at, dup := fed[c.Handle]
+		if !dup {
+			out = append(out, s)
+			continue
+		}
+		if !c.UpdatedAt.After(at) {
+			continue
+		}
+		for i := range out {
+			if out[i].Handle == c.Handle {
+				out[i] = s
+			}
+		}
+	}
+	return out
 }
 
 // Limits reads the feed's limits of the account.

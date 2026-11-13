@@ -1,5 +1,7 @@
 // which log a clicked character opens. pure: records are the roster records (see roster.js and model.js).
 // a main session opens its conversation, a subagent or intern its own run, a team member the run it stands for.
+import { accountLabel, toolName } from '../tool.js';
+
 export const agentOfSub = (sub) => {
   const prefix = (sub.session ? sub.session.handle : '') + '/';
   return sub.id.startsWith(prefix) && prefix !== '/' ? sub.id.slice(prefix.length) : '';
@@ -28,10 +30,11 @@ export function activityTarget(rec, sessions) {
 
 // header fields for a record: {title, account, project, state, stateText}. accounts is the label map from the snapshot.
 export function describeTarget(rec, accounts, sessions) {
-  const label = (id) => (accounts && accounts.get(id) ? accounts.get(id).label : id || '-');
+  const label = (id) => accountLabel(accounts, id);
   if (rec.role === 'review') return { title: rec.title, account: label(rec.account), project: rec.project || '-', state: rec.state, stateText: 'review run' };
   if (rec.role === 'main') {
-    return { title: 'claude (main) ' + rec.handle, account: label(rec.account), project: rec.project || '-', state: rec.state, stateText: rec.state };
+    const cp = toolName(rec) === 'copilot';
+    return { title: (cp ? 'copilot' : 'claude') + ' (main) ' + rec.handle, tool: cp ? 'Copilot' : '', account: label(rec.account), project: rec.project || '-', state: rec.state, stateText: rec.state };
   }
   if (rec.role === 'team') {
     const user = (sessions || []).find((s) => !s.leaving && s.subs.some((x) => !x.leaving && x.team === rec.team));

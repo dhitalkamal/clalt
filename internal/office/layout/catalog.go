@@ -103,5 +103,9 @@ func EmbeddedCatalog() (Catalog, error) {
 // ValidID says whether s is a legal room, item or floor id.
 func ValidID(s string) bool { return idRe.MatchString(s) }
 
+// CopilotAccount is the reserved id of the Copilot team, the one id with a
+// "~" that is let through. office.CopilotAccount must equal it.
+const CopilotAccount = "~copilot"
+
 // ValidAccount says whether s is a legal account id.
-func ValidAccount(s string) bool { return accountRe.MatchString(s) }
+func ValidAccount(s string) bool { return s == CopilotAccount || accountRe.MatchString(s) }

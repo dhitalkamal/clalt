@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dhitalkamal/clalt/internal/config"
+	"github.com/dhitalkamal/clalt/internal/copilot"
 	"github.com/dhitalkamal/clalt/internal/feed"
 	"github.com/dhitalkamal/clalt/internal/notify"
 	"github.com/dhitalkamal/clalt/internal/office"
@@ -110,6 +111,7 @@ func (a *App) officeReal() office.Real {
 		Feed:     feed.Store{Dir: config.FeedDir()},
 		Accounts: officeAccounts{app: a},
 		Team:     office.NewTeamFiles(userAgentsDir(), a.clock),
+		Copilot:  &copilot.Reader{Home: copilot.Home(), Now: a.clock},
 		Now:      a.clock,
 	}
 	if dir := config.ClaudeProjectsDir(); dir != "" {

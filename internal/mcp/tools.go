@@ -133,6 +133,9 @@ func accountViews(b Backend) ([]limitsView, error) {
 	now := b.now()
 	out := make([]limitsView, 0, len(snap.Accounts))
 	for _, a := range snap.Accounts {
+		if a.Tool != "" && a.Tool != office.ToolClaude {
+			continue
+		}
 		out = append(out, limitsView{
 			ID: office.NoEmail(a.ID), Label: office.NoEmail(a.Label),
 			FiveHour: view(a.Limits.FiveHour, now), SevenDay: view(a.Limits.SevenDay, now),
@@ -241,6 +244,7 @@ type subView struct {
 type sessionView struct {
 	Handle         string    `json:"handle"`
 	Account        string    `json:"account"`
+	Tool           string    `json:"tool"`
 	Project        string    `json:"project"`
 	Model          string    `json:"model,omitempty"`
 	State          string    `json:"state"`
@@ -258,7 +262,11 @@ func runSessions(b Backend, _ json.RawMessage) (string, any, error) {
 	states := map[string]int{}
 	running := 0
 	for _, s := range snap.Sessions {
-		v := sessionView{Handle: s.Handle, Account: office.NoEmail(s.Account), Project: s.Project, Model: s.Model,
+		tool := office.ToolClaude
+		if s.Tool == office.ToolCopilot {
+			tool = office.ToolCopilot
+		}
+		v := sessionView{Handle: s.Handle, Account: office.NoEmail(s.Account), Tool: tool, Project: s.Project, Model: s.Model,
 			State: s.State, NeedsYouReason: s.NeedsYouReason, StartedAt: s.StartedAt}
 		for _, sub := range s.Subagents {
 			v.Subagents.Total++

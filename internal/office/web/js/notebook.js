@@ -18,10 +18,13 @@ export function stampNode(state, text) {
 }
 
 const TINTS = ['a-work', 'a-personal', 'a-client'];
+// the Copilot team has its own tape colour, it never hashes into the three above
+const OWN = { copilot: 'a-copilot' };
 
 // tape label tint by account name: the usual names keep their colour, others hash into the three
 export function chipClass(label) {
   const name = String(label || '').trim().toLowerCase();
+  if (OWN[name]) return 'chip ' + OWN[name];
   const known = TINTS.find((t) => t === 'a-' + name);
   if (known) return 'chip ' + known;
   let h = 0;

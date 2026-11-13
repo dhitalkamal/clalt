@@ -31,6 +31,7 @@ type Limits struct {
 type Session struct {
 	Handle    string
 	Account   string
+	Tool      string
 	Cwd       string
 	Model     string
 	State     string
