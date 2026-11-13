@@ -7,6 +7,7 @@ import { SEAT_OFF } from './layout.js';
 import { workIcon } from './workIcons.js';
 import { mixin } from './mixin.js';
 import { CHAR_SCALE, K, TAG_Y, BUBBLE_Y } from './agentConst.js';
+import { headTag } from './tool.js';
 
 let bubbleTex = null;
 let doneTex = null;
@@ -165,7 +166,7 @@ class Build {
     this.ring = makeRing(this.tint);
     this.ring.position.y = 0.42 * K;
     f.add(this.ring);
-    this.tag = this.isMain ? textSprite('claude', this.tint, this.s.project) : textSprite(this.s.role === 'team' ? this.s.name : this.s.type, this.tint);
+    this.tag = this.isMain ? textSprite(headTag(this.s, true), this.tint, this.s.project) : textSprite(headTag(this.s, false), this.tint);
     this.tag.position.y = TAG_Y;
     f.add(this.tag);
     if (!bubbleTex) { bubbleTex = bubbleTexture(); bubbleTex.userData.shared = true; }

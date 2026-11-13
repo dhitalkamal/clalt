@@ -23,3 +23,6 @@ export const claudeOnly = (list) => (Array.isArray(list) ? list : []).filter((a)
 // the cabin owners the layout editor offers: every account, the Copilot team by its label
 export const editorAccounts = (accounts) => (accounts && accounts.entries ? [...accounts.entries()] : [])
   .map(([id, a]) => ({ id, name: accountLabel(accounts, id) || (a && a.label) }));
+
+// the name over a character's head: a main shows its tool, a team member its name, a subagent its type
+export const headTag = (s, isMain) => (isMain ? toolName(s) : s.role === 'team' ? s.name : s.type);
