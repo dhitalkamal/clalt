@@ -39,11 +39,11 @@ func (r *Reader) read(id, path string, tail int64) (summary, error) {
 	}
 	e := r.cache[id]
 	if e != nil && e.size == fi.Size() && e.mtime.Equal(fi.ModTime()) {
-		return e.sum, nil
+		return e.sum.view(), nil
 	}
 	// a smaller file, or an older one, was replaced: fold it again from the top
 	if e == nil || fi.Size() < e.offset || fi.ModTime().Before(e.mtime) {
-		e = &entry{sum: summary{State: feed.StateIdle}}
+		e = &entry{sum: summary{State: feed.StateIdle, base: feed.StateIdle}}
 		first := r.FirstReadBytes
 		if first <= 0 {
 			first = defaultFirstReadBytes
@@ -78,7 +78,7 @@ func (r *Reader) read(id, path string, tail int64) (summary, error) {
 	}
 	e.size, e.mtime = fi.Size(), fi.ModTime()
 	r.cache[id] = e
-	return e.sum, nil
+	return e.sum.view(), nil
 }
 
 // skipPartial moves off to just after the next newline at or past it, so a

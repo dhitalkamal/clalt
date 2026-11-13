@@ -76,3 +76,26 @@ func TestARealReaderOverFilesMakesTheCopilotTeam(t *testing.T) {
 		t.Errorf("%+v", snap.Accounts)
 	}
 }
+
+func TestAnOpenPermissionRequestWavesThroughBuild(t *testing.T) {
+	home := t.TempDir()
+	id := "5f2c951e-6080-437c-a352-c92e842ac58c"
+	dir := filepath.Join(home, "session-state", id)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines := `{"type":"session.start","data":{"sessionId":"` + id + `","startTime":"2026-11-07T17:00:00.000Z","context":{"cwd":"/p/site"}}}` + "\n" +
+		`{"type":"assistant.turn_start","data":{}}` + "\n" +
+		`{"type":"permission.requested","data":{"requestId":"r1","permissionRequest":{"command":"x"}}}` + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "events.jsonl"), []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f := newFixture(t)
+	f.cp = &copilot.Reader{Home: home, Now: func() time.Time { return time.Now() }}
+
+	snap := f.build()
+
+	if len(snap.Sessions) != 1 || snap.Sessions[0].State != "needs-you" || snap.Sessions[0].NeedsYouReason != "permission_prompt" {
+		t.Fatalf("%+v", snap.Sessions)
+	}
+}

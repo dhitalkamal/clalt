@@ -19,11 +19,13 @@ const (
 
 // Session is one open Copilot session. no free text lives here.
 type Session struct {
-	ID        string
-	Handle    string
-	Cwd       string
-	Model     string
-	State     feed.State
+	ID     string
+	Handle string
+	Cwd    string
+	Model  string
+	State  feed.State
+	// Reason is why the session needs you, set only while State is needs-you.
+	Reason    string
 	StartedAt time.Time
 	// UpdatedAt is when events.jsonl last changed.
 	UpdatedAt time.Time
@@ -105,7 +107,7 @@ func (r *Reader) Sessions() ([]Session, error) {
 			continue
 		}
 		ws := readWorkspace(filepath.Join(dir, "workspace.yaml"))
-		s := Session{ID: c.id, State: sum.State, Model: sum.Model, Cwd: ws.Cwd, StartedAt: sum.StartedAt, UpdatedAt: c.mod}
+		s := Session{ID: c.id, State: sum.State, Reason: sum.Reason, Model: sum.Model, Cwd: ws.Cwd, StartedAt: sum.StartedAt, UpdatedAt: c.mod}
 		s.Handle, _ = feed.CopilotHandle(c.id)
 		if s.Cwd == "" {
 			s.Cwd = sum.Cwd
