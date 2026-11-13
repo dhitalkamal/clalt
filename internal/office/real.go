@@ -99,7 +99,7 @@ func (r Real) withCopilotFiles(out []Session, fed map[string]time.Time) []Sessio
 	for _, c := range found {
 		s := Session{
 			Handle: c.Handle, Account: CopilotAccount, Tool: ToolCopilot, Cwd: c.Cwd, Model: c.Model,
-			State: string(c.State), StartedAt: c.StartedAt,
+			State: string(c.State), Reason: c.Reason, StartedAt: c.StartedAt,
 		}
 		at, dup := fed[c.Handle]
 		if !dup {
