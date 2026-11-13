@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-13
+
+### Added
+
+- GitHub Copilot CLI sessions show in the office, next to claude sessions,
+  with nothing to set up: while the office runs it reads the session files
+  Copilot CLI already writes (session-state/<id>/events.jsonl and
+  workspace.yaml under $COPILOT_HOME or ~/.copilot) and nothing else there.
+  It never touches Copilot's login, settings or hooks, and shows no Copilot
+  usage. See docs/office-copilot.md.
+- Copilot sessions sit in their own Copilot team with its own colour and
+  label, and show busy, idle and needs you. A session waiting for a
+  permission answer waves, like a claude one. The card shows the model auto
+  mode picked.
+- The snapshot and the mcp sessions tool report which tool a session belongs
+  to (claude or copilot).
+
+### Changed
+
+- A main session whose account has no cabin in the current layout works at a
+  free desk instead of standing.
+
+### Security
+
+- Built with Go 1.26.11, which fixes GO-2026-6859 in net/http. The office
+  is an http server, so update from earlier builds.
+- The Copilot reader keeps no prompt, message or command text: only ids,
+  folder, state, model and times. It reads files incrementally with caps on
+  folders, bytes and open requests.
+
 ## [0.4.2] - 2026-11-03
 
 ### Fixed
