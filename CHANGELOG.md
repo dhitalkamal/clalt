@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-14
+
+### Fixed
+
+- Copilot characters in the office show copilot on their floating name tag.
+  In 0.5.0 every main character's tag said claude.
+
 ## [0.5.0] - 2026-11-13
 
 ### Added

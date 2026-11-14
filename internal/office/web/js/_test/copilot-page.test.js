@@ -1,7 +1,7 @@
 // the Copilot team on the page: fixed colour, label text, no usage, left out of move targets and history
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COPILOT_ID, COPILOT_TINT, accountLabel, claudeOnly, editorAccounts, isCopilot, toolName } from '../tool.js';
+import { COPILOT_ID, COPILOT_TINT, accountLabel, claudeOnly, editorAccounts, headTag, isCopilot, toolName } from '../tool.js';
 import { wingView } from '../wingview.js';
 import { rankAccounts, planMoveAll } from '../actions/plan.js';
 import { describeTarget } from '../activity/target.js';
@@ -125,4 +125,12 @@ test('the layout editor offers the copilot team as a cabin owner, by its label',
   const accounts = new Map([['work', { label: 'Work', tool: 'claude' }], [COPILOT_ID, { label: 'Copilot', tool: 'copilot' }]]);
   assert.deepEqual(editorAccounts(accounts), [{ id: 'work', name: 'Work' }, { id: COPILOT_ID, name: 'Copilot' }]);
   assert.deepEqual(editorAccounts(null), []);
+});
+
+test('the head tag of a main names its tool, so a copilot main never says claude', () => {
+  assert.equal(headTag({ tool: 'copilot', account: COPILOT_ID }, true), 'copilot');
+  assert.equal(headTag({ tool: 'claude', account: 'work' }, true), 'claude');
+  assert.equal(headTag({ account: 'work' }, true), 'claude');
+  assert.equal(headTag({ role: 'team', name: 'reviewer', type: 'x' }, false), 'reviewer');
+  assert.equal(headTag({ role: 'sub', type: 'Explore' }, false), 'Explore');
 });
