@@ -105,7 +105,7 @@ func (s *Service) review(ctx context.Context, pr PR, info PRInfo, cand Candidate
 	if err := s.GH.Checkout(ctx, wt, pr.Repo, pr.Number); err != nil {
 		return fail(err)
 	}
-	diff, err := s.GH.Diff(ctx, pr.Repo, pr.Number)
+	diff, err := s.prDiff(ctx, wt, pr)
 	if err != nil {
 		return fail(err)
 	}

@@ -212,6 +212,28 @@ func (g GH) PRState(ctx context.Context, repo string, number int) (string, error
 	return "", fmt.Errorf("reviews: gh pr view gave an unknown state %q", v.State)
 }
 
+// shaRe is a full commit id as GitHub writes it. anything else never reaches
+// a git argv.
+var shaRe = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+// BaseSHA reads the commit the base branch of a pull request points at now.
+func (g GH) BaseSHA(ctx context.Context, repo string, number int) (string, error) {
+	out, err := g.run(ctx, "", "pr", "view", strconv.Itoa(number), "--repo", repo, "--json", "baseRefOid")
+	if err != nil {
+		return "", err
+	}
+	var v struct {
+		SHA string `json:"baseRefOid"`
+	}
+	if err := json.Unmarshal(out, &v); err != nil {
+		return "", fmt.Errorf("reviews: gh pr view answered something else: %w", err)
+	}
+	if !shaRe.MatchString(v.SHA) {
+		return "", fmt.Errorf("reviews: gh pr view gave a base that is not a commit id: %q", tidy(v.SHA, 80))
+	}
+	return v.SHA, nil
+}
+
 // Diff is the unified diff of a pull request.
 func (g GH) Diff(ctx context.Context, repo string, number int) (string, error) {
 	out, err := g.run(ctx, "", "pr", "diff", strconv.Itoa(number), "--repo", repo)
